@@ -59,11 +59,35 @@ barrier, not the game's difficulty itself.
 - **REQ-P1 — Product name is UMAssisted.**
   - Not for Play Store distribution — same trademark-exposure reasoning as
     naming a fan tool after the branded game (see conversation). Sideload
-    distribution only, similar to japanglify's release model.
-- **REQ-P2 — Distribution model within "sideload only" is not yet decided.**
-  A signed public release APK (like japanglify's GitHub Releases model) or
-  a purely personal/local build never distributed to anyone else. Blocks
-  release logistics, not feature work. (Registry: OQ-13.)
+    mechanism only, similar to japanglify's approach.
+  - **Narrowed by REQ-P3**: the japanglify comparison only ever applied to
+    the *mechanism* (sideload, not Play Store) — it doesn't extend to
+    japanglify's *public* GitHub Releases model. REQ-P3 rules that part
+    out explicitly; worth being clear about since a fresh reader could
+    otherwise reasonably assume the comparison went further than it does.
+- **REQ-P2 — Distribution model within "sideload only" is resolved — see
+  REQ-P3.** Originally an open choice between a signed public release APK
+  and a personal/local build; REQ-P3 settles it as the latter.
+- **REQ-P3 — Closed source, aside from this requirements document. The
+  implementation is not publicly readable on GitHub, or anywhere, in any
+  form — and the built APK is never made public either.** Resolves OQ-13
+  decisively: not a choice between a public release and a personal build,
+  it's settled as personal/private, full stop.
+  - **This document is the one deliberate exception.** It stays public, in
+    the current public `brianreborn/UMAssisted` repository — that's the
+    entire reason it was published in the first place (reading it across
+    systems, working through the design openly). The exception is scoped
+    to *this file*, not a precedent for the implementation.
+  - **Operational consequence, worth being explicit about now so it isn't
+    a future mistake**: once actual implementation code exists, it belongs
+    in a **separate, private repository** — never added into or exposed
+    through the current public requirements repo. There is no "private
+    branch of a public repo" that actually achieves this on GitHub; it has
+    to be a genuinely separate, private repository.
+  - Consistent with, and likely a further extension of, the same
+    trademark/ToS-exposure caution already noted under REQ-P1 — keeping
+    both the implementation and the binary private meaningfully reduces
+    exposure surface beyond just avoiding the Play Store specifically.
 
 ## 4. Platform & Environment
 
@@ -435,8 +459,11 @@ decision point recurs. That's a selection (replay), not a choice
   constraint, it's a direct consequence of a requirement we already locked
   in. Whatever recognition engine we pick has to run fully on-device
   (Android's offline `SpeechRecognizer` mode or a bundled offline model).
-  - **Open — OQ-10**: which specific on-device engine — needs evaluation
-    against accuracy/language-pack size/latency before picking one.
+  - **Resolved for command recognition — see REQ-V10.** Command
+    recognition (transcribing a full spoken command) and wake-word
+    detection (REQ-V5) turned out to be genuinely separate engineering
+    problems with different engines — REQ-V10 covers the former; the
+    latter is still open (OQ-27).
 - **REQ-V3 — Resistant to false activation.** Ambient noise, the game's
   own voice lines/audio, or unrelated speech in the room must not trigger
   an action. Held to a higher bar than REQ-SF1's stale-state check because
@@ -529,6 +556,50 @@ decision point recurs. That's a selection (replay), not a choice
     Whether it shares one combined overlay panel with the sweep toggle or
     stays a separate control is left to REQ-A7/OQ-15's still-open config
     UI shape work.
+- **REQ-V10 — On-device speech recognition engine for voice commands:
+  Vosk.** Resolves OQ-10 for the general command-recognition need (REQ-V2).
+  Chosen specifically because it has zero ties to Google's infrastructure
+  at all — unlike Android's native `SpeechRecognizer`
+  (`EXTRA_PREFER_OFFLINE` is a *preference*, not a guarantee; by default
+  Android can silently fall back to network-based recognition) or ML
+  Kit's newer GenAI Speech Recognition API (whose "Advanced" mode is
+  Pixel-10-specific, and whose "Basic" mode's Play-Services coupling
+  hasn't been verified the way REQ-M4/OQ-19 verified the OCR engine's).
+  Vosk ships an official Android AAR, supports 20+ languages, streams
+  transcription, and runs entirely self-contained (~50MB per language
+  model, no Google account or Play Services dependency of any kind) —
+  this eliminates the hidden-fallback-path ambiguity outright rather than
+  needing to verify it away, the way REQ-M4 had to.
+  - **Known tradeoff, accepted**: Vosk's accuracy is generally lower than
+    cloud-based alternatives (and likely lower than Google's own on-device
+    models) on standard benchmarks. Same category of tradeoff as REQ-V5's
+    battery cost — an explicit price worth paying for REQ-S1's structural
+    guarantee, not something to quietly work around.
+  - **This resolves REQ-V2's command-recognition need specifically — not
+    REQ-V5's wake-word detection, which turns out to be a genuinely
+    separate engineering problem.** Transcribing a full spoken command
+    after the wake word fires, and cheaply/continuously listening for one
+    specific short phrase beforehand, have different efficiency profiles —
+    a dedicated low-power keyword spotter is typically far more
+    battery-efficient for the always-on case than running a general STT
+    engine nonstop. Vosk could technically serve both roles, but isn't
+    optimized for the always-on one.
+  - **Resolved — OQ-27, wake-word engine (REQ-V5): `heed-wakeword`.**
+    Ruled out the two commercial options first: Porcupine/Picovoice
+    requires a paid or by-request license for anything beyond its limited
+    free tier; DaVoice is the same shape — open-source client code, but
+    the actual wake-word models/detection require a commercial or
+    by-request license. Neither fits a closed-source project cleanly.
+    `heed-wakeword` is Apache-2.0 end to end (explicitly states
+    "commercial and closed-source use are fine, with no copyleft"), runs
+    fully on-device with no usage fees, and — notably — trains a custom
+    model per wake phrase rather than shipping a fixed vocabulary. That
+    last property isn't just convenient, it's required regardless of
+    which engine we'd picked: REQ-V6/REQ-V8 already mandate a
+    user-configurable wake phrase, which a fixed-vocabulary pretrained
+    model (like openWakeWord's, whose code is Apache-2.0 but whose
+    pretrained models are CC-BY-NC-SA — non-commercial licensed, another
+    one to avoid) couldn't support anyway.
 
 ### 6.4 Audio Readout for Choices (Text-to-Speech)
 
@@ -962,9 +1033,11 @@ work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
 - **OQ-9 (REQ-A4) — RESOLVED.** What counts as "the same decision point"
   for matching purposes? Answer: the (support card, event) pair. No
   per-context override mechanism on top of it.
-- **OQ-10 (REQ-V2) — BLOCKING.** Which specific on-device speech
-  recognition engine? Needs evaluation against accuracy, language-pack
-  size, and latency.
+- **OQ-10 (REQ-V2) — RESOLVED by REQ-V10, for command recognition.**
+  Which specific on-device speech recognition engine? Answer: Vosk, for
+  transcribing full spoken commands. Turned out to be a two-engine
+  question, not one — wake-word detection is a separate problem, resolved
+  separately as OQ-27.
 - **OQ-11 (REQ-T3) — OPEN.** When REQ-A4 auto-replays a previously-made
   selection, does that get announced via TTS, or stay silent since no live
   decision is being made? UX decision, not technically blocking.
@@ -972,9 +1045,9 @@ work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
   validation pass be purely an internal design review, or also draw on
   outside precedent/community norms around accessibility tooling for gacha
   games specifically? Doesn't block starting the validation criteria work.
-- **OQ-13 (REQ-P2) — OPEN, not architecture-blocking.** Signed sideload
-  APK release (like japanglify) or a purely personal/local build? Blocks
-  release logistics, not feature work.
+- **OQ-13 (REQ-P3) — RESOLVED.** Signed sideload APK release (like
+  japanglify) or a purely personal/local build? Answer: closed source,
+  personal/private build — never publicly released in any form.
 - **OQ-14 (REQ-PL4) — OPEN, partially resolved.** Minimum Android API
   level/version floor to target. Already constrained to **API 30+**
   (Android 11+) as a floor, since REQ-M3 depends on
@@ -1028,3 +1101,8 @@ work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
   scenario has shipped, consistent with REQ-S1 (no network access)?
   Necessarily a manual, human/maintainer-driven trigger — not something
   the app can detect or automate on its own.
+- **OQ-27 (REQ-V10) — RESOLVED.** Which engine handles wake-word detection
+  (REQ-V5)? Answer: `heed-wakeword` (Apache-2.0, on-device, trains custom
+  phrases). Commercial options (Porcupine, DaVoice) and the
+  non-commercially-licensed pretrained models from openWakeWord were
+  ruled out.
