@@ -14,31 +14,37 @@ barrier, not the game's difficulty itself.
 
 ## Product
 
-- **REQ-P1**: Product name is **UMAssisted**.
+- **REQ-P1 — Product name is UMAssisted.**
   - Not for Play Store distribution — same trademark-exposure reasoning as
     naming a fan tool after the branded game (see conversation). Sideload
     distribution only, similar to japanglify's release model.
 
 ## Platform & environment
 
-- **REQ-PL1**: Initial target platform is **Android**.
-- **REQ-PL2**: Longer-term goal is to support **PC (Steam/DMM client)** and
+- **REQ-PL1 — Initial target platform is Android.**
+- **REQ-PL2 — Longer-term goal is to support PC (Steam/DMM client)** and
   general cross-platform assistance, but Android ships first. Architecture
   decisions should not deliberately foreclose that, but PC support is not
   being scoped yet.
-- **REQ-PL3**: Dev/test environment: rooted Android phone available for
+- **REQ-PL3 — Dev/test environment.** Rooted Android phone available for
   live-debug testing. Local Android SDK + `adb` (bundled under
-  `~/japanglify/sdk`, reused for this project) — no device currently
-  attached to this environment; must be connected when we get to live
-  testing.
+  `~/japanglify/sdk`, reused for this project) — no device is attached by
+  default; must be connected (wireless debugging, `adb connect <ip:port>`)
+  each session before live testing.
+  - **Known facts, established during spikes, recorded here so a fresh
+    agent doesn't have to rediscover them**: the game's package name is
+    `com.cygames.umamusume`; launch it in the foreground via
+    `adb shell monkey -p com.cygames.umamusume -c android.intent.category.LAUNCHER 1`;
+    the device connects over wireless debugging (`adb connect
+    <ip>:<port>`, port varies per session/pairing) rather than USB.
 
 ## Core mechanism
 
-- **REQ-M1**: Primary implementation is an **Android `AccessibilityService`**
+- **REQ-M1 — Primary implementation is an Android `AccessibilityService`**
   — reads the screen's accessibility node tree and dispatches gestures on
   the user's behalf. No root required for this path. Same category of
   assistive tech as TalkBack/Switch Access.
-- **REQ-M2**: Architect the codebase so a **root-based input-injection
+- **REQ-M2 — Architect the codebase so a root-based input-injection
   fallback path** (direct tap injection via the rooted test phone, for
   cases where the game blocks or ignores `AccessibilityService`-dispatched
   gestures) can be added later **without a rework** — i.e. the
@@ -249,10 +255,12 @@ decision point recurs. That's a selection (replay), not a choice
   point. It must never be easier or faster than a human with full mobility
   and a very fast reaction time could accomplish using the app normally,
   by hand. That's the ceiling, not a soft aspiration: gesture timing,
-  traversal speed, and reaction-to-decision-point latency throughout REQ-A1
-  through REQ-R2 should be bounded at what a fast, able-bodied human could
-  physically do, never faster. Sharpens REQ-VAL2's speed/uptime criterion
-  into a concrete, checkable bound rather than a general principle.
+  traversal speed, and reaction-to-decision-point latency — wherever
+  they're specified in this doc (REQ-A1/A2's traversal, REQ-R1/R2's
+  playback, and anywhere else timing shows up) — should be bounded at what
+  a fast, able-bodied human could physically do, never faster. Sharpens
+  REQ-VAL2's speed/uptime criterion into a concrete, checkable bound
+  rather than a general principle.
 
 ## Non-functional: non-interference & safety
 
