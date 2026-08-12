@@ -65,6 +65,13 @@ barrier, not the game's difficulty itself.
     one. Identical result: same single opaque `unitySurfaceView`, zero
     real nodes. Converging evidence this is a universal property of the
     client's rendering, not a quirk of one screen.
+  - **Third data point, same result, and the most directly relevant one**:
+    dumped the in-career training hub itself (turns left, energy bar, goal
+    text, stat bars, Training/Rest/Skills/Recreation/Races buttons) — the
+    exact screen type REQ-A1's "checking training options" sequence
+    depends on. Identical opaque `unitySurfaceView`, zero real nodes.
+    Three different screen types, three-for-three — this is a settled
+    finding for this client, not an open risk anymore.
 - **REQ-M3 — Screen understanding falls back to screenshot-based reading
   (OCR / template matching), not the accessibility node tree.** Direct
   consequence of the finding above. The good news: this does **not**
