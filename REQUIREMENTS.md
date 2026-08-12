@@ -275,6 +275,27 @@ decision point recurs. That's a selection (replay), not a choice
   trigger an action the user never asked for at all, with no "my thumb
   slipped" physical tell to notice it happened. The failure mode is worse,
   so the standard has to be higher.
+- **REQ-SF3 — Refuse to act when the screen isn't purely the game's own
+  UI.** A notification banner, permission dialog, another app's overlay,
+  or anything else drawn on top of or instead of Umamusume breaks REQ-M3's
+  corpus-matching assumption. Safe behavior is the same fallback discipline
+  as an unmatched corpus (REQ-M3/REQ-A4): detect that the screen doesn't
+  cleanly match what's expected, and **do nothing** rather than guess —
+  never dispatch a gesture that might land on foreign content instead of
+  the game (e.g. accidentally interacting with a notification's own
+  content, which could be sensitive and unrelated to the game entirely).
+- **REQ-SF4 — Coexist safely with other concurrently-running accessibility
+  services.** Android supports multiple simultaneous `AccessibilityService`
+  instances, and this population is likely to actually use that — someone
+  combining a motor accessibility need (this project) with a vision one
+  (TalkBack) or another assistive tool isn't an edge case, it's an expected
+  scenario for this project's own users. UMAssisted must not assume it's
+  the only service acting on the screen, must remain fully functional
+  alongside others, and must avoid stepping on another service's gesture
+  dispatch where that's detectable.
+  - **Open — OQ-16 (Open Questions Registry)**: exact conflict-avoidance
+    mechanics between concurrently-dispatching accessibility services
+    aren't trivial and haven't been designed yet.
 
 ## Voice assistance (primary input method)
 
@@ -515,6 +536,38 @@ decision point recurs. That's a selection (replay), not a choice
     `AccessibilityService` code exists and dispatches its own gesture at
     the user's explicit per-instance command (consistent with REQ-A5) —
     not ad hoc shell injection during exploratory testing.
+- **REQ-DEV3 — Any test/spike `AccessibilityService` code must be
+  structurally constrained, not just intended to behave.** We can't prove
+  the code is bug-free, so the ethical claim can't rest on correctness —
+  it has to rest on constraints that hold even if the code has a bug.
+  Chain of custody of control, not just chain of ethics. Applies to the
+  real test that resolves OQ-1, and to any future spike needing genuine
+  `dispatchGesture()` behavior:
+  - **Single trigger surface, and nothing else exists in the code.** The
+    only path to `dispatchGesture()` is the `onClick` handler of one
+    on-screen button the user physically taps — no timers, no listeners,
+    no background triggers. Not disabled — absent. A bug can only make
+    that one button misbehave; nothing else in the codebase can decide to
+    fire anything, because nothing else has the capability to decide.
+  - **Two-step confirm**, mirroring REQ-V4's existing pattern: first tap
+    arms and previews exactly what's about to happen ("about to dispatch
+    one tap at (x,y) — confirm?"); second tap fires. Two independent
+    deliberate actions, not one.
+  - **Staged validation before touching anything real.** Prove the
+    mechanism behaves correctly against a zero-stakes target first (a
+    blank test screen, or Settings) before pointing it at the live
+    Umamusume client even once — and even then, only at an inert,
+    reversible target (e.g. the Back button), never anything consequential.
+  - **The user stays physically present and watching for the entire
+    test** — not left running unattended — so even a plausible bug is
+    caught and stoppable within seconds, not hours.
+  - **Small enough to actually read.** Not trusted as a black box — short
+    enough that the user reads every line before it's installed.
+  - **Installed, run once, uninstalled.** Not left as a standing service
+    that persists as risk after the test concludes.
+  - None of this proves the code is correct. It proves that even if it
+    isn't, the blast radius is bounded to one button, caught by a human
+    watching in real time, against a target that doesn't matter.
 
 ## Non-functional: security & privacy
 
@@ -623,3 +676,7 @@ work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
 - **OQ-15 (config UI) — OPEN.** UI shape for configuring which sequences
   get consolidated — settings screen vs. floating overlay control panel vs.
   both. Design question, not blocking architecture.
+- **OQ-16 (REQ-SF4) — OPEN.** Exact conflict-avoidance mechanics between
+  UMAssisted and other concurrently-dispatching accessibility services
+  (e.g. TalkBack, Switch Access, Voice Access) haven't been designed yet —
+  only the requirement to coexist safely has been established.
