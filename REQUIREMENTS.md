@@ -43,6 +43,17 @@ barrier, not the game's difficulty itself.
 - Actually using the root-access fallback path — the seam exists (REQ-M2),
   but using it is a separate decision not yet made (see REQ-T4)
 
+**Milestones** (referenced throughout — defined here once, in one place):
+- **1.0 alpha** — first working build. Incomplete voice coverage is
+  acceptable here (REQ-V7).
+- **1.0 beta** — feature-complete for 1.0 scope. Full voice control of
+  everything inside a career becomes a hard blocker (REQ-V7); UI-element
+  coverage verification is underway (REQ-QA1).
+- **1.0 final** — the actual 1.0 release. UI overlay tested against every
+  scenario is a hard blocker (REQ-QA2).
+- **2.0** — provisional, tentative scope only. Currently just tap record &
+  playback (REQ-R1/R2).
+
 ## 3. Product
 
 - **REQ-P1 — Product name is UMAssisted.**
