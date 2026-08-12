@@ -288,7 +288,7 @@ selections, never choices or decisions.** The user makes every decision
 that exists in the game — full stop. What UMAssisted can do is execute a
 decision the user already made, again, mechanically, when that same
 decision point recurs. That's a selection (replay), not a choice
-(judgment).
+(judgment). Formalized as an explicit, checkable test in REQ-A11.
 
 - **REQ-A1 — Automate specific interaction sequences, not full gameplay.**
   UMAssisted assists with named, discrete sequences the player still
@@ -447,6 +447,45 @@ decision point recurs. That's a selection (replay), not a choice
     overlay-based. Doesn't resolve the broader question of every
     sequence's configuration UI — just this feature's on/off switch
     specifically.
+- **REQ-A11 — Soft requirement: UMAssisted makes no decision automatically
+  for the user, except under extreme constraints — and even then, only
+  when the "automatic" action can be reconciled back to an explicit,
+  previously-stored user intent.** Formalizes this section's operating
+  principle (selections, never choices) into an explicit test any future
+  feature has to pass, not just a description of what REQ-A4 happens to
+  do.
+  - **The reconciliation test, worked through REQ-A4/REQ-A8 as the
+    canonical example.** REQ-A4's decision replay looks, at first glance,
+    like UMAssisted automatically choosing something for the user — the
+    game presents a choice, and UMAssisted taps an option without the
+    user tapping it themselves in that moment. That would be a real
+    exception to "no automatic decisions" if it stood alone. It doesn't
+    stand alone, because of REQ-A8: the feature is **disabled by
+    default**, and the user has to explicitly opt in. That opt-in act —
+    turning auto-replay on for a specific (support card, event) — is
+    itself a deliberate decision, one that **stores an intent to repeat a
+    specific, already-made choice** going forward. When the automation
+    later fires, it isn't UMAssisted deciding anything new; it's
+    mechanically executing an intent the user already deposited, in two
+    separate, deliberate steps — the original live choice, then the
+    explicit choice to make it standing. That's what reconciles
+    REQ-A4/REQ-A8 with this principle rather than contradicting it.
+  - **What "extreme constraints" means, concretely**: an apparent
+    exception to "no automatic decisions" is only legitimate if it passes
+    this same reconciliation test — traceable to an explicit, previously-
+    stored, opt-in user intent, never to UMAssisted's own judgment about
+    what's best. A proposed feature that can't be reconciled this way
+    doesn't qualify as an "extreme constraints" exception; it's a plain
+    violation of the principle, and shouldn't ship regardless of how
+    convenient it would be.
+  - **A soft requirement in the sense that it's a standing test to apply
+    to every future feature, not a single crisp pass/fail technical bound
+    the way REQ-A6's speed ceiling is.** Meant to be checked deliberately
+    each time a new feature is proposed — closely related to, and
+    arguably a detailed elaboration of, REQ-VAL2's "no independent
+    decision-making" criterion specifically. Whether that checking is
+    formalized as part of REQ-VAL's validation pass or stays ad hoc design
+    discussion is the same open question as OQ-12, not a new one.
 
 ### 6.3 Voice Assistance (Primary Input Method)
 
@@ -796,7 +835,9 @@ decision point recurs. That's a selection (replay), not a choice
     UMAssisted doesn't let the user reach outcomes they couldn't reach by
     tapping through it themselves — it only reduces the physical/sensory
     cost of doing so. Already implied by REQ-A4: no independent
-    decision-making, only replay of the user's own prior choices.
+    decision-making, only replay of the user's own prior choices. REQ-A11
+    formalizes this into the explicit reconciliation test used to check
+    any future feature against it.
   - **No speed/uptime advantage beyond human capability.** Hardened into
     concrete requirements rather than left as a general principle — see
     REQ-A5 (no self-looping/unattended running, cross-cutting across
