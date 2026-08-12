@@ -466,6 +466,52 @@ decision point recurs. That's a selection (replay), not a choice
     collision with Umamusume's own dialogue for that user's play patterns,
     rather than the whole userbase sharing one fixed phrase's false-trigger
     risk.
+- **REQ-V7 — Hard requirement: full voice control of everything inside a
+  career, once you're in one.** Once inside a career (the core
+  training/racing gameplay loop), the user must be able to control
+  everything using voice alone — no touch required at all. **Hard blocker
+  for 1.0 beta; acceptable to be incomplete for 1.0 alpha.** This
+  significantly broadens REQ-V beyond "a primary input method for specific
+  sequences" into a comprehensive parity requirement: every in-career
+  action available via touch needs a voice-driven equivalent by beta.
+  - **Doesn't conflict with REQ-A1's automation-scope limits — different
+    axis entirely.** REQ-A1 restricts what UMAssisted may do on its own
+    initiative (specific, named, scoped sequences, never full gameplay
+    automation). REQ-V7 is about input-*channel* completeness for
+    user-driven actions — voice is just another way for the user to issue
+    one specific, deliberate command instead of tapping it, exactly like
+    REQ-A5 already requires (single-shot per command, no standing loop).
+    It expands how the user can act, not what UMAssisted decides on its
+    own.
+  - **Open — OQ-22 (§9)**: full inventory of what "everything inside a
+    career" actually covers (training, racing, resting, skills,
+    recreation, races menu, etc.) hasn't been enumerated yet — this
+    requirement commits to the goal and the beta deadline, not yet the
+    checklist.
+- **REQ-V8 — User-definable vocalizations per action, not a fixed command
+  grammar.** The user must be able to define their own spoken phrase for
+  selecting each training facility — and, per REQ-V7, presumably other
+  in-career actions as that scope gets enumerated — not limited to a
+  fixed, hardcoded command set. Extends REQ-V6's wake-phrase-
+  configurability principle from the wake phrase specifically to action
+  commands generally, for the same reason: accessibility software
+  shouldn't assume there's one correct way to say something.
+  - **Open — OQ-23 (§9)**: default/fallback vocalizations for users who
+    don't customize — ship with sensible per-action defaults the user can
+    override, or require setup before any voice control works at all?
+    Leaning toward defaults-plus-override on UX grounds, but not decided.
+- **REQ-V9 — Voice assist gets the same always-visible overlay toggle
+  pattern as REQ-A10, for the kill-switch reason REQ-V5 already
+  established.** Concrete motivating case: a concurrent phone call, where
+  the always-listening mic (REQ-V5) needs to be quickly and manually
+  disabled and re-enabled without digging into settings. This is a manual
+  backup to REQ-V6's automatic mic-yielding behavior, not a replacement
+  for it — something this important shouldn't rely on the automatic
+  behavior alone.
+  - Same UI pattern as REQ-A10 (persistent, always-visible slider/toggle).
+    Whether it shares one combined overlay panel with the sweep toggle or
+    stays a separate control is left to REQ-A7/OQ-15's still-open config
+    UI shape work.
 
 ### 6.4 Audio Readout for Choices (Text-to-Speech)
 
@@ -607,6 +653,17 @@ decision point recurs. That's a selection (replay), not a choice
   never dispatch a gesture that might land on foreign content instead of
   the game (e.g. accidentally interacting with a notification's own
   content, which could be sensitive and unrelated to the game entirely).
+  - **Clarification, needed once REQ-A10/REQ-V9 exist**: UMAssisted's own
+    known overlay elements (the sweep toggle, the voice toggle, and any
+    future overlay controls) are not "foreign" for the purposes of this
+    check. As written, a literal reading of this requirement would make
+    UMAssisted refuse to act any time its own persistent, always-visible
+    overlay (REQ-A10/REQ-V9's whole point) is on screen — which would be
+    effectively always, since those are designed to be persistently
+    visible. The foreign-overlay detector needs to specifically recognize
+    and exclude its own rendered region(s) from this determination; it's
+    still exactly the right behavior for anything it doesn't recognize as
+    its own.
 - **REQ-SF4 — Coexist safely with other concurrently-running accessibility
   services.** Android supports multiple simultaneous `AccessibilityService`
   instances, and this population is likely to actually use that — someone
@@ -742,6 +799,38 @@ decision point recurs. That's a selection (replay), not a choice
     isn't, the blast radius is bounded to one button, caught by a human
     watching in real time, against a target that doesn't matter.
 
+### 8.3 Coverage Verification & Release Gates
+
+- **REQ-QA1 — Human-verified complete UI-element coverage, both input and
+  output.** Before shipping, a human must verify — not just infer from a
+  green test suite — that every relevant UI element the game presents has
+  been accounted for on both sides: **input** (every interactive element
+  UMAssisted might need to act on — training facilities, shop items, menu
+  buttons, event choice options — is represented in the corpus and
+  correctly actionable) and **output** (every piece of information the
+  user might need — stat previews, choice text, results, notifications —
+  has a corresponding readout path via REQ-T or otherwise). Extends
+  REQ-F4's underlying discipline (human-labeled, never runtime-inferred)
+  up from "is this one screen a choice" to "is our overall coverage
+  actually complete."
+  - Directly gates REQ-V7's "full voice control of everything inside a
+    career" — that requirement can't be verified complete without this
+    kind of systematic check existing first.
+  - **Open — OQ-24 (§9)**: what "complete" actually means here — is there
+    a definitive, enumerable list of every UI element/screen to check
+    against (unlikely, given how many training events alone exist), or is
+    this necessarily an ongoing, best-effort process rather than a
+    one-time checklist? Not decided.
+- **REQ-QA2 — UI overlay tested against every scenario, hard blocker for
+  1.0 final release.** All of UMAssisted's own overlay elements (REQ-A10's
+  sweep toggle, REQ-V9's voice toggle, and any future overlay controls)
+  must be tested across every game scenario/screen state before **1.0
+  final** — a milestone later than both 1.0 alpha and 1.0 beta (REQ-V7).
+  Concretely: the overlay stays visible, functional, and correctly
+  positioned across all screens (menus, races, loading, events, etc.); it
+  never obscures critical game UI; and it correctly exercises REQ-SF3's
+  now-clarified self-overlay exclusion rather than fighting it.
+
 ## 9. Open Questions Registry
 
 - **REQ-OQ1 — Maintain a single canonical registry of every open question
@@ -859,3 +948,15 @@ work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
 - **OQ-21 (REQ-A9) — OPEN.** Exact dwell duration per facility during
   auto-sweep — fixed, or adaptive to how much text is in that facility's
   preview panel? Not specified yet.
+- **OQ-22 (REQ-V7) — BLOCKING for 1.0 beta, not for alpha.** Full
+  inventory of what "everything inside a career" covers for voice-control
+  parity purposes (training, racing, resting, skills, recreation, races
+  menu, etc.) hasn't been enumerated yet.
+- **OQ-23 (REQ-V8) — OPEN.** Default/fallback vocalizations for users who
+  don't customize their own — ship with sensible per-action defaults the
+  user can override, or require setup before voice control works at all?
+  Leaning defaults-plus-override, not decided.
+- **OQ-24 (REQ-QA1) — OPEN.** What does "complete" UI-element coverage
+  actually mean — a definitive, enumerable checklist to verify against
+  (unlikely, given how many training events alone exist), or an ongoing,
+  best-effort process with no true finish line? Not decided.
