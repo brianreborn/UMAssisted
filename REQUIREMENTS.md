@@ -328,9 +328,8 @@ decision point recurs. That's a selection (replay), not a choice
     Where genuine undo isn't possible, the fallback is at minimum
     *detecting and flagging* the likely-accidental tap to the user
     immediately, even if the consequence can't be reversed.
-  - **Open — OQ-8**: the specific detection heuristic that identifies a
-    likely-accidental/seizure-pattern tap burst, as distinct from fast
-    intentional play, isn't defined yet — only the goal is.
+  - **Resolved — see REQ-A12.** The specific detection heuristic is
+    defined there, not just the goal.
   - Relates to REQ-V4 (confirmation before consequential/irreversible voice
     actions) — same principle, applied to raw touch input: consequential
     actions deserve a safety net against unintended input, regardless of
@@ -486,6 +485,45 @@ decision point recurs. That's a selection (replay), not a choice
     decision-making" criterion specifically. Whether that checking is
     formalized as part of REQ-VAL's validation pass or stays ad hoc design
     discussion is the same open question as OQ-12, not a new one.
+- **REQ-A12 — Accidental/seizure-pattern tap-burst detection heuristic.**
+  Resolves OQ-8. A tap sequence is flagged as likely-accidental —
+  triggering REQ-A3's offer to undo/flag — when it satisfies **both**:
+  1. **Rate**: N or more taps within a short rolling window (on the order
+     of 5+ taps within 1 second) — a volume implausible for deliberate,
+     controlled tapping.
+  2. **At least one incoherence signal**:
+     - **Spatial**: taps landing outside the current screen's known-valid
+       interactive targets — available for free from REQ-M3's corpus
+       match, since we already know what's actually tappable on a
+       recognized screen — or scattered across widely varying positions
+       with no coherent target.
+     - **Temporal**: high variance in inter-tap intervals within the
+       burst, rather than a roughly consistent cadence — an irregular,
+       chaotic rhythm rather than fast-but-steady mashing.
+  - **Deliberately not medical detection, and doesn't need to be.** This
+    heuristic isn't diagnosing a seizure — it's asking "does this pattern
+    look plausibly non-deliberate," as a trigger for an unobtrusive offer,
+    never a silent, irrevocable action. That framing is what makes the
+    heuristic's error tolerance survivable: a false positive costs the
+    user one dismissible prompt; a false negative just means REQ-A3's
+    fallback doesn't fire, no worse than not having the feature at all.
+    Neither failure mode is dangerous — which is exactly why a best-effort
+    heuristic is an acceptable answer here, not something clinically
+    rigorous.
+  - **Doesn't violate REQ-A11.** The heuristic only ever triggers an
+    *offer*; the user still makes the actual decision to accept or dismiss
+    it. Detection surfaces a possibility, it doesn't act on the user's
+    behalf.
+  - **Why the rate threshold needs an incoherence signal alongside it,
+    not alone**: pure fast, deliberate play (e.g. mashing a
+    dialogue-advance button) is high-rate but spatially coherent
+    (consistently landing on the one valid target) and temporally regular.
+    Requiring an incoherence signal on top of the rate threshold is what
+    keeps this from misfiring against ordinary fast play.
+  - **Open — OQ-29 (§9)**: exact numeric thresholds (taps-per-window,
+    position-variance cutoff, timing-variance cutoff) aren't specified —
+    these need empirical tuning against real play, not just picking
+    numbers a priori.
 
 ### 6.3 Voice Assistance (Primary Input Method)
 
@@ -1087,10 +1125,11 @@ work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
   which (if either) becomes the second concrete alternate-input target
   after voice? Architecturally accounted for already; concrete choice not
   needed yet.
-- **OQ-8 (REQ-A3) — BLOCKING.** What's the specific detection heuristic
-  for a likely-accidental/seizure-pattern tap burst, as distinct from fast
-  intentional play? REQ-A3 states the goal (detect and offer to undo), not
-  the detection rule itself.
+- **OQ-8 (REQ-A3) — RESOLVED by REQ-A12.** What's the specific detection
+  heuristic for a likely-accidental/seizure-pattern tap burst, as distinct
+  from fast intentional play? Answer: rate threshold plus at least one
+  incoherence signal (spatial or temporal) — see REQ-A12 for the full
+  rule and its own residual open question (OQ-29, exact thresholds).
 - **OQ-9 (REQ-A4) — RESOLVED.** What counts as "the same decision point"
   for matching purposes? Answer: the (support card, event) pair. No
   per-context override mechanism on top of it.
@@ -1171,3 +1210,7 @@ work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
   phrases can be registered per action? More registered phrases plausibly
   widens the false-activation surface REQ-V3/V6 are meant to guard
   against. Not decided.
+- **OQ-29 (REQ-A12) — OPEN.** Exact numeric thresholds for the
+  accidental-tap heuristic (taps-per-window, position-variance cutoff,
+  timing-variance cutoff) aren't specified — need empirical tuning against
+  real play, not picked a priori.
