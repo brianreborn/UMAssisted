@@ -1312,7 +1312,26 @@ decision point recurs. That's a selection (replay), not a choice
        objective** race, allow **"goal race"**, **"recommended"**,
        **"objective"** (defaults + user synonyms). Often the same row as
        scheduled/default on Global; ship both phrase families anyway.
-    5. **User-defined custom phrases** mapping to a race identity or to
+    5. **Grade class when unambiguous (additional form).** If, among the
+       races **currently offered on the race selection UI** (visible list
+       and/or the set the client is presenting for this open — same scope
+       used for name match), there is **exactly one** race of a given
+       graded class, the user may select it by saying that class:
+       **"G1"**, **"G2"**, or **"G3"** (and natural variants: "G 1",
+       "grade one", "grade 1", etc., user-extensible).  
+       - **Exactly one** matching grade → select that row.  
+       - **Zero or two+** races of that grade in the current offer set →
+         **do not** pick; fall through and say so (e.g. "multiple G2s" /
+         "no G1 here") — same no-guess rule as other semantic forms.  
+       - Applies to **G1 / G2 / G3** only as shipped defaults for this
+         form; other list badges (OP, pre-OP, maiden, etc.) may get the
+         same treatment later if useful, but are not required for this
+         rule.  
+       - Selecting by grade only **focuses/selects the row**; entering
+         the race still needs confirm/enter or a compound that includes
+         begin (unless the user used a separate full-sequence command that
+         already ends in begin for the scheduled race specifically).
+    6. **User-defined custom phrases** mapping to a race identity or to
        "nth list slot" (REQ-V8/V11), same as elsewhere.
   - **Stepwise path remains available.** User can still **"race"** →
     pick by name/ordinal/scheduled → **"enter"** / **"confirm race"**
