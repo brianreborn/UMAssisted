@@ -777,6 +777,73 @@ decision point recurs. That's a selection (replay), not a choice
   - **Auditable:** one-shots may appear in a short recent-actions log if
     one exists for undo/flag purposes (REQ-A3), but must not be written
     into the standing selection table that auto-replay reads.
+- **REQ-A14 — Semantic event-option commands "gamble" and "safe", for
+  choices whose outcomes differ in branching structure.** At recognized
+  event decision points (REQ-A4 / REQ-M3), the user may select an option by
+  **outcome shape**, not only by option text, index, or a fully custom
+  phrase (REQ-V8):
+  - **"gamble"** — select the option that has **multiple possible
+    outcomes** (branched / random / multi-result in the event data).
+  - **"safe"** — select the option that has **exactly one** non-branched
+    outcome — the single non-gamble option when the event is structured
+    that way.
+  - These are **user-originated selections by labeled role**, not
+    UMAssisted judging which outcome is "better." The app maps the spoken
+    (or otherwise commanded) role onto the option the offline corpus has
+    already marked with that role; it does not simulate, score, or prefer
+    rewards (REQ-A11).
+  - **Corpus labeling (offline, with the event text layer — REQ-M5/F4).**
+    Each option on a has-choice event entry carries an outcome-shape tag
+    derived from the same local game-data extract (and human review where
+    data is ambiguous), at minimum:
+    - `multi-outcome` (gamble candidate),
+    - `single-outcome` (safe candidate),
+    - `unclassified` (do not bind gamble/safe to this option).
+    Labels are fixed offline like no-choice flags — never inferred live
+    from "which button looks riskier."
+  - **When the command is valid:**
+    - **"gamble"** fires only if **exactly one** option on the current
+      matched event is tagged `multi-outcome`. That option is selected.
+    - **"safe"** fires only if **exactly one** option is tagged
+      `single-outcome` **and** at least one other option is
+      `multi-outcome` (the classic "one fixed vs one branched" layout).
+      That single-outcome option is selected.
+  - **When the command is not valid — fall through, don't guess:**
+    - zero or multiple `multi-outcome` options → "gamble" does not select;
+    - zero or multiple pure `single-outcome` options in a way that doesn't
+      match the safe rule above → "safe" does not select;
+    - all options `unclassified`, or the event isn't a choice screen →
+      neither command selects.
+    Surface a clear failure (TTS and/or overlay: e.g. "no single gamble
+    option") and leave the decision to an explicit option pick (text,
+    index, or custom phrase). Same fallback discipline as unmatched
+    corpus (REQ-M3).
+  - **Phrases are user-definable (REQ-V8/V11) with defaults (REQ-V14).**
+    Default English includes at least "gamble" and "safe"; synonyms may be
+    registered (e.g. "risk," "rng" → gamble; "sure thing," "guaranteed" →
+    safe). Same multi-phrase rules and false-activation cautions as other
+    voice actions.
+  - **Composable with REQ-A13.** "gamble, don't save" / "safe, don't save"
+    (or equivalent) executes the mapped option without writing a standing
+    precedent — important because a one-off gamble should not become the
+    auto-replay default for that event.
+  - **What gets recorded for REQ-A4/A8 when the user does save:** the
+    **concrete option identity** (e.g. option index / corpus option id),
+    not the abstract word "gamble." Auto-replay later re-selects that same
+    option even if labeling vocabulary changes; review UI may still *show*
+    that the saved pick was the multi-outcome option for human clarity.
+  - **TTS (REQ-T1):** when reading choices, optionally announce outcome
+    shape ("option 1, safe; option 2, gamble") using the same offline
+    tags — helps non-visual users use these commands. Not a substitute for
+    reading option text.
+  - **Does not expand automation scope.** These commands only fire when
+    the user issues them (or when a saved selection that happened to be
+    the gamble/safe option is auto-replayed under REQ-A8). UMAssisted never
+    auto-picks "safe" or "gamble" on first occurrence or by policy.
+  - **Open residual — OQ-38 (§9):** edge-case labeling for events with
+    three+ options, dual multi-outcome branches, or "single-outcome" that
+    is still a bad deal (safe ≠ good). Architecture above stands; catalog
+    edge rules can refine offline tags without new command semantics.
 
 ### 6.3 Voice Assistance (Primary Input Method)
 
@@ -877,7 +944,9 @@ decision point recurs. That's a selection (replay), not a choice
       directly (bypassing the sweep); Back.
     - **Confirmed, event dialogs**: speaking the chosen option — already
       implied by REQ-T/REQ-V's design, called out here explicitly as part
-      of "everything."
+      of "everything." Includes semantic **gamble** / **safe** when the
+      event's options are tagged that way (REQ-A14), not only literal
+      option text.
     - **Not yet observed on this client — need dedicated screenshots
       before they can be enumerated precisely, not just assumed**: Shop's
       purchase actions specifically (browsing is scoped under REQ-A1, but
@@ -1794,6 +1863,11 @@ work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
 - **OQ-37 (performance) — OPEN.** Battery / CPU budgets for always-
   listening wake-word (REQ-V5) + periodic screenshot/OCR (REQ-M3/M4).
   Tradeoff accepted in principle; no quantitative envelope yet.
+- **OQ-38 (REQ-A14) — OPEN.** Offline tagging edge cases for gamble/safe:
+  three-or-more-option events, two multi-outcome options, or
+  single-outcome options that are still undesirable. Command validity
+  rules in REQ-A14 are decided; how aggressively human labeling marks
+  exotic layouts is not.
 
 ## 10. License
 
