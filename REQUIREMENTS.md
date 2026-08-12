@@ -71,26 +71,38 @@ barrier, not the game's difficulty itself.
 - **REQ-P2 — Distribution model within "sideload only" is resolved — see
   REQ-P3.** Originally an open choice between a signed public release APK
   and a personal/local build; REQ-P3 settles it as the latter.
-- **REQ-P3 — Closed source, aside from this requirements document. The
-  implementation is not publicly readable on GitHub, or anywhere, in any
-  form — and the built APK is never made public either.** Resolves OQ-13
-  decisively: not a choice between a public release and a personal build,
-  it's settled as personal/private, full stop.
-  - **This document is the one deliberate exception.** It stays public, in
-    the current public `brianreborn/UMAssisted` repository — that's the
-    entire reason it was published in the first place (reading it across
-    systems, working through the design openly). The exception is scoped
-    to *this file*, not a precedent for the implementation.
+- **REQ-P3 — Implementation is closed source and private; top-level
+  documentation in this repository is open source and public.** Resolves
+  OQ-13 decisively: not a choice between a public release APK and a
+  personal build for the *product* — the implementation and built APK are
+  personal/private, full stop. The **design documentation** that lives at
+  the top level of the public `brianreborn/UMAssisted` repository is the
+  deliberate open-source exception, not a crack in the closed-source rule
+  for the app itself.
+  - **What counts as open-source top-level documentation (this repo):**
+    this requirements document (`REQUIREMENTS.md`); derived review
+    artifacts and the tooling that generates them from it (e.g.
+    `requirements-map.html`, `tools/gen_requirements_map.py`); license
+    text; and any other **project-level design/process docs** kept here so
+    the design can be read across systems and worked through openly. If it
+    documents *what UMAssisted is supposed to be* rather than *how the
+    private app is implemented*, it belongs here and is public.
+  - **What stays closed / private:** application source code, build
+    scripts that compile the APK, corpora/assets bundled into the private
+    binary, and the APK itself — none of those are published on GitHub or
+    anywhere else. Open docs are not a precedent for open implementation.
   - **Operational consequence, worth being explicit about now so it isn't
     a future mistake**: once actual implementation code exists, it belongs
     in a **separate, private repository** — never added into or exposed
-    through the current public requirements repo. There is no "private
+    through the current public documentation repo. There is no "private
     branch of a public repo" that actually achieves this on GitHub; it has
-    to be a genuinely separate, private repository.
+    to be a genuinely separate, private repository. Documentation updates
+    may continue here; implementation never lands here.
   - Consistent with, and likely a further extension of, the same
     trademark/ToS-exposure caution already noted under REQ-P1 — keeping
     both the implementation and the binary private meaningfully reduces
     exposure surface beyond just avoiding the Play Store specifically.
+    Publishing the design docs does not publish the assistive client.
 
 ## 4. Platform & Environment
 
@@ -1603,8 +1615,11 @@ work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
   on outside precedent? Answer: primarily internal against REQ-VAL2;
   outside precedent is advisory input, not a gate (private tool, REQ-P3).
 - **OQ-13 (REQ-P3) — RESOLVED.** Signed sideload APK release (like
-  japanglify) or a purely personal/local build? Answer: closed source,
-  personal/private build — never publicly released in any form.
+  japanglify) or a purely personal/local build? Answer: **implementation
+  and APK** are closed source / personal-private — never publicly released.
+  **Top-level documentation** in this public repo (requirements, review
+  map, doc tooling, license, and similar design/process docs) is open
+  source; that exception does not extend to the app.
 - **OQ-14 (REQ-PL4) — RESOLVED.** Minimum Android API level/version floor
   to target. Answer: **API 30 (Android 11)** exactly as the floor —
   required by `takeScreenshot()`; nothing current forces higher.
