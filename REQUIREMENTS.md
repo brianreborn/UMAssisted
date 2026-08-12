@@ -303,6 +303,91 @@ decision point recurs. That's a selection (replay), not a choice
   REQ-A3, or serving as a general alternate-input trigger per REQ-F3).
   Flagged here so it isn't lost, not to be designed yet.
 
+## Tap record & playback (2.0, tentative)
+
+- **REQ-R1 — User-controlled recording of an arbitrary tap sequence,
+  played back on command.** The user records a sequence of screen taps
+  themselves — they decide when recording starts/stops and what's in it —
+  and can trigger playback of that exact sequence later, on command.
+  **Provisionally targeted at 2.0, not 1.0** — flagged as "possibly" 2.0,
+  so even the timing isn't fully locked yet, just captured so it isn't
+  lost.
+  - Consistent with REQ-A4's selections-not-decisions principle,
+    generalized: this isn't UMAssisted deciding to automate a new
+    sequence, it's mechanically replaying something the user did once,
+    unmodified.
+  - Same tap-safety standards apply as everywhere else — REQ-SF1 (never
+    interfere with manual operation) and REQ-A2's accidental-tap
+    discipline govern playback exactly like the built-in sequences do: a
+    kill switch, zero effect on manual input when off, etc.
+- **REQ-R2 — Playback must tolerate latency variation via condition-based
+  waiting, not fixed delays.** A purely fixed-timer replay ("wait 800ms,
+  then tap") is fragile — network lag, animation timing, and load-screen
+  duration all vary run to run against a live-service game, so a recorded
+  sequence has to wait for an actual on-screen condition before advancing,
+  not just a clock. Borrowing the AutoHotkey `PixelWait`-style technique:
+  before firing the next recorded tap, confirm the screen actually matches
+  the expected state and wait for it, rather than assuming a fixed delay
+  got you there. Not a nice-to-have — a macro that fires blind on a timer
+  will misfire unpredictably.
+  - Worth noting this is **more robust than REQ-T/REQ-M1 to the
+    accessibility-tree risk already flagged**: a pixel/screenshot-based
+    wait condition doesn't need the game to expose real text through the
+    accessibility node tree at all, unlike node-based reading. If the
+    canvas-rendering risk turns out to be real, pixel-wait may end up
+    being the more dependable signal generally, not just for this feature.
+- **Open question / real tension with REQ-A1**: REQ-A1 rules out full
+  gameplay automation and open-ended "play the game" loops. An arbitrary,
+  user-recordable tap sequence could in principle be used to approximate
+  exactly that (e.g. recording a long grind loop). This needs guardrails
+  to stay consistent with REQ-A1's scope-limiting intent before it ships —
+  candidates: no autonomous looping/repeat-until-condition semantics,
+  playback always explicitly user-commanded per run rather than "run
+  forever." Not decided — just flagged as something that has to be
+  resolved before this is built, not after.
+
+## Validation: mobility assistance, not botting
+
+- **REQ-VAL1 — Before 1.0 ships, run an explicit validation pass checking
+  this design against a "mobility assistance vs. botting" line, not just
+  assume the distinction holds because that was the intent.** Intending
+  REQ-A1/REQ-A4 to land on the assistance side doesn't automatically mean
+  the shipped product does — this needs to be checked deliberately against
+  concrete criteria, not asserted.
+- **REQ-VAL2 — Proposed criteria for that validation** (draft, to be
+  refined during the validation pass itself, not treated as final):
+  - **No capability beyond what the user could already do manually.**
+    UMAssisted doesn't let the user reach outcomes they couldn't reach by
+    tapping through it themselves — it only reduces the physical/sensory
+    cost of doing so. Already implied by REQ-A4: no independent
+    decision-making, only replay of the user's own prior choices.
+  - **No speed/uptime advantage beyond human capability.** No tapping
+    faster than a human plausibly could, and — critically — no running
+    unattended. "Bot" implies acting while the user is away; this project
+    only acts while the user is actively present and engaged, per
+    REQ-A1's "the player still chooses to invoke" framing.
+  - **Auditable and overridable at every step.** The user can always see
+    what's about to happen or did happen, and stop or undo it (REQ-A3,
+    REQ-A4's reviewability requirement) — a bot typically runs opaquely;
+    this shouldn't.
+  - **Same category as already-accepted assistive tech.** TalkBack,
+    Switch Access, and external switch/eye-tracking controllers are
+    broadly accepted as legitimate accessibility tools despite technically
+    "automating" input in some sense — e.g. switch-access scanning taps
+    through UI elements on the user's behalf. The validation should be
+    able to show UMAssisted's mechanism sits in that same category, not a
+    categorically different one.
+- **REQ-VAL3 — This is a gate, not a formality.** If a specific feature
+  can't be shown to hold up against these criteria, it gets rescoped or
+  cut before shipping — the pass isn't there to rubber-stamp decisions
+  already made.
+  - Supersedes the earlier open "ToS/fair-use review" note — that's now
+    formally this requirement rather than a loose open question.
+- **Open question**: whether this validation is purely an internal design
+  review, or should also draw on outside precedent/community norms around
+  accessibility tooling for gacha games specifically. Not decided — this
+  requirement establishes that the check happens, not exactly how.
+
 ## Non-functional: security & privacy
 
 - **REQ-S1 — No network access, structurally.** `android.permission.INTERNET`
@@ -325,6 +410,3 @@ decision point recurs. That's a selection (replay), not a choice
 - Minimum Android API level / version floor to target.
 - UI shape for configuring which sequences get consolidated — settings
   screen vs. floating overlay control panel vs. both.
-- Any ToS/fair-use review of Umamusume specifically, beyond the general
-  "AccessibilityService-based gesture dispatch is standard assistive tech"
-  framing — not yet discussed in depth.
