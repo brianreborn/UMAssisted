@@ -517,13 +517,11 @@ decision point recurs. That's a selection (replay), not a choice
   - Every recorded selection must be visible, reviewable, and changeable
     by the user at any time — it's the user's standing decision, stored as
     data they control, not a rule baked in silently.
-  - **One-shot without precedent — see REQ-A13.** The user can execute a
-    selection for *this* occurrence only and decline to store it (or
-    decline to update a prior store), so a situational pick cannot become
-    the standing answer auto-replay would fire later.
   - Recorded selections are local-only config, consistent with REQ-S1 — no
     network sync — and should live in whatever local settings
     export/import mechanism this project ends up with.
+  - **Protection against unwanted future auto-replay is REQ-A8's opt-in
+    model**, not a per-pick "don't save" clause — see withdrawn REQ-A13.
   - **Resolved — OQ-9.** The decision-point identity key is the
     **(support card, event) pair** — which specific support card triggered
     it, plus which specific event — nothing more granular. No per-context
@@ -584,11 +582,10 @@ decision point recurs. That's a selection (replay), not a choice
     not require opening a full settings activity to flip.
   - **Settings screen (full config):** sequence enablement beyond the
     kill switches, recorded selections review/edit (REQ-A4), per-event
-    auto-replay toggles (REQ-A8), save-vs-don't-save default and phrases
-    (REQ-A13), voice phrase editing (REQ-V8/V11), dwell duration
-    (REQ-A9), confirmation-window timing (REQ-V12), TTS preferences
-    (REQ-T5), defaults/overrides, export/import of local config
-    (REQ-S1).
+    auto-replay toggles (REQ-A8), voice phrase editing (REQ-V8/V11),
+    dwell duration (REQ-A9), confirmation-window timing (REQ-V12), TTS
+    preferences (REQ-T5), defaults/overrides, export/import of local
+    config (REQ-S1).
   - Rationale: zero-or-low-touch mid-play needs always-visible controls;
     bulk configuration does not belong on a floating strip that would
     obscure the game (REQ-QA2).
@@ -609,10 +606,6 @@ decision point recurs. That's a selection (replay), not a choice
     occurrence already fell through (REQ-A4); auto-fire of later
     occurrences is opt-in, consistent with REQ-A11's extreme-constraints
     framing.
-  - **Does not create a recording when the user chose "don't save"
-    (REQ-A13).** Auto-replay can only fire against an actually stored
-    selection; a one-shot leaves nothing (or leaves the prior store
-    unchanged) for this control to enable against.
 - **REQ-A9 — "Auto-sweep": named feature for REQ-A1's training-check
   sequence.** Automatically hovers each training facility (Speed/Stamina/
   Power/Guts/Wit) in turn, holding at each one long enough for the user to
@@ -724,69 +717,29 @@ decision point recurs. That's a selection (replay), not a choice
   - **Open — OQ-29 / OQ-33 (§9)**: exact numeric thresholds
     (taps-per-window, position-variance cutoff, timing-variance cutoff)
     need empirical tuning against real play (shared calibration bucket).
-- **REQ-A13 — "Don't save that": execute an event selection without
-  recording (or updating) a standing precedent for auto-replay.** Extends
-  REQ-A4. When the user picks an option at a recognized decision point,
-  they must be able to mark that pick as **this occurrence only** — the
-  game action still happens (the option is tapped/selected), but
-  UMAssisted does **not** write it into the stored answer for that
-  (support card, event) key, and does **not** create a new store if none
-  existed. Purpose: avoid locking in a situational choice that would
-  later fire under REQ-A8 auto-replay if that path is (or becomes)
-  enabled.
-  - **What "don't save" does not do:** it is not "skip the event," not
-    "cancel auto-replay globally," and not a silent second decision by
-    the app. The user still originates the in-game selection (REQ-A11);
-    only the *memory* of that selection as future precedent is withheld.
-  - **If a prior recording already exists for that key:** "don't save"
-    leaves the prior recording untouched (does not overwrite with the
-    one-shot pick, does not clear it). Next auto-replay, if enabled,
-    still uses the old standing answer — not the one-shot. Clearing or
-    changing the standing answer remains a separate, explicit edit
-    (REQ-A4 reviewability).
-  - **If no prior recording exists:** "don't save" leaves the key empty.
-    Later occurrences still fall through to the user until something is
-    deliberately saved without the don't-save clause.
-  - **Must be available on the same surfaces that make the selection** —
-    not buried only in settings after the fact. At minimum: when choosing
-    via voice (REQ-V / REQ-V7 option speech) and when choosing via any
-    UMAssisted-mediated confirm UI for that decision point. Exact phrasing
-    is user-definable under REQ-V8/V11 (defaults e.g. "option two, don't
-    save" / "pick top, don't remember" — REQ-V14). Overlay/settings may
-    also expose a sticky "next selection: don't save" arm if that is
-    easier motor-wise than a compound voice phrase (fits REQ-A7).
-  - **Customizable default for ordinary selections (whether saving is
-    opt-out or opt-in).** Ship with a settings preference: when the user
-    selects without an explicit don't-save clause, either (a) **save by
-    default** (current natural reading of REQ-A4 — standing answers
-    accumulate unless declined), or (b) **don't save by default** (every
-    pick is one-shot unless the user explicitly says to remember it).
-    Preference is user-controlled; default for a fresh install is **(a)
-    save by default**, because REQ-A4's whole value is building reusable
-    precedents — but users who fear accidental auto-replay later can flip
-    to remember-only-when-asked. Explicit don't-save / do-save on a given
-    pick always overrides the preference for that occurrence.
-  - **Interaction with REQ-A8:** auto-replay only ever consults stored
-    precedents. A don't-save pick cannot enable, seed, or re-seed
-    auto-replay for that key. Enabling auto-replay on a key that has no
-    store is a no-op until a saved selection exists (and still requires
-    the per-event opt-in).
-  - **Does not violate REQ-A11.** Withholding storage is the user
-    declining to create standing intent — not UMAssisted inventing a
-    choice. The one-shot action still traces to an explicit user command.
-  - **Auditable:** one-shots may appear in a short recent-actions log if
-    one exists for undo/flag purposes (REQ-A3), but must not be written
-    into the standing selection table that auto-replay reads.
+- **REQ-A13 — WITHDRAWN (not in scope).** A per-selection "don't save
+  that" / one-shot-without-precedent clause was drafted and then dropped:
+  the need is not clear, and REQ-A8 already keeps auto-replay **opt-in
+  per event** (new recordings do not auto-fire until enabled). Standing
+  answers remain reviewable/editable under REQ-A4. If a one-shot-without-
+  record path is wanted later, it would be a new requirement — not this
+  ID revived silently. ID **REQ-A13** is retired; do not reuse for an
+  unrelated feature.
 - **REQ-A14 — Semantic event-option commands "gamble" and "safe", for
   choices whose outcomes differ in branching structure.** At recognized
   event decision points (REQ-A4 / REQ-M3), the user may select an option by
   **outcome shape**, not only by option text, index, or a fully custom
   phrase (REQ-V8):
-  - **"gamble"** — select the option that has **multiple possible
-    outcomes** (branched / random / multi-result in the event data).
+  - **"gamble"** — the accurate user-facing term for the option that has
+    **multiple possible outcomes** (branched / random / multi-result in
+    the event data). That is the canonical name in defaults, TTS, and docs
+    — not softer stand-ins like "risk" or "rng" as the primary label
+    (users may still register personal synonyms under REQ-V11 if they
+    want; the shipped vocabulary and internal concept name stay
+    **gamble**).
   - **"safe"** — select the option that has **exactly one** non-branched
-    outcome — the single non-gamble option when the event is structured
-    that way.
+    outcome — the single **non-gamble** option when the event is
+    structured that way.
   - These are **user-originated selections by labeled role**, not
     UMAssisted judging which outcome is "better." The app maps the spoken
     (or otherwise commanded) role onto the option the offline corpus has
@@ -796,22 +749,21 @@ decision point recurs. That's a selection (replay), not a choice
     Each option on a has-choice event entry carries an outcome-shape tag
     derived from the same local game-data extract (and human review where
     data is ambiguous), at minimum:
-    - `multi-outcome` (gamble candidate),
-    - `single-outcome` (safe candidate),
+    - `gamble` (multiple possible outcomes),
+    - `safe` (single fixed outcome in a gamble-vs-safe layout),
     - `unclassified` (do not bind gamble/safe to this option).
-    Labels are fixed offline like no-choice flags — never inferred live
-    from "which button looks riskier."
+    Tag names match the user-facing terms. Labels are fixed offline like
+    no-choice flags — never inferred live from "which button looks
+    riskier."
   - **When the command is valid:**
     - **"gamble"** fires only if **exactly one** option on the current
-      matched event is tagged `multi-outcome`. That option is selected.
-    - **"safe"** fires only if **exactly one** option is tagged
-      `single-outcome` **and** at least one other option is
-      `multi-outcome` (the classic "one fixed vs one branched" layout).
-      That single-outcome option is selected.
+      matched event is tagged `gamble`. That option is selected.
+    - **"safe"** fires only if **exactly one** option is tagged `safe`
+      **and** at least one other option is tagged `gamble` (the classic
+      "one fixed vs one branched" layout). That safe option is selected.
   - **When the command is not valid — fall through, don't guess:**
-    - zero or multiple `multi-outcome` options → "gamble" does not select;
-    - zero or multiple pure `single-outcome` options in a way that doesn't
-      match the safe rule above → "safe" does not select;
+    - zero or multiple `gamble` options → "gamble" does not select;
+    - layout doesn't match the safe rule above → "safe" does not select;
     - all options `unclassified`, or the event isn't a choice screen →
       neither command selects.
     Surface a clear failure (TTS and/or overlay: e.g. "no single gamble
@@ -819,30 +771,28 @@ decision point recurs. That's a selection (replay), not a choice
     index, or custom phrase). Same fallback discipline as unmatched
     corpus (REQ-M3).
   - **Phrases are user-definable (REQ-V8/V11) with defaults (REQ-V14).**
-    Default English includes at least "gamble" and "safe"; synonyms may be
-    registered (e.g. "risk," "rng" → gamble; "sure thing," "guaranteed" →
-    safe). Same multi-phrase rules and false-activation cautions as other
-    voice actions.
-  - **Composable with REQ-A13.** "gamble, don't save" / "safe, don't save"
-    (or equivalent) executes the mapped option without writing a standing
-    precedent — important because a one-off gamble should not become the
-    auto-replay default for that event.
-  - **What gets recorded for REQ-A4/A8 when the user does save:** the
-    **concrete option identity** (e.g. option index / corpus option id),
-    not the abstract word "gamble." Auto-replay later re-selects that same
-    option even if labeling vocabulary changes; review UI may still *show*
-    that the saved pick was the multi-outcome option for human clarity.
-  - **TTS (REQ-T1):** when reading choices, optionally announce outcome
-    shape ("option 1, safe; option 2, gamble") using the same offline
-    tags — helps non-visual users use these commands. Not a substitute for
-    reading option text.
+    Shipped English defaults are exactly **"gamble"** and **"safe"** —
+    those words are the accurate terms for the roles. Additional personal
+    synonyms are allowed; they do not replace the canonical names in
+    documentation or TTS role announcements.
+  - **What gets recorded for REQ-A4/A8:** the **concrete option identity**
+    (e.g. option index / corpus option id), not only the abstract word
+    "gamble." Auto-replay later re-selects that same option; review UI may
+    still *show* that the saved pick was the gamble (or safe) option for
+    human clarity. Ordinary picks update the standing answer per REQ-A4;
+    unwanted future auto-fire is controlled by leaving REQ-A8 off for that
+    event (or globally), not by a don't-save clause.
+  - **TTS (REQ-T1):** when reading choices, optionally announce role
+    ("option 1, safe; option 2, gamble") using the same offline tags —
+    helps non-visual users use these commands. Not a substitute for
+    reading option text. Use the word **gamble**, not a euphemism.
   - **Does not expand automation scope.** These commands only fire when
     the user issues them (or when a saved selection that happened to be
     the gamble/safe option is auto-replayed under REQ-A8). UMAssisted never
     auto-picks "safe" or "gamble" on first occurrence or by policy.
   - **Open residual — OQ-38 (§9):** edge-case labeling for events with
-    three+ options, dual multi-outcome branches, or "single-outcome" that
-    is still a bad deal (safe ≠ good). Architecture above stands; catalog
+    three+ options, dual gamble options, or a single-outcome option that
+    is still undesirable (safe ≠ good). Architecture above stands; catalog
     edge rules can refine offline tags without new command semantics.
   - **How the user names the option — see REQ-V15.** Gamble/safe are
     additional forms alongside ordinal and on-screen-text selection, not
@@ -1171,8 +1121,8 @@ decision point recurs. That's a selection (replay), not a choice
   forms; two are main forms.** At a recognized choice screen (REQ-A4 /
   REQ-M3), any of the following must be able to name the option — the user
   is not limited to a single grammar. All forms resolve to the same
-  concrete option identity for execution, recording (REQ-A4), don't-save
-  (REQ-A13), and auto-replay (REQ-A8).
+  concrete option identity for execution, recording (REQ-A4), and
+  auto-replay (REQ-A8).
   1. **Ordinal / index (main form).** Position-based reference to the
      option as laid out on screen, top-to-bottom (or the corpus's canonical
      option order for that event, which must match on-screen order for the
@@ -1208,11 +1158,10 @@ decision point recurs. That's a selection (replay), not a choice
     easy ("option 1: …; option 2: …") and should speak the same strings
     text-matching expects, so "read it back and say it" is a coherent
     loop with REQ-T3.
-  - **Composable with confirmation and don't-save.** "first option" …
-    "first option" confirms under REQ-V12 (synonyms/same action);
-    "option 2, don't save" applies REQ-A13; spoken option text can
-    likewise take a don't-save clause if the phrase grammar allows (or
-    sticky don't-save arm).
+  - **Composable with confirmation (REQ-V12).** "first option" … "first
+    option" (or synonym for the same action) confirms; spoken option text
+    and "gamble"/"safe" follow the same confirm rules when the action is
+    consequential.
   - **Does not require the user to invent a private nickname** for each
     option before voice works (aligns with REQ-V14). Custom phrases are
     additive power, not a gate.
