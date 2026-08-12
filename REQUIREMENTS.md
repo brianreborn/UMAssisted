@@ -517,6 +517,10 @@ decision point recurs. That's a selection (replay), not a choice
   - Every recorded selection must be visible, reviewable, and changeable
     by the user at any time — it's the user's standing decision, stored as
     data they control, not a rule baked in silently.
+  - **One-shot without precedent — see REQ-A13.** The user can execute a
+    selection for *this* occurrence only and decline to store it (or
+    decline to update a prior store), so a situational pick cannot become
+    the standing answer auto-replay would fire later.
   - Recorded selections are local-only config, consistent with REQ-S1 — no
     network sync — and should live in whatever local settings
     export/import mechanism this project ends up with.
@@ -580,10 +584,11 @@ decision point recurs. That's a selection (replay), not a choice
     not require opening a full settings activity to flip.
   - **Settings screen (full config):** sequence enablement beyond the
     kill switches, recorded selections review/edit (REQ-A4), per-event
-    auto-replay toggles (REQ-A8), voice phrase editing (REQ-V8/V11),
-    dwell duration (REQ-A9), confirmation-window timing (REQ-V12), TTS
-    preferences (REQ-T5), defaults/overrides, export/import of local
-    config (REQ-S1).
+    auto-replay toggles (REQ-A8), save-vs-don't-save default and phrases
+    (REQ-A13), voice phrase editing (REQ-V8/V11), dwell duration
+    (REQ-A9), confirmation-window timing (REQ-V12), TTS preferences
+    (REQ-T5), defaults/overrides, export/import of local config
+    (REQ-S1).
   - Rationale: zero-or-low-touch mid-play needs always-visible controls;
     bulk configuration does not belong on a floating strip that would
     obscure the game (REQ-QA2).
@@ -604,6 +609,10 @@ decision point recurs. That's a selection (replay), not a choice
     occurrence already fell through (REQ-A4); auto-fire of later
     occurrences is opt-in, consistent with REQ-A11's extreme-constraints
     framing.
+  - **Does not create a recording when the user chose "don't save"
+    (REQ-A13).** Auto-replay can only fire against an actually stored
+    selection; a one-shot leaves nothing (or leaves the prior store
+    unchanged) for this control to enable against.
 - **REQ-A9 — "Auto-sweep": named feature for REQ-A1's training-check
   sequence.** Automatically hovers each training facility (Speed/Stamina/
   Power/Guts/Wit) in turn, holding at each one long enough for the user to
@@ -715,6 +724,59 @@ decision point recurs. That's a selection (replay), not a choice
   - **Open — OQ-29 / OQ-33 (§9)**: exact numeric thresholds
     (taps-per-window, position-variance cutoff, timing-variance cutoff)
     need empirical tuning against real play (shared calibration bucket).
+- **REQ-A13 — "Don't save that": execute an event selection without
+  recording (or updating) a standing precedent for auto-replay.** Extends
+  REQ-A4. When the user picks an option at a recognized decision point,
+  they must be able to mark that pick as **this occurrence only** — the
+  game action still happens (the option is tapped/selected), but
+  UMAssisted does **not** write it into the stored answer for that
+  (support card, event) key, and does **not** create a new store if none
+  existed. Purpose: avoid locking in a situational choice that would
+  later fire under REQ-A8 auto-replay if that path is (or becomes)
+  enabled.
+  - **What "don't save" does not do:** it is not "skip the event," not
+    "cancel auto-replay globally," and not a silent second decision by
+    the app. The user still originates the in-game selection (REQ-A11);
+    only the *memory* of that selection as future precedent is withheld.
+  - **If a prior recording already exists for that key:** "don't save"
+    leaves the prior recording untouched (does not overwrite with the
+    one-shot pick, does not clear it). Next auto-replay, if enabled,
+    still uses the old standing answer — not the one-shot. Clearing or
+    changing the standing answer remains a separate, explicit edit
+    (REQ-A4 reviewability).
+  - **If no prior recording exists:** "don't save" leaves the key empty.
+    Later occurrences still fall through to the user until something is
+    deliberately saved without the don't-save clause.
+  - **Must be available on the same surfaces that make the selection** —
+    not buried only in settings after the fact. At minimum: when choosing
+    via voice (REQ-V / REQ-V7 option speech) and when choosing via any
+    UMAssisted-mediated confirm UI for that decision point. Exact phrasing
+    is user-definable under REQ-V8/V11 (defaults e.g. "option two, don't
+    save" / "pick top, don't remember" — REQ-V14). Overlay/settings may
+    also expose a sticky "next selection: don't save" arm if that is
+    easier motor-wise than a compound voice phrase (fits REQ-A7).
+  - **Customizable default for ordinary selections (whether saving is
+    opt-out or opt-in).** Ship with a settings preference: when the user
+    selects without an explicit don't-save clause, either (a) **save by
+    default** (current natural reading of REQ-A4 — standing answers
+    accumulate unless declined), or (b) **don't save by default** (every
+    pick is one-shot unless the user explicitly says to remember it).
+    Preference is user-controlled; default for a fresh install is **(a)
+    save by default**, because REQ-A4's whole value is building reusable
+    precedents — but users who fear accidental auto-replay later can flip
+    to remember-only-when-asked. Explicit don't-save / do-save on a given
+    pick always overrides the preference for that occurrence.
+  - **Interaction with REQ-A8:** auto-replay only ever consults stored
+    precedents. A don't-save pick cannot enable, seed, or re-seed
+    auto-replay for that key. Enabling auto-replay on a key that has no
+    store is a no-op until a saved selection exists (and still requires
+    the per-event opt-in).
+  - **Does not violate REQ-A11.** Withholding storage is the user
+    declining to create standing intent — not UMAssisted inventing a
+    choice. The one-shot action still traces to an explicit user command.
+  - **Auditable:** one-shots may appear in a short recent-actions log if
+    one exists for undo/flag purposes (REQ-A3), but must not be written
+    into the standing selection table that auto-replay reads.
 
 ### 6.3 Voice Assistance (Primary Input Method)
 
