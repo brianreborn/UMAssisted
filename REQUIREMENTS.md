@@ -485,6 +485,37 @@ decision point recurs. That's a selection (replay), not a choice
   review, or should also draw on outside precedent/community norms around
   accessibility tooling for gacha games specifically.
 
+## Development process: unbroken chain of ethics
+
+- **REQ-DEV1 — Agents working on this project — Claude or any other —
+  don't act as a bot against the live game either, including during
+  development and testing.** The assistant only *requests* that the user
+  perform an operation on the live client; it does not inject input into
+  the live game itself. REQ-A4/REQ-VAL's whole premise is that UMAssisted
+  never acts without the user having originated the action — that chain
+  has to hold during development, not just in the shipped product. An AI
+  agent autonomously tapping someone's live game account, even for
+  exploratory testing, is bot behavior by definition, regardless of what
+  rules the shipped code itself follows. Applies specifically to
+  **injecting input that acts on the game** (taps, gestures, text input);
+  it does not apply to passive observation (screenshots, `uiautomator
+  dump`, logcat) or environment setup (launching/foregrounding the app),
+  neither of which makes a choice on the user's behalf.
+- **REQ-DEV2 — Hard requirement, not a guideline.** Any spike or test that
+  would require simulating input against the live client stops and asks
+  the user to perform that input by hand instead of proceeding with
+  automated injection.
+  - **Practical effect on OQ-1's spike**: testing whether the game
+    detects/blocks synthetic gestures can't be done by having an agent
+    inject taps via `adb shell input tap` and watch what happens — that's
+    exactly the autonomous input-injection this requirement rules out,
+    even though it would have produced a real answer. The real test either
+    needs the user to trigger the comparison tap by hand while the agent
+    only observes (logcat/screenshots), or waits until actual UMAssisted
+    `AccessibilityService` code exists and dispatches its own gesture at
+    the user's explicit per-instance command (consistent with REQ-A5) —
+    not ad hoc shell injection during exploratory testing.
+
 ## Non-functional: security & privacy
 
 - **REQ-S1 — No network access, structurally.** `android.permission.INTERNET`
@@ -531,6 +562,14 @@ work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
   spiked — the accessibility-tree question got spiked (see REQ-M1's
   confirmed finding); this sibling risk about gesture *dispatch* (as
   opposed to screen *reading*) hasn't been.
+  - **Methodological constraint discovered mid-attempt (see REQ-DEV1/DEV2)**:
+    the obvious cheap test — have the agent inject a tap via
+    `adb shell input tap` and watch what happens — is itself the kind of
+    autonomous input-injection REQ-DEV1 rules out, so it's off the table
+    even though it would have produced a real answer. This question now
+    needs either a user-performed comparison tap with the agent only
+    observing, or waits for real `AccessibilityService` code the user
+    explicitly triggers per-instance.
 - **OQ-2 (REQ-M3) — BLOCKING.** Which specific existing community/datamined
   Umamusume event database should the offline corpus be sourced from, and
   does using/redistributing its data raise licensing considerations? The
