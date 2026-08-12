@@ -1,0 +1,1 @@
+race_day debut_race haru_urara junior_pre_debut unity_cup name_pending_f stats energy_bar race_button skills_button full_stats hint support_dialogue

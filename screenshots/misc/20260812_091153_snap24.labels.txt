@@ -1,0 +1,1 @@
+options_modal require_confirmation infirmary_on pro_shop_on independent_training rest recreation career_scenario_settings cancel_save unity_cup

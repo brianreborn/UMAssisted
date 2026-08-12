@@ -1,0 +1,1 @@
+options_modal career_scenario_settings pro_shop_exchange volume_bgm_sfx_voices graphics_standard high_quality_3d_race_visuals_off cancel_save unity_cup

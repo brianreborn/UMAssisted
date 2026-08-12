@@ -1,0 +1,1 @@
+perks_modal support_effects stat_boost_effects card_perks friendship_bonus mood_effect close_button unity_cup
