@@ -847,6 +847,50 @@ decision point recurs. That's a selection (replay), not a choice
   positioned across all screens (menus, races, loading, events, etc.); it
   never obscures critical game UI; and it correctly exercises REQ-SF3's
   now-clarified self-overlay exclusion rather than fighting it.
+- **REQ-QA3 — Human-verified security architecture audit, hard blocker
+  for 1.0 final.** Before 1.0 final ships, a human must directly verify —
+  not infer from the code's stated intent — that the actual built APK's
+  security posture matches what this doc requires: no `INTERNET`
+  permission present (REQ-S1) and no code path that could request it;
+  every third-party dependency (ML Kit, whichever engine resolves OQ-10,
+  any future library) confirmed to introduce no hidden network/telemetry
+  path of its own — a common, easy-to-miss way "no network access" gets
+  silently violated is a bundled SDK's own analytics or crash-reporting
+  defaulting to on; the manifest's permission list contains only what's
+  actually justified by shipped features, nothing broader; and REQ-DEV3's
+  structural constraints (single trigger surface, no timers/listeners
+  capable of autonomous action) hold in the shipped code, not just in the
+  original test spike.
+  - Same underlying discipline as REQ-QA1/QA2: a human confirms this
+    directly against the real artifact — a green build or passing test
+    suite doesn't stand in for it.
+  - **Open — OQ-25 (§9)**: same shape of question as OQ-24 but for this
+    specific audit — is there a definitive, enumerable checklist to verify
+    against, or does it stay an ongoing, best-effort review as dependencies
+    change over time? Not decided.
+- **REQ-QA4 — Track UI/scenario changes across major Umamusume releases,
+  verified at least once per new scenario release.** Umamusume periodically
+  ships major content updates — new "scenarios" (distinct career
+  storylines, e.g. Twinkle URA Finals, Aoharu Cup) alongside new characters
+  and events. These are the update type most likely to change screen
+  layouts, add new UI elements, or otherwise invalidate REQ-M3/REQ-F4's
+  pre-built corpus matches without warning. At minimum, every new scenario
+  release triggers a fresh human-verified coverage check (REQ-QA1) against
+  the updated client — not a one-time pre-1.0 check assumed to stay valid
+  indefinitely.
+  - This is a concrete, partial answer to REQ-QA1/OQ-24's "one-time
+    checklist vs. ongoing process" question: it's ongoing, with new-scenario
+    release as the minimum recurring trigger. The exhaustive scope of each
+    individual check is still whatever OQ-24 eventually resolves to.
+  - Related to OQ-3 (corpus currency for event data specifically) but
+    broader in kind: this covers structural/layout UI changes, not just new
+    event content within an existing, unchanged layout.
+  - **Open — OQ-26 (§9)**: how does anyone even find out a new scenario has
+    shipped, in a way consistent with REQ-S1 (no network access)? UMAssisted
+    itself can't check for game updates over the network — this is
+    necessarily a manual, human/maintainer-driven trigger (noticing a new
+    scenario exists, e.g. through the community), not something the app
+    detects or automates on its own.
 
 ## 9. Open Questions Registry
 
@@ -977,3 +1021,10 @@ work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
   actually mean — a definitive, enumerable checklist to verify against
   (unlikely, given how many training events alone exist), or an ongoing,
   best-effort process with no true finish line? Not decided.
+- **OQ-25 (REQ-QA3) — OPEN.** Is there a definitive, enumerable checklist
+  for the security architecture audit, or does it stay an ongoing,
+  best-effort review as dependencies change over time? Not decided.
+- **OQ-26 (REQ-QA4) — OPEN.** How does anyone find out a new Umamusume
+  scenario has shipped, consistent with REQ-S1 (no network access)?
+  Necessarily a manual, human/maintainer-driven trigger — not something
+  the app can detect or automate on its own.
