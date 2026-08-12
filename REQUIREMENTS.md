@@ -6,6 +6,13 @@ once assigned; content is amended in place as decisions are made — see
 this document are themselves documented as open requirements/questions
 to address (REQ-OQ3), not left as unspoken assumptions.
 
+**Interactive requirements map** (tree + relationship arrows): open the
+rendered site at
+[brianreborn.github.io/UMAssisted](https://brianreborn.github.io/UMAssisted/)
+— not the raw `requirements-map.html` blob on GitHub (GitHub's file view
+shows source only). Regenerate after doc edits with
+`python3.12 tools/gen_requirements_map.py`.
+
 Accessibility software to reduce physical strain for players with limited
 mobility playing Umamusume Pretty Derby. Decisions get added as they're
 made; open questions get resolved into requirements as they're answered

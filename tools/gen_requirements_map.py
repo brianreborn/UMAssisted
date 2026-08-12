@@ -4,8 +4,16 @@
 Usage:
   python3.12 tools/gen_requirements_map.py
 
-Writes requirements-map.html at the repo root. Re-run after editing
-REQUIREMENTS.md. Not perfect — for reviewing relationships faster.
+Writes:
+  docs/index.html              — GitHub Pages entry (rendered site)
+  docs/requirements-map.html   — same content, stable path
+  requirements-map.html        — root copy for local open-without-docs/
+
+GitHub's blob viewer does not execute HTML; open the Pages URL instead:
+  https://brianreborn.github.io/UMAssisted/
+
+Re-run after editing REQUIREMENTS.md. Not perfect — for reviewing
+relationships faster.
 """
 
 from __future__ import annotations
@@ -17,8 +25,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "REQUIREMENTS.md"
-OUT = ROOT / "requirements-map.html"
+OUT_DIR = ROOT / "docs"
+OUTS = (
+    OUT_DIR / "index.html",
+    OUT_DIR / "requirements-map.html",
+    ROOT / "requirements-map.html",
+)
 GITHUB = "https://github.com/brianreborn/UMAssisted/blob/master/REQUIREMENTS.md"
+PAGES = "https://brianreborn.github.io/UMAssisted/"
 
 SECTION_RE = re.compile(r"^(#{2,3})\s+(.+)$", re.M)
 # Titles often wrap before the closing ** — allow multiline.
@@ -659,16 +673,21 @@ filterTree();
 def main() -> None:
     text = SRC.read_text(encoding="utf-8")
     sections, edges, nodes = parse(text)
-    OUT.write_text(build_html(sections, edges, nodes), encoding="utf-8")
+    html_out = build_html(sections, edges, nodes)
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    (OUT_DIR / ".nojekyll").write_text("", encoding="utf-8")
+    for path in OUTS:
+        path.write_text(html_out, encoding="utf-8")
+        print(f"Wrote {path.relative_to(ROOT)}")
     reqs = sum(1 for n in nodes if n["kind"] == "req")
     oqs = sum(1 for n in nodes if n["kind"] == "oq")
-    print(f"Wrote {OUT.relative_to(ROOT)}")
     print(f"  nodes: {len(nodes)} ({reqs} REQ, {oqs} OQ)")
     print(f"  edges: {len(edges)}")
     kinds: dict[str, int] = {}
     for e in edges:
         kinds[e["kind"]] = kinds.get(e["kind"], 0) + 1
     print("  by kind:", ", ".join(f"{k}={v}" for k, v in sorted(kinds.items())))
+    print(f"  rendered site: {PAGES}")
 
 
 if __name__ == "__main__":
