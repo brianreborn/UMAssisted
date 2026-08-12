@@ -93,7 +93,10 @@ barrier, not the game's difficulty itself.
     text; and any other **project-level design/process docs** kept here so
     the design can be read across systems and worked through openly. If it
     documents *what UMAssisted is supposed to be* rather than *how the
-    private app is implemented*, it belongs here and is public.
+    private app is implemented*, it belongs here and is public. The
+    license terms that apply to this requirements document are reproduced
+    in full in §10 so the document is self-contained as a licensed work
+    (same body as the root `LICENSE` file).
   - **What stays closed / private:** application source code, build
     scripts that compile the APK, corpora/assets bundled into the private
     binary, and the APK itself — none of those are published on GitHub or
@@ -1729,3 +1732,49 @@ work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
 - **OQ-37 (performance) — OPEN.** Battery / CPU budgets for always-
   listening wake-word (REQ-V5) + periodic screenshot/OCR (REQ-M3/M4).
   Tradeoff accepted in principle; no quantitative envelope yet.
+
+## 10. License
+
+**This requirements document — and the other top-level open-source
+documentation in this repository (see REQ-P3) — is distributed under the
+license below.** The private application implementation and APK are *not*
+licensed by this text; they are not published here.
+
+The same terms also appear in the repository root `LICENSE` file. That
+file and this section are intended to stay identical for the license
+body; if they ever diverge, treat this copy as the terms that apply to
+**this document** specifically.
+
+```
+Copyright (c) 2026, Brian Fundakowski Feldman
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+1. Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in
+   the documentation and/or other materials provided with the
+   distribution.
+3. All advertising materials mentioning features or use of this
+   software must display the following acknowledgement:
+   This product includes software developed by Brian Fundakowski Feldman.
+4. Neither the name of Brian Fundakowski Feldman nor the names of its
+   contributors may be used to endorse or promote products derived
+   from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY BRIAN FUNDAKOWSKI FELDMAN ''AS IS'' AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL BRIAN FUNDAKOWSKI FELDMAN BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
+```
