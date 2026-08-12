@@ -110,10 +110,13 @@ barrier, not the game's difficulty itself.
     `adb shell monkey -p com.cygames.umamusume -c android.intent.category.LAUNCHER 1`;
     the device connects over wireless debugging (`adb connect
     <ip>:<port>`, port varies per session/pairing) rather than USB.
-- **REQ-PL4 — Minimum Android API level/version floor is not fully decided.**
-  Already constrained to **API 30+** (Android 11+) as a floor, since REQ-M3
-  depends on `AccessibilityService.takeScreenshot()`, which requires it —
-  the exact floor above that is still open. (Registry: OQ-14.)
+- **REQ-PL4 — Minimum Android API level is 30 (Android 11).** Resolves
+  OQ-14. REQ-M3 depends on `AccessibilityService.takeScreenshot()`, which
+  requires API 30 — that is the floor, not a provisional lower bound with
+  a higher undecided target. No current dependency (ML Kit bundled text
+  recognition min API 23; Vosk/heed-wakeword run on modern Android) forces
+  anything above 30. Raise the floor later only if a future, justified
+  dependency truly requires it — not preemptively.
 
 ## 5. Core Mechanism
 
@@ -187,7 +190,7 @@ barrier, not the game's difficulty itself.
     unexpected state), the right behavior is the same as a first-occurrence
     decision point — fall through to the user, don't guess.
   - **Corpus text source — see REQ-M5.** Matching robustness — see REQ-M6.
-    Currency as new events ship remains open (OQ-3).
+    Currency as new events ship — see REQ-M7.
 - **REQ-M4 — On-device OCR engine: ML Kit Text Recognition v2, bundled
   model variant.** Resolves OQ-18. Specifically the **bundled** install
   option (~4MB per script, baked into the APK) rather than **unbundled**
@@ -301,6 +304,24 @@ barrier, not the game's difficulty itself.
     tuning on the target device(s), not numbers picked a priori. Same
     shape as OQ-29 (thresholds after the rule). Architecture is decided;
     calibration is not.
+- **REQ-M7 — Corpus currency is a maintainer-driven offline re-extract,
+  never an in-app update check.** Resolves OQ-3 (and pairs with REQ-QA4 /
+  REQ-QA5 for the trigger). When the Global client gains new events or
+  changes strings, the maintainer:
+  1. Notices the client/content change (REQ-QA5 — human, outside the app),
+  2. Re-extracts event text from the updated local `master.mdb` (REQ-M5),
+  3. Human-labels any new or changed entries for no-choice vs. has-choice
+     (REQ-F4),
+  4. Rebuilds and reinstalls the private APK (REQ-P3) with the new corpus
+     bundled — the running app never downloads corpus data (REQ-S1).
+  - **No automatic "is my corpus stale?" probe inside the app.** That
+    would either need network (forbidden) or fragile heuristics against
+    live screens. Unmatched screens already fall through to the user
+    (REQ-M3) — staleness surfaces as more fall-throughs, not as a silent
+    wrong match, as long as confidence gating (REQ-M6) holds.
+  - **Cadence:** at minimum whenever REQ-QA4's new-scenario trigger fires;
+    also whenever the maintainer notices material event/string changes
+    mid-scenario. Not on a fixed calendar tick.
 
 ## 6. Functional Requirements
 
@@ -315,7 +336,24 @@ but deferred, not ruled out).
   → dismiss result → continue) should collapse to a single user action
   (button press or hold).
   - First concrete targets identified: **checking the shop** and
-    **checking training options** — see REQ-A1. Open — OQ-5.
+    **checking training options** — see REQ-A1. Ship priority — see
+    REQ-F5.
+- **REQ-F5 — 1.0 sequence ship priority (resolves OQ-5).** Order of
+  delivery for strain-reduction sequences, earliest first:
+  1. **Training auto-sweep (REQ-A9/A10)** — highest per-turn tap/hold
+     volume inside a career; alpha-critical.
+  2. **No-choice auto-advance (REQ-F2/F4)** — dialogue advances, result
+     dismissals, animation skips via the generic-UI corpus. Same strain
+     class as multi-tap consolidation; ships in parallel with (1) as
+     corpus labels land, not as a separate "later feature."
+  3. **Shop browse-through (REQ-A1 shop sequence)** — valuable but
+     lower frequency than training; still 1.0, after (1)/(2) are usable.
+  - **Race-skip and plain dialogue advance are not a third named
+    sequence family** — they are instances of REQ-F2 no-choice
+    auto-advance once those screens are human-labeled in the generic-UI
+    corpus. They do not wait for a separate "race automation" feature.
+  - Does not change REQ-A1's "named sequences only" rule; it only orders
+    which named sequences get built first.
 - **REQ-F2 — Auto-advance repetitive/no-choice screens.** Screens with no
   real decision behind them (dialogue advances, animation skips, result
   screens) should advance without the user tapping through each one.
@@ -352,14 +390,21 @@ but deferred, not ruled out).
     tables, so this one has to be catalogued and labeled by hand during
     development). Different sourcing, same match-then-look-up mechanism
     and the same human-labels-offline discipline.
-  - **Open — OQ-17 (§9)**: what happens if the *same* visually-matched
-    screen can have different choice-availability depending on hidden game
-    state (e.g. a normally-choiceless continue screen that occasionally
-    gains an extra option)? Not yet encountered or confirmed as a real
-    case for this game. REQ-SF3 covers it if the difference is visually
-    distinguishable (that's just a different corpus match) — it doesn't
-    cover a case where the extra choice is visually identical to the safe
-    version. Flagged as a known residual risk, not resolved.
+  - **Handling for OQ-17's residual risk (policy decided; occurrence
+    unconfirmed).** If the *same* visual match can hide different
+    choice-availability depending on game state that is not visible:
+    - If the difference is **visually distinguishable**, it is two corpus
+      entries (REQ-SF3 / normal matching) — not a special case.
+    - If the difference is **visually identical** (not yet confirmed as
+      real for this game): the safe label for that entire visual class is
+      **"has a choice"** — never "no-choice." Auto-advance is forbidden
+      for any entry where hidden-state ambiguity is known or reasonably
+      suspected. Same asymmetric failure preference as the default above
+      (extra manual tap beats lost agency).
+    - **Occurrence remains unconfirmed** — this is a standing safety
+      policy if/when such a case appears, not a claim that one exists.
+      OQ-17 stays open only as "has this been observed in-game?" not as
+      "what do we do if it has."
 - **REQ-F3 — Alternate input methods.** Support triggering the above via
   something other than a touchscreen tap, for users who can perform very
   few or no touchscreen gestures — e.g. a single external switch/button,
@@ -493,9 +538,23 @@ decision point recurs. That's a selection (replay), not a choice
   a fast, able-bodied human could physically do, never faster. Sharpens
   REQ-VAL2's speed/uptime criterion into a concrete, checkable bound
   rather than a general principle.
-- **REQ-A7 — UI shape for configuring which sequences are enabled is not
-  yet decided.** Settings screen vs. floating overlay control panel vs.
-  both. Design question, not blocking architecture. (Registry: OQ-15.)
+- **REQ-A7 — Config UI is both: always-visible overlay for kill switches
+  / high-frequency toggles, and a settings screen for depth.** Resolves
+  OQ-15. Split by job, not by preference:
+  - **Overlay (always visible during assist):** on/off for auto-sweep
+    (REQ-A10), voice listening (REQ-V9), and any other control that must
+    be reachable mid-play without leaving the game or performing precise
+    navigation. Overlay controls may share one combined panel; they must
+    not require opening a full settings activity to flip.
+  - **Settings screen (full config):** sequence enablement beyond the
+    kill switches, recorded selections review/edit (REQ-A4), per-event
+    auto-replay toggles (REQ-A8), voice phrase editing (REQ-V8/V11),
+    dwell duration (REQ-A9), confirmation-window timing (REQ-V12), TTS
+    preferences (REQ-T5), defaults/overrides, export/import of local
+    config (REQ-S1).
+  - Rationale: zero-or-low-touch mid-play needs always-visible controls;
+    bulk configuration does not belong on a floating strip that would
+    obscure the game (REQ-QA2).
 - **REQ-A8 — Auto-replay is a separate on/off control from the recorded
   selection itself.** Whether a recorded (support card, event) selection
   actually fires automatically is its own toggle, independent of what the
@@ -504,10 +563,15 @@ decision point recurs. That's a selection (replay), not a choice
   erase the recorded selection, it just stops it from firing on its own —
   consistent with REQ-A4's requirement that everything stay reviewable and
   changeable rather than silently baked in.
-  - **Open — OQ-20 (§9)**: per-(support card, event) toggle, a single
-    global toggle, or both — not specified yet. Ties into REQ-A7/OQ-15's
-    still-open config UI shape work rather than being fully separate from
-    it.
+  - **Resolved — OQ-20: both a global master toggle and per-(support
+    card, event) toggles.** Global off disables all auto-replay without
+    wiping any recorded answers or per-event prefs. Global on means each
+    event still only auto-replays if its own per-event toggle is on (and
+    a recording exists). Default for a newly recorded event: per-event
+    auto-replay **off** until the user explicitly enables it — first
+    occurrence already fell through (REQ-A4); auto-fire of later
+    occurrences is opt-in, consistent with REQ-A11's extreme-constraints
+    framing.
 - **REQ-A9 — "Auto-sweep": named feature for REQ-A1's training-check
   sequence.** Automatically hovers each training facility (Speed/Stamina/
   Power/Guts/Wit) in turn, holding at each one long enough for the user to
@@ -524,21 +588,24 @@ decision point recurs. That's a selection (replay), not a choice
   - Still governed by REQ-A2's hover-safety discipline — the hover
     gesture and any tap/release stay mechanically distinct throughout the
     sweep, no accidental confirm on any facility along the way.
-  - **Open — OQ-21 (§9)**: exact dwell duration per facility — fixed, or
-    adaptive to how much text is actually in that facility's preview panel
-    — not specified yet.
+  - **Resolved — OQ-21: fixed, user-configurable dwell — not adaptive to
+    preview text length for 1.0.** Ship a single default dwell per
+    facility (starting default **~1.5 seconds**, subject to empirical
+    retuning — OQ-33) applied equally to all five facilities; user can
+    lengthen/shorten it in settings (REQ-A7). Adaptive-to-text-volume is
+    deferred: it needs reliable live readout of each preview panel's
+    density and adds complexity without a clear accessibility win over a
+    user who can just set "I need more time." Pause/skip-to-next during a
+    sweep remains desirable (voice or overlay) but is a separate control
+    detail, not a substitute for a stable default dwell.
 - **REQ-A10 — Auto-sweep gets a dedicated, always-visible overlay control,
   not just a settings-screen toggle.** Given how central this feature is,
   its on/off control is a persistent "sweep" slider/switch overlay
   element, visible and actionable at any time — not buried in a menu.
   This is REQ-SF1's kill-switch requirement made concrete for this
   specific feature, and pushed a step further: beyond "trivially
-  reachable," it's *always visible*.
-  - Partially informs REQ-A7/OQ-15 (config UI shape, still open
-    generally): establishes that at least this one control is
-    overlay-based. Doesn't resolve the broader question of every
-    sequence's configuration UI — just this feature's on/off switch
-    specifically.
+  reachable," it's *always visible*. Fits REQ-A7's overlay vs. settings
+  split.
 - **REQ-A11 — Soft requirement: UMAssisted makes no decision automatically
   for the user, except under extreme constraints — and even then, only
   when the "automatic" action can be reconciled back to an explicit,
@@ -613,10 +680,9 @@ decision point recurs. That's a selection (replay), not a choice
     (consistently landing on the one valid target) and temporally regular.
     Requiring an incoherence signal on top of the rate threshold is what
     keeps this from misfiring against ordinary fast play.
-  - **Open — OQ-29 (§9)**: exact numeric thresholds (taps-per-window,
-    position-variance cutoff, timing-variance cutoff) aren't specified —
-    these need empirical tuning against real play, not just picking
-    numbers a priori.
+  - **Open — OQ-29 / OQ-33 (§9)**: exact numeric thresholds
+    (taps-per-window, position-variance cutoff, timing-variance cutoff)
+    need empirical tuning against real play (shared calibration bucket).
 
 ### 6.3 Voice Assistance (Primary Input Method)
 
@@ -660,6 +726,7 @@ decision point recurs. That's a selection (replay), not a choice
     accessible way to *disable* the whole feature.
   - **Known tradeoff, accepted**: continuous mic listening costs battery.
     Not treated as a blocker — it's a cost worth paying for REQ-V1.
+    Quantitative battery/CPU envelope still open (OQ-37).
 - **REQ-V6 — Always-listening raises the bar on REQ-V3, and adds a new
   non-interference obligation.**
   - There's no "armed window" to rely on — the mic is *always* live, so
@@ -726,12 +793,15 @@ decision point recurs. That's a selection (replay), not a choice
       results — likely the single largest unscoped area); Recreation's
       actual flow; Infirmary's actual flow; the hamburger menu's contents;
       post-career/career-completion screens.
-    - **Open sub-question, affects total scope significantly**: does "once
-      inside a career" include the pre-career setup that precedes it
-      (support card deck-building, starting a new career, the "Continue
-      Career" resume screen we already dumped) — or does the boundary
-      start strictly once a career is already running? Not decided, and
-      changes how big this checklist actually is.
+    - **Resolved boundary — "inside a career" for REQ-V7's beta hard
+      gate starts once a career run is already in progress**, not at
+      pre-career setup. Pre-career (support-card deck-building, starting
+      a new career, "Continue Career" resume modal) is **not** part of the
+      1.0-beta hard checklist. Voice coverage there is desirable for 1.0
+      final where cheap, but missing it does not block beta. Remaining
+      beta-blocking inventory is still the unobserved in-career flows
+      (Shop purchase, Skills, Races, Recreation, Infirmary, hamburger
+      contents) — those still need dedicated screenshots (OQ-22 residual).
 - **REQ-V8 — User-definable vocalizations per action, not a fixed command
   grammar.** The user must be able to define their own spoken phrase for
   selecting each training facility — and, per REQ-V7, presumably other
@@ -740,10 +810,8 @@ decision point recurs. That's a selection (replay), not a choice
   configurability principle from the wake phrase specifically to action
   commands generally, for the same reason: accessibility software
   shouldn't assume there's one correct way to say something.
-  - **Open — OQ-23 (§9)**: default/fallback vocalizations for users who
-    don't customize — ship with sensible per-action defaults the user can
-    override, or require setup before any voice control works at all?
-    Leaning toward defaults-plus-override on UX grounds, but not decided.
+  - **Resolved — OQ-23 / see REQ-V14:** defaults-plus-override, not
+    setup-required-before-use.
 - **REQ-V11 — Multiple triggering phrases per distinct UI element
   selection, not just one.** Extends REQ-V8: the user isn't limited to a
   single defined phrase per action — they can register a *set* of phrases
@@ -759,11 +827,14 @@ decision point recurs. That's a selection (replay), not a choice
     which phrase in the set gets spoken, it's still executing the same
     single, specific, user-defined action — multiple phrases mapping to
     one action is still one selection, not a new decision-making surface.
-  - **Open — OQ-28 (§9)**: is there a practical limit on how many phrases
-    can be registered per action? More registered phrases plausibly widens
-    the surface for accidental matches against ambient speech or the
-    game's own audio, which REQ-V3/V6 already treat as the primary defense
-    to protect. Not decided.
+  - **Resolved — OQ-28: soft recommended limit, not a hard cap.** Warn
+    (do not block) when the user registers more than **8 phrases** for a
+    single action — more phrases widen the false-activation surface
+    REQ-V3/V6 guard against. A hard technical maximum is rejected: some
+    users will need more variants for speech accessibility, and a hard
+    wall would reintroduce the exact rigidity REQ-V11 exists to remove.
+    The warn threshold itself is retunable (same empirical class as
+    OQ-29/OQ-31); 8 is the starting default.
 - **REQ-V9 — Voice assist gets the same always-visible overlay toggle
   pattern as REQ-A10, for the kill-switch reason REQ-V5 already
   established.** Concrete motivating case: a concurrent phone call, where
@@ -773,9 +844,8 @@ decision point recurs. That's a selection (replay), not a choice
   for it — something this important shouldn't rely on the automatic
   behavior alone.
   - Same UI pattern as REQ-A10 (persistent, always-visible slider/toggle).
-    Whether it shares one combined overlay panel with the sweep toggle or
-    stays a separate control is left to REQ-A7/OQ-15's still-open config
-    UI shape work.
+    May share one combined overlay panel with the sweep toggle per
+    REQ-A7's overlay-vs-settings split.
   - **Voice channel for the same control — see REQ-V13.** The overlay is
     the visible state surface; spoken "start listening" / "stop listening"
     commands toggle that same state without requiring touch.
@@ -867,9 +937,16 @@ decision point recurs. That's a selection (replay), not a choice
   - **Doesn't touch REQ-A11.** Both utterances are still the user's own
     originated commands for one specific, already-defined action —
     nothing is being decided on their behalf.
-  - **Open — OQ-30 (§9)**: how long the armed confirmation window stays
-    open before it expires (and what feedback tells the user it armed vs.
-    expired). UX/timing detail, not architecture-blocking.
+  - **Resolved — OQ-30 (defaults; residual retune is OQ-33 class).**
+    Armed confirmation window defaults to **~5 seconds** of wall time
+    after the first utterance; on expiry the action is **cancelled, not
+    fired** (user must re-issue the command to arm again). Feedback on
+    arm: brief TTS and/or non-blocking overlay prompt naming the pending
+    action (e.g. "Speed — say again to confirm"). Feedback on expiry:
+    short cancel cue (tone or "cancelled"). Window duration is
+    user-configurable in settings (REQ-A7); the 5s figure is a starting
+    default, not a sacred constant — empirical retune allowed without a
+    new architecture decision.
 - **REQ-V13 — Spoken "start listening" and "stop listening" commands that
   toggle the same listening state already reflected by REQ-V9's overlay
   control.** The always-visible overlay toggle (REQ-V9) is the *state
@@ -897,10 +974,11 @@ decision point recurs. That's a selection (replay), not a choice
     full command recognition. Turning listening fully off does not mean
     the mic becomes unreachable forever; it means game-action commands
     stop firing, while the re-arm phrase remains available.
-  - **Same configurability rules as other voice phrases (REQ-V8/V11).**
+  - **Same configurability rules as other voice phrases (REQ-V8/V11/V14).**
     The exact wording of start/stop is user-definable, with multiple
     phrases allowed per action — "stop listening," "mute," "voice off"
-    can all map to the same stop action. Defaults still subject to OQ-23.
+    can all map to the same stop action. Sensible defaults ship
+    (REQ-V14).
   - **Doesn't replace REQ-V6's automatic mic-yielding** (e.g. yielding to
     a phone call). REQ-V13 is the deliberate user-initiated toggle;
     automatic yield remains a separate, still-required behavior. A user
@@ -909,6 +987,18 @@ decision point recurs. That's a selection (replay), not a choice
   - **Doesn't violate REQ-A11 / REQ-A5.** These are single-shot,
     user-originated commands that change UMAssisted's own assist state —
     not game decisions, not standing loops, not autonomous judgment.
+- **REQ-V14 — Ship sensible per-action default vocalizations; user can
+  override — setup is not required before voice works.** Resolves OQ-23.
+  Every action that voice can trigger (including start/stop listening and
+  common in-career actions under REQ-V7 as they are enumerated) ships with
+  at least one English default phrase; the user may replace or extend the
+  set (REQ-V8/V11) at any time. Requiring a complete custom vocabulary
+  before any voice control works would reintroduce a setup barrier that
+  undercuts REQ-V1 for the users who need voice most.
+  - Defaults must be chosen to avoid obvious collisions with common
+    Umamusume voice lines where known (REQ-V6); user override remains the
+    real fix for residual collisions.
+  - First-run may *offer* customization; it must not *block* on it.
 
 ### 6.4 Audio Readout for Choices (Text-to-Speech)
 
@@ -925,9 +1015,22 @@ decision point recurs. That's a selection (replay), not a choice
   feature that happens to coexist.** Hear the choice (REQ-T1) → speak the
   selection (REQ-V) → done — a fully non-visual, non-touch loop at
   decision points.
-  - **Open — OQ-11**: when REQ-A4 auto-replays a previously-made selection,
-    does that still get read aloud, or stay silent since no live decision
-    is being made?
+  - **Auto-replay readout — see REQ-T5** (resolves OQ-11).
+- **REQ-T5 — When REQ-A4 auto-replays a stored selection, announce it
+  briefly by default; do not stay fully silent, and do not re-read the
+  full first-occurrence decision context.** Resolves OQ-11. Auto-replay
+  is not a live decision, but it *is* an action UMAssisted is taking on
+  the user's behalf — REQ-VAL2's "auditable at every step" and non-visual
+  users both need to know what just fired.
+  - **Default content:** a short cue naming the selection being replayed
+    (e.g. option text or "replaying: option 2"), not the full event
+    dialogue/options list REQ-T1 uses when the user must choose live.
+  - **User can mute auto-replay announcements** in settings without
+    disabling TTS for live decision points (REQ-T1) — two different jobs.
+  - **Does not re-open the decision.** Announcement is after/at fire of
+    the stored selection, not a new confirmation step (confirmation for
+    consequential voice paths remains REQ-V4/V12; auto-replay's opt-in
+    already happened via REQ-A8).
 - **Resolved, no longer open** (originally the most foundational open
   question in this doc). This requirement and REQ-M1's core mechanism both
   assumed the game exposes real text through Android's accessibility node
@@ -1070,9 +1173,39 @@ decision point recurs. That's a selection (replay), not a choice
   the only service acting on the screen, must remain fully functional
   alongside others, and must avoid stepping on another service's gesture
   dispatch where that's detectable.
-  - **Open — OQ-16 (§9)**: exact conflict-avoidance mechanics between
-    concurrently-dispatching accessibility services aren't trivial and
-    haven't been designed yet.
+  - **Mechanics — see REQ-SF5** (resolves OQ-16).
+- **REQ-SF5 — Conflict-avoidance rules when other accessibility services
+  are present.** Resolves OQ-16. Concrete, checkable behaviors:
+  1. **Do not request capabilities or flags that monopolize input** when
+     a less-exclusive mode works — leave room for TalkBack/Switch Access/
+     Voice Access to keep working.
+  2. **Foreign assistive overlays count as foreign UI under REQ-SF3** —
+     if another service's UI is visibly intercepting the screen (beyond
+     UMAssisted's own excluded overlays), do not dispatch game gestures
+     until the screen is cleanly the game (+ our overlays) again.
+  3. **Mic yield already required by REQ-V6** — phone calls and other
+     legitimate mic users take priority; REQ-V13 re-arm remains available.
+  4. **No gesture wars.** If another service is known to be mid-gesture
+     or the user is mid–TalkBack exploration, prefer no-op over
+     concurrent `dispatchGesture`. When in doubt, fall through to the
+     user rather than competing for the same tap target.
+  5. **UMAssisted remains useful if peers are imperfect.** Coexistence
+     is best-effort against services we don't control; the failure mode
+     is pause/fall-through, never a crash loop or exclusive lock that
+     bricks the peer service.
+  - Residual platform quirks (exact Android version differences in
+    multi-service gesture arbitration) are implementation risk, not a
+    missing product rule — re-test under REQ-QA2 when overlays and peers
+    are both live.
+- **REQ-SF6 — Act on the game only when Umamusume is the relevant
+  foreground target; never dispatch into other apps.** Stub from REQ-OQ3
+  gap pass (OQ-35). Package-scoped to `com.cygames.umamusume` (REQ-PL3):
+  if that package is not in the foreground (home, another app, recents,
+  lock screen), UMAssisted must not dispatch gestures or consume voice as
+  game commands. Voice kill-switch / start-stop listening (REQ-V13) may
+  still change *assist* state; they must not fire game actions. Exact
+  detection (AccessibilityService window events vs. usage APIs) is
+  implementation detail; the product rule is no cross-app input injection.
 
 ### 7.2 Security & Privacy
 
@@ -1083,11 +1216,18 @@ decision point recurs. That's a selection (replay), not a choice
   - Rules out: analytics, crash reporting, remote config, auto-update
     checks, cloud-synced settings.
   - Settings/config are local-only. If sharing a config between devices is
-    ever needed, it's manual file export/import, not sync.
+    ever needed, it's manual file export/import, not sync — see REQ-S2.
   - Rationale: an accessibility service already has a lot of on-device
     trust (reads screen content, dispatches input) — no network access
     means there's no path for that trust to be exfiltrated or remotely
     abused.
+- **REQ-S2 — Local config export/import is supported; format and exact
+  scope are still open (OQ-34).** Stub requirement from the REQ-OQ3 gap
+  pass. Recorded selections (REQ-A4), voice phrases (REQ-V8/V11), sequence
+  toggles, dwell/confirm timings, and TTS prefs must be backup-able as a
+  local file the user can move between their own devices by hand — never
+  via network sync (REQ-S1). Exact file format, encryption-at-rest
+  expectations, and which secrets (if any) are excluded are not decided.
 
 ## 8. Process & Governance
 
@@ -1131,9 +1271,32 @@ decision point recurs. That's a selection (replay), not a choice
   already made.
   - Supersedes the earlier open "ToS/fair-use review" note — that's now
     formally this requirement rather than a loose open question.
-- **Open — OQ-12 (§9)**: whether this validation is purely an internal
-  design review, or should also draw on outside precedent/community norms
-  around accessibility tooling for gacha games specifically.
+- **REQ-VAL4 — Validation is primarily an internal design review against
+  REQ-VAL2's criteria; outside precedent is advisory, not a gate.**
+  Resolves OQ-12. The pass is run by the maintainer (and agents assisting
+  under REQ-DEV*) against the concrete criteria already in REQ-VAL2 —
+  including the "same category as TalkBack / Switch Access" comparison,
+  which already encodes the relevant outside assistive-tech precedent.
+  Consulting community norms around gacha accessibility tooling is
+  **allowed and useful as input**, but external consensus is **not
+  required** to pass or fail a feature — this is a private personal tool
+  (REQ-P3), not a public product seeking community ratification. If a
+  feature fails the internal criteria, it is cut or rescoped (REQ-VAL3)
+  regardless of outside opinion; if it passes, it is not blocked waiting
+  for a forum thread.
+
+### 8.1a First-run / Onboarding (gap stub)
+
+- **REQ-ON1 — First-run must get AccessibilityService, overlay, and mic
+  permissions granted with minimal motor burden.** Stub from REQ-OQ3 gap
+  pass (OQ-36). Users who need REQ-V1 (little or no reliable touch) still
+  have to enable an accessibility service and related permissions once —
+  Android's system UI for that is often precision-hostile. UMAssisted must
+  design an onboarding path that: explains each permission in plain
+  language, deep-links to the correct system screen where the platform
+  allows, and does not assume multi-step precise navigation is easy.
+  Exact UX not designed; without this, the rest of voice accessibility
+  is unreachable for the motivating user.
 
 ### 8.2 Development Process: Unbroken Chain of Ethics
 
@@ -1215,11 +1378,22 @@ decision point recurs. That's a selection (replay), not a choice
   - Directly gates REQ-V7's "full voice control of everything inside a
     career" — that requirement can't be verified complete without this
     kind of systematic check existing first.
-  - **Open — OQ-24 (§9)**: what "complete" actually means here — is there
-    a definitive, enumerable list of every UI element/screen to check
-    against (unlikely, given how many training events alone exist), or is
-    this necessarily an ongoing, best-effort process rather than a
-    one-time checklist? Not decided.
+  - **Resolved — OQ-24: hybrid completeness.** Two layers, different
+    finish lines:
+    1. **Structural UI surfaces — finite, enumerable checklist.** Main
+       hubs, sub-menus, race flow screen *types*, shop/skills/recreation/
+       infirmary shells, overlays (REQ-QA2), settings — every distinct
+       layout class observed for Global. This list is maintained in-doc
+       as OQ-22's inventory matures and is the hard "complete" bar for
+       input/output paths that are not per-event content.
+    2. **Event / choice content — ongoing, corpus-driven.** Completeness
+       means "every event in the current REQ-M5 extract is present and
+       labeled (REQ-F4)," not "we imagined every future event." New
+       content is handled by REQ-M7 / REQ-QA4 after client updates — there
+       is no true permanent finish line for event text, and claiming one
+       would be false precision.
+    Shipping gates use layer (1) as a hard checklist and layer (2) as
+    "current extract fully labeled + fall-through proven for unknowns."
 - **REQ-QA2 — UI overlay tested against every scenario, hard blocker for
   1.0 final release.** All of UMAssisted's own overlay elements (REQ-A10's
   sweep toggle, REQ-V9's voice toggle, and any future overlay controls)
@@ -1234,22 +1408,28 @@ decision point recurs. That's a selection (replay), not a choice
   not infer from the code's stated intent — that the actual built APK's
   security posture matches what this doc requires: no `INTERNET`
   permission present (REQ-S1) and no code path that could request it;
-  every third-party dependency (ML Kit, whichever engine resolves OQ-10,
-  any future library) confirmed to introduce no hidden network/telemetry
-  path of its own — a common, easy-to-miss way "no network access" gets
-  silently violated is a bundled SDK's own analytics or crash-reporting
-  defaulting to on; the manifest's permission list contains only what's
-  actually justified by shipped features, nothing broader; and REQ-DEV3's
+  every third-party dependency (ML Kit, Vosk, heed-wakeword, any future
+  library) confirmed to introduce no hidden network/telemetry path of its
+  own — a common, easy-to-miss way "no network access" gets silently
+  violated is a bundled SDK's own analytics or crash-reporting defaulting
+  to on; the manifest's permission list contains only what's actually
+  justified by shipped features, nothing broader; and REQ-DEV3's
   structural constraints (single trigger surface, no timers/listeners
   capable of autonomous action) hold in the shipped code, not just in the
   original test spike.
   - Same underlying discipline as REQ-QA1/QA2: a human confirms this
     directly against the real artifact — a green build or passing test
     suite doesn't stand in for it.
-  - **Open — OQ-25 (§9)**: same shape of question as OQ-24 but for this
-    specific audit — is there a definitive, enumerable checklist to verify
-    against, or does it stay an ongoing, best-effort review as dependencies
-    change over time? Not decided.
+  - **Resolved — OQ-25: enumerable baseline checklist + re-audit on
+    dependency change.** The hard 1.0-final gate uses a fixed checklist at
+    minimum: (a) APK/`AndroidManifest` has no `INTERNET` and no unused
+    broad permissions; (b) each third-party dependency named in the build
+    is reviewed for network/telemetry defaults; (c) REQ-S1 structural
+    guarantees still hold in the linked binary; (d) no autonomous
+    trigger paths beyond user-originated surfaces (REQ-A5/DEV3). **Plus**
+    a re-run of that checklist whenever dependencies are added/upgraded
+    or the permission surface changes — ongoing for maintenance, finite
+    for each audit instance.
 - **REQ-QA4 — Track UI/scenario changes across major Umamusume releases,
   verified at least once per new scenario release.** Umamusume periodically
   ships major content updates — new "scenarios" (distinct career
@@ -1260,19 +1440,20 @@ decision point recurs. That's a selection (replay), not a choice
   release triggers a fresh human-verified coverage check (REQ-QA1) against
   the updated client — not a one-time pre-1.0 check assumed to stay valid
   indefinitely.
-  - This is a concrete, partial answer to REQ-QA1/OQ-24's "one-time
-    checklist vs. ongoing process" question: it's ongoing, with new-scenario
-    release as the minimum recurring trigger. The exhaustive scope of each
-    individual check is still whatever OQ-24 eventually resolves to.
-  - Related to OQ-3 (corpus currency for event data specifically) but
+  - Aligns with REQ-QA1's hybrid completeness (structural checklist
+    re-verified; event corpus refreshed via REQ-M7).
+  - Related to REQ-M7 (corpus currency for event data specifically) but
     broader in kind: this covers structural/layout UI changes, not just new
     event content within an existing, unchanged layout.
-  - **Open — OQ-26 (§9)**: how does anyone even find out a new scenario has
-    shipped, in a way consistent with REQ-S1 (no network access)? UMAssisted
-    itself can't check for game updates over the network — this is
-    necessarily a manual, human/maintainer-driven trigger (noticing a new
-    scenario exists, e.g. through the community), not something the app
-    detects or automates on its own.
+  - **Trigger — see REQ-QA5** (resolves OQ-26).
+- **REQ-QA5 — New-scenario / client-update detection is human/maintainer-
+  driven outside the app; the app never probes for updates.** Resolves
+  OQ-26. Consistent with REQ-S1: UMAssisted has no network path and must
+  not grow one just to learn that Cygames shipped content. The maintainer
+  notices new scenarios or material client changes via ordinary human
+  channels (playing the game, community news, store listing) and then
+  runs REQ-QA4 + REQ-M7. No in-app "check for game updates," no silent
+  polling, no dependency on a third-party feed inside the APK.
 
 ## 9. Open Questions Registry
 
@@ -1339,12 +1520,13 @@ decision point recurs. That's a selection (replay), not a choice
     quietly promote deferred items. Out-of-scope discoveries go under
     existing out-of-scope notes or as DEFERRED OQs, not as silent 1.0
     commitments.
-  - **Open — OQ-32 (§9)**: is there a minimum cadence or pre-milestone
-    checklist for a deliberate full-document gap pass (e.g. before 1.0
-    alpha architecture work, before beta), or does opportunistic
-    discovery during ordinary edits suffice? Not decided — the standing
-    obligation to document gaps when found is decided; formal audit
-    rhythm is not.
+  - **Resolved — OQ-32: both.** Opportunistic discovery during ordinary
+    edits is required always (finding a gap mid-work is success). **Plus**
+    a deliberate full-document gap pass before each milestone gate that
+    ships or hardens architecture: before **1.0 alpha** architecture work
+    starts in earnest, before **1.0 beta**, and before **1.0 final**. Pass
+    outcome is new OQs/REQ stubs written into this doc, not a separate
+    report that can rot.
 
 Status tags below: **BLOCKING** = worth resolving before 1.0 architecture
 work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
@@ -1371,13 +1553,11 @@ work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
   Global client's own `master.mdb` (or equivalent), bundled into the
   private APK. Community sites (GameTora, etc.) stay human reference for
   offline labeling only. Cygames IP still applies; REQ-P3 bounds exposure.
-- **OQ-3 (REQ-M3) — OPEN.** How does the corpus stay current as Umamusume
-  ships new events over time? Operational/process question, not blocking
-  the initial build but blocking long-term maintenance. Partially
-  narrowed by REQ-M5: refresh path is "re-extract from an updated local
-  client `master.mdb` + re-label new entries," not "re-scrape GameTora" —
-  but the trigger, cadence, and who runs that extract are still undecided
-  (related to OQ-26's maintainer-driven update trigger).
+- **OQ-3 (REQ-M3) — RESOLVED by REQ-M7.** How does the corpus stay current
+  as Umamusume ships new events over time? Answer: maintainer-driven
+  offline re-extract from updated local `master.mdb`, re-label, rebuild
+  private APK — never in-app update checks (REQ-S1). Trigger pairs with
+  REQ-QA5.
 - **OQ-4 (REQ-M3) — RESOLVED by REQ-M6.** How robust does offline
   corpus-matching need to be against real-world variance (device
   resolution, UI scale) between the reference corpus and a live capture?
@@ -1386,9 +1566,11 @@ work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
   resolution-normalized visual match for generic-UI screens; below
   confidence threshold → fall through, never best-guess. Residual
   calibration detail is OQ-31.
-- **OQ-5 (REQ-F1) — OPEN.** What priority order should shop-check and
-  training-check ship in, and do race-skip/dialogue join the target-
-  sequence list? Product scoping, not blocking architecture.
+- **OQ-5 (REQ-F1) — RESOLVED by REQ-F5.** What priority order should
+  shop-check and training-check ship in, and do race-skip/dialogue join
+  the target-sequence list? Answer: (1) training auto-sweep, (2)
+  no-choice auto-advance (includes dialogue/race-skip as labeled generic
+  UI), (3) shop browse — all 1.0, ordered.
 - **OQ-6 (REQ-F2) — RESOLVED by REQ-F4.** What's the explicit detection
   rule for "no real choice on this screen" vs. "looks like no-choice but
   actually has one"? Answer: corpus-based pre-labeling done once, offline,
@@ -1411,36 +1593,33 @@ work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
   transcribing full spoken commands. Turned out to be a two-engine
   question, not one — wake-word detection is a separate problem, resolved
   separately as OQ-27.
-- **OQ-11 (REQ-T3) — OPEN.** When REQ-A4 auto-replays a previously-made
-  selection, does that get announced via TTS, or stay silent since no live
-  decision is being made? UX decision, not technically blocking.
-- **OQ-12 (REQ-VAL3) — OPEN.** Should the mobility-assistance-vs-botting
-  validation pass be purely an internal design review, or also draw on
-  outside precedent/community norms around accessibility tooling for gacha
-  games specifically? Doesn't block starting the validation criteria work.
+- **OQ-11 (REQ-T3) — RESOLVED by REQ-T5.** When REQ-A4 auto-replays a
+  previously-made selection, does that get announced via TTS, or stay
+  silent? Answer: brief default announcement of the replayed selection;
+  full first-occurrence readout not repeated; user can mute auto-replay
+  TTS independently of live decision TTS.
+- **OQ-12 (REQ-VAL3) — RESOLVED by REQ-VAL4.** Should the mobility-
+  assistance-vs-botting validation pass be purely internal, or also draw
+  on outside precedent? Answer: primarily internal against REQ-VAL2;
+  outside precedent is advisory input, not a gate (private tool, REQ-P3).
 - **OQ-13 (REQ-P3) — RESOLVED.** Signed sideload APK release (like
   japanglify) or a purely personal/local build? Answer: closed source,
   personal/private build — never publicly released in any form.
-- **OQ-14 (REQ-PL4) — OPEN, partially resolved.** Minimum Android API
-  level/version floor to target. Already constrained to **API 30+**
-  (Android 11+) as a floor, since REQ-M3 depends on
-  `AccessibilityService.takeScreenshot()`, which requires it — the exact
-  floor above that is still open.
-- **OQ-15 (REQ-A7) — OPEN.** UI shape for configuring which sequences get
-  consolidated — settings screen vs. floating overlay control panel vs.
-  both. Design question, not blocking architecture.
-- **OQ-16 (REQ-SF4) — OPEN.** Exact conflict-avoidance mechanics between
-  UMAssisted and other concurrently-dispatching accessibility services
-  (e.g. TalkBack, Switch Access, Voice Access) haven't been designed yet —
-  only the requirement to coexist safely has been established.
-- **OQ-17 (REQ-F4) — OPEN, residual risk.** Can the *same* visually-matched
-  screen have different choice-availability depending on hidden game
-  state (e.g. a normally-choiceless continue screen that occasionally
-  gains an extra option)? Not yet encountered or confirmed as a real case
-  for this game. REQ-SF3 covers it if the difference is visually
-  distinguishable (that's just a different corpus match); it doesn't cover
-  a case where the extra choice looks visually identical to the safe
-  version.
+- **OQ-14 (REQ-PL4) — RESOLVED.** Minimum Android API level/version floor
+  to target. Answer: **API 30 (Android 11)** exactly as the floor —
+  required by `takeScreenshot()`; nothing current forces higher.
+- **OQ-15 (REQ-A7) — RESOLVED.** UI shape for configuring which sequences
+  get consolidated — settings vs. overlay vs. both? Answer: **both** —
+  always-visible overlay for kill switches / high-frequency toggles;
+  settings screen for depth (phrases, recordings, dwell, etc.).
+- **OQ-16 (REQ-SF4) — RESOLVED by REQ-SF5.** Exact conflict-avoidance
+  mechanics with other accessibility services? Answer: no monopolizing
+  flags; foreign assistive UI → REQ-SF3 no-op; mic yield (REQ-V6); no
+  gesture wars — fall through rather than compete.
+- **OQ-17 (REQ-F4) — OPEN, residual observation only.** Has a visually
+  identical screen with hidden-state-dependent choice availability been
+  observed on Global? Not yet. **Policy if it appears is decided** (label
+  that visual class "has a choice," never auto-advance) — see REQ-F4.
 - **OQ-18 (REQ-M4) — RESOLVED.** Which on-device OCR engine? Answer: ML
   Kit Text Recognition v2, bundled model variant specifically (not
   unbundled, which requires a network download).
@@ -1449,61 +1628,70 @@ work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
   zero network dependency? Answer: zero runtime dependency too — the
   bundled artifact is in a different Maven namespace entirely from the
   Play-Services-backed one, confirming it satisfies REQ-S1's stricter bar.
-- **OQ-20 (REQ-A8) — OPEN.** Should the auto-replay toggle be per-(support
-  card, event), a single global toggle, or both? Ties into REQ-A7/OQ-15's
-  still-open config UI shape work.
-- **OQ-21 (REQ-A9) — OPEN.** Exact dwell duration per facility during
-  auto-sweep — fixed, or adaptive to how much text is in that facility's
-  preview panel? Not specified yet.
+- **OQ-20 (REQ-A8) — RESOLVED.** Should the auto-replay toggle be
+  per-(support card, event), global, or both? Answer: **both** — global
+  master plus per-event; new recordings default per-event auto-replay
+  **off** (opt-in).
+- **OQ-21 (REQ-A9) — RESOLVED.** Exact dwell duration per facility during
+  auto-sweep — fixed or adaptive? Answer: **fixed, user-configurable**;
+  starting default ~1.5s (empirical retune: OQ-33). Adaptive-to-text
+  deferred past 1.0.
 - **OQ-22 (REQ-V7) — BLOCKING for 1.0 beta, not for alpha; partially
   enumerated.** Full inventory of what "everything inside a career"
-  covers for voice-control parity. Main hub and training sub-screen are
-  now enumerated from confirmed on-device observation. Still open: Shop's
-  purchase actions, Skills, Races (likely the largest single gap),
-  Recreation, Infirmary, and the hamburger menu all need dedicated
-  screenshots before they can be enumerated rather than assumed; plus
-  whether pre-career setup counts as "inside a career" at all.
-- **OQ-23 (REQ-V8) — OPEN.** Default/fallback vocalizations for users who
-  don't customize their own — ship with sensible per-action defaults the
-  user can override, or require setup before voice control works at all?
-  Leaning defaults-plus-override, not decided.
-- **OQ-24 (REQ-QA1) — OPEN.** What does "complete" UI-element coverage
-  actually mean — a definitive, enumerable checklist to verify against
-  (unlikely, given how many training events alone exist), or an ongoing,
-  best-effort process with no true finish line? Not decided.
-- **OQ-25 (REQ-QA3) — OPEN.** Is there a definitive, enumerable checklist
-  for the security architecture audit, or does it stay an ongoing,
-  best-effort review as dependencies change over time? Not decided.
-- **OQ-26 (REQ-QA4) — OPEN.** How does anyone find out a new Umamusume
-  scenario has shipped, consistent with REQ-S1 (no network access)?
-  Necessarily a manual, human/maintainer-driven trigger — not something
-  the app can detect or automate on its own.
+  covers for voice-control parity. Main hub and training sub-screen
+  confirmed on-device. **Boundary decided:** pre-career setup is outside
+  the beta hard gate. Still need screenshots for: Shop purchase, Skills,
+  Races (largest gap), Recreation, Infirmary, hamburger contents.
+- **OQ-23 (REQ-V8) — RESOLVED by REQ-V14.** Default/fallback
+  vocalizations? Answer: **defaults-plus-override** — ship English
+  defaults; setup not required before voice works.
+- **OQ-24 (REQ-QA1) — RESOLVED.** What does "complete" UI-element coverage
+  mean? Answer: **hybrid** — finite structural-UI checklist + ongoing
+  event-corpus completeness against the current REQ-M5 extract.
+- **OQ-25 (REQ-QA3) — RESOLVED.** Security audit checklist shape? Answer:
+  **enumerable baseline** (manifest, deps, S1, no autonomous triggers) +
+  **re-audit on dependency/permission change**.
+- **OQ-26 (REQ-QA4) — RESOLVED by REQ-QA5.** How does anyone find out a new
+  scenario shipped under REQ-S1? Answer: human/maintainer outside the app;
+  no in-app update probe.
 - **OQ-27 (REQ-V10) — RESOLVED.** Which engine handles wake-word detection
   (REQ-V5)? Answer: `heed-wakeword` (Apache-2.0, on-device, trains custom
   phrases). Commercial options (Porcupine, DaVoice) and the
   non-commercially-licensed pretrained models from openWakeWord were
   ruled out.
-- **OQ-28 (REQ-V11) — OPEN.** Is there a practical limit on how many
-  phrases can be registered per action? More registered phrases plausibly
-  widens the false-activation surface REQ-V3/V6 are meant to guard
-  against. Not decided.
-- **OQ-29 (REQ-A12) — OPEN.** Exact numeric thresholds for the
+- **OQ-28 (REQ-V11) — RESOLVED.** Practical limit on phrases per action?
+  Answer: **soft warn above 8**, no hard cap (accessibility needs can
+  exceed any rigid max). Warn threshold retunable under OQ-33 class.
+- **OQ-29 (REQ-A12) — OPEN, empirical.** Exact numeric thresholds for the
   accidental-tap heuristic (taps-per-window, position-variance cutoff,
-  timing-variance cutoff) aren't specified — need empirical tuning against
-  real play, not picked a priori.
-- **OQ-30 (REQ-V12) — OPEN.** How long the armed confirmation window stays
-  open after the first utterance of a consequential command, and what
-  feedback tells the user it armed vs. expired? UX/timing detail; the
-  confirmation *path* (repetition counts) is decided, the window duration
-  is not.
-- **OQ-31 (REQ-M6) — OPEN.** Exact confidence thresholds (fuzzy-text score,
-  visual-similarity score) and the precise on-screen crop regions for
-  event title / option OCR need empirical tuning on the target device(s),
-  not numbers picked a priori. Architecture is decided by REQ-M6;
-  calibration is not.
-- **OQ-32 (REQ-OQ3) — OPEN.** Is there a minimum cadence or pre-milestone
-  checklist for a deliberate full-document gap-search pass (e.g. before
-  1.0 alpha architecture work, before beta), or does opportunistic
-  discovery during ordinary edits suffice? The standing obligation to
-  document gaps when found (REQ-OQ3) is decided; formal audit rhythm is
-  not.
+  timing-variance cutoff) — need tuning against real play (folded into
+  OQ-33 calibration set).
+- **OQ-30 (REQ-V12) — RESOLVED (defaults).** Confirmation window duration
+  and feedback? Answer: default **~5s**, cancel-on-expiry (never fire),
+  arm/cancel feedback via brief TTS and/or overlay; user-configurable.
+  Empirical retune under OQ-33.
+- **OQ-31 (REQ-M6) — OPEN, empirical.** Exact confidence thresholds and
+  crop regions for title/option OCR — need device tuning (OQ-33 set).
+- **OQ-32 (REQ-OQ3) — RESOLVED.** Gap-pass cadence? Answer: **always
+  opportunistic** + **deliberate full pass before alpha / beta / final
+  milestone gates**.
+- **OQ-33 (calibration bucket) — OPEN, empirical / needs device + play.**
+  Shared bucket for numeric defaults that are architecturally decided but
+  not yet tuned: REQ-A12 thresholds (OQ-29), REQ-M6 confidence/crops
+  (OQ-31), REQ-A9 dwell (~1.5s start), REQ-V12 window (~5s start),
+  REQ-V11 warn-at-8. Not blocking architecture; blocks shipping confidence
+  for those features.
+- **OQ-34 (REQ-S2) — OPEN.** Local config export/import format and scope
+  (which settings, recorded selections, voice phrases travel together)?
+  Mentioned under REQ-A4/REQ-S1 but not specified. Needed before multi-
+  device personal use or backup is real; not blocking single-device alpha.
+- **OQ-35 (REQ-SF6) — OPEN.** Behavior when Umamusume is not in the
+  foreground (home screen, other app, recents). Implied "don't act" by
+  REQ-SF3/package targeting, but not an explicit requirement yet.
+- **OQ-36 (onboarding) — OPEN.** First-run path for granting
+  `AccessibilityService`, overlay, and mic permissions with low motor
+  burden — required for REQ-V1 users who can't navigate Android Settings
+  precisely, but not designed.
+- **OQ-37 (performance) — OPEN.** Battery / CPU budgets for always-
+  listening wake-word (REQ-V5) + periodic screenshot/OCR (REQ-M3/M4).
+  Tradeoff accepted in principle; no quantitative envelope yet.
