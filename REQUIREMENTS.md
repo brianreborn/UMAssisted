@@ -583,6 +583,26 @@ decision point recurs. That's a selection (replay), not a choice
     don't customize — ship with sensible per-action defaults the user can
     override, or require setup before any voice control works at all?
     Leaning toward defaults-plus-override on UX grounds, but not decided.
+- **REQ-V11 — Multiple triggering phrases per distinct UI element
+  selection, not just one.** Extends REQ-V8: the user isn't limited to a
+  single defined phrase per action — they can register a *set* of phrases
+  that all trigger the same selection (e.g. "speed," "select speed," and
+  "speed training" could all map to the same training facility). Any
+  phrase in the set fires the same action; there's no requirement to
+  remember or use one exact, canonical phrase every time.
+  - Same underlying reasoning as REQ-V8, extended: accessibility software
+    shouldn't assume there's one correct way to say something — and
+    natural speech varies moment to moment even when the intent is
+    identical, so one rigid phrase per action is its own kind of barrier.
+  - **Doesn't touch REQ-A11's reconciliation test at all.** Regardless of
+    which phrase in the set gets spoken, it's still executing the same
+    single, specific, user-defined action — multiple phrases mapping to
+    one action is still one selection, not a new decision-making surface.
+  - **Open — OQ-28 (§9)**: is there a practical limit on how many phrases
+    can be registered per action? More registered phrases plausibly widens
+    the surface for accidental matches against ambient speech or the
+    game's own audio, which REQ-V3/V6 already treat as the primary defense
+    to protect. Not decided.
 - **REQ-V9 — Voice assist gets the same always-visible overlay toggle
   pattern as REQ-A10, for the kill-switch reason REQ-V5 already
   established.** Concrete motivating case: a concurrent phone call, where
@@ -1147,3 +1167,7 @@ work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
   phrases). Commercial options (Porcupine, DaVoice) and the
   non-commercially-licensed pretrained models from openWakeWord were
   ruled out.
+- **OQ-28 (REQ-V11) — OPEN.** Is there a practical limit on how many
+  phrases can be registered per action? More registered phrases plausibly
+  widens the false-activation surface REQ-V3/V6 are meant to guard
+  against. Not decided.
