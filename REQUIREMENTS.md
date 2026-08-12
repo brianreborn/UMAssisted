@@ -45,10 +45,9 @@ barrier, not the game's difficulty itself.
   trigger/decision logic should be decoupled from the "how do we actually
   send a tap" mechanism from day one, even though only the
   `AccessibilityService` path is being built now.
-- **Open question**: whether Umamusume's client detects/blocks
-  synthetic gestures from an `AccessibilityService` (some games do). Not
-  yet investigated — worth an early spike before betting the whole design
-  on this path working.
+- **Open — OQ-1 (Open Questions Registry, near the end of this doc)**:
+  whether Umamusume's client detects/blocks synthetic
+  `AccessibilityService` gestures — not yet spiked.
 - **SPIKED — confirmed 2026-08-12, live client, real career in progress.**
   Dumped the accessibility node tree (`uiautomator dump`) against the Home
   screen. Result: the entire screen is one `android.view.SurfaceView`
@@ -105,15 +104,9 @@ barrier, not the game's difficulty itself.
     screen doesn't match anything in the corpus (new/uncatalogued event,
     unexpected state), the right behavior is the same as a first-occurrence
     decision point — fall through to the user, don't guess.
-  - **Open questions**: which specific existing database to source the
-    corpus from, and whether using/redistributing its data has licensing
-    considerations worth checking (the underlying game text is Cygames'
-    IP regardless of which community site catalogued it); how to keep the
-    corpus current as new events ship; and how robust the offline matching
-    needs to be to real-world variance (device resolution, UI scale)
-    between the reference corpus and the live capture. Matching
-    robustness is a smaller, more tractable version of the old OCR
-    question, not a new one.
+  - **Open — OQ-2, OQ-3, OQ-4 (Open Questions Registry)**: corpus data
+    source/licensing, keeping it current as new events ship, and matching
+    robustness across device/resolution variance.
 
 ## Functional: strain reduction
 
@@ -126,26 +119,23 @@ but deferred, not ruled out).
   → dismiss result → continue) should collapse to a single user action
   (button press or hold).
   - First concrete targets identified: **checking the shop** and
-    **checking training options** — see REQ-A1. Still open: priority order
-    between them, and whether race-skip/dialogue join the list.
+    **checking training options** — see REQ-A1. Open — OQ-5.
 - **REQ-F2 — Auto-advance repetitive/no-choice screens.** Screens with no
   real decision behind them (dialogue advances, animation skips, result
   screens) should advance without the user tapping through each one.
-  - **Open question**: how do we reliably distinguish "no choice here" from
-    "this looks like a no-choice screen but actually has a decision"? Getting
-    this wrong means silently skipping something the user needed to see or
-    choose — this needs explicit detection rules, not a heuristic that could
-    misfire, given the failure mode is bad (lost agency over a real choice).
+  - **Open — OQ-6**: the failure mode of getting "no choice here" detection
+    wrong is bad (silently skipping something the user needed to decide),
+    so this needs an explicit rule, not a heuristic that could misfire.
 - **REQ-F3 — Alternate input methods.** Support triggering the above via
   something other than a touchscreen tap, for users who can perform very
   few or no touchscreen gestures — e.g. a single external switch/button,
   voice, or dwell/gaze.
   - **Voice is promoted out of this bucket** — see REQ-V below, it's now a
     primary, ship-now requirement, not a deferred architectural placeholder.
-  - **Open question**: switch and dwell/gaze remain deferred — which one
-    (if either) becomes the second concrete alternate-input target after
-    voice is still open. Still treated as an architectural requirement now
-    (don't hard-code "input = touch"), concrete implementation deferred.
+  - **Open — OQ-7**: which of switch/dwell-gaze (if either) becomes the
+    second concrete alternate-input target after voice. Still treated as an
+    architectural requirement now (don't hard-code "input = touch"),
+    concrete implementation deferred either way.
 
 Deferred (acknowledged, not scoped yet): bigger/fewer/relocated tap targets
 to reduce precision demand rather than tap count.
@@ -189,13 +179,16 @@ decision point recurs. That's a selection (replay), not a choice
   looks like it wasn't a deliberate choice — rapid, erratic, or a pattern
   inconsistent with normal play — offer to undo/delete its effects rather
   than silently accepting it as intentional input.
-  - **Open question / known constraint**: full undo is only possible where
-    the triggered action is still client-side/reversible. Umamusume is a
-    live-service game with server-authoritative state — some actions
+  - **Known constraint (settled, not open)**: full undo is only possible
+    where the triggered action is still client-side/reversible. Umamusume
+    is a live-service game with server-authoritative state — some actions
     commit the moment they're tapped and can't be rolled back client-side.
     Where genuine undo isn't possible, the fallback is at minimum
     *detecting and flagging* the likely-accidental tap to the user
     immediately, even if the consequence can't be reversed.
+  - **Open — OQ-8**: the specific detection heuristic that identifies a
+    likely-accidental/seizure-pattern tap burst, as distinct from fast
+    intentional play, isn't defined yet — only the goal is.
   - Relates to REQ-V4 (confirmation before consequential/irreversible voice
     actions) — same principle, applied to raw touch input: consequential
     actions deserve a safety net against unintended input, regardless of
@@ -216,13 +209,10 @@ decision point recurs. That's a selection (replay), not a choice
   - Recorded selections are local-only config, consistent with REQ-S1 — no
     network sync — and should live in whatever local settings
     export/import mechanism this project ends up with.
-  - **Open question**: what counts as "the same decision point" for
-    matching purposes. Matching on exact dialog/event text+options is the
-    obvious baseline, but some events may recur with identical text while
-    the user actually wants a different answer depending on context (e.g.
-    current training goals). Whether that needs per-context overrides, or
-    a single standing answer per exact prompt is good enough, isn't
-    decided yet.
+  - **Open — OQ-9**: narrowed by REQ-M3 (the corpus match supplies the
+    matching key), but whether same-text recurring events that want a
+    context-dependent different answer need per-context overrides, or a
+    single standing answer per prompt is good enough, is still unresolved.
   - **Closing a gap (see REQ-A5): as originally written, this requirement
     didn't say REQ-A4 couldn't be triggered proactively/on a schedule** —
     only that when it fires, it replays rather than decides. That's a real
@@ -297,7 +287,7 @@ decision point recurs. That's a selection (replay), not a choice
   constraint, it's a direct consequence of a requirement we already locked
   in. Whatever recognition engine we pick has to run fully on-device
   (Android's offline `SpeechRecognizer` mode or a bundled offline model).
-  - **Open question**: which on-device engine — need to evaluate options
+  - **Open — OQ-10**: which specific on-device engine — needs evaluation
     against accuracy/language-pack size/latency before picking one.
 - **REQ-V3 — Resistant to false activation.** Ambient noise, the game's
   own voice lines/audio, or unrelated speech in the room must not trigger
@@ -360,23 +350,20 @@ decision point recurs. That's a selection (replay), not a choice
 - **REQ-T3 — Designed together with REQ-V, not as a separate feature that
   happens to coexist.** Hear the choice (REQ-T1) → speak the selection
   (REQ-V) → done — a fully non-visual, non-touch loop at decision points.
-  - **Open question**: when REQ-A4 auto-replays a previously-made
-    selection, does that still get read aloud (so the user knows what just
-    happened) or stay silent since no live decision is being made? Not
-    decided.
-- **Open question / known risk — likely more foundational than anything
-  else in this doc.** Both this requirement and REQ-M1's core mechanism
-  assume the game exposes real text through Android's accessibility node
+  - **Open — OQ-11**: when REQ-A4 auto-replays a previously-made selection,
+    does that still get read aloud, or stay silent since no live decision
+    is being made?
+- **Resolved, no longer open** (originally the most foundational open
+  question in this doc). This requirement and REQ-M1's core mechanism both
+  assumed the game exposes real text through Android's accessibility node
   tree. Many mobile games — especially Unity-rendered ones, which gacha
   games commonly are — draw everything to an opaque canvas with no real
   accessible text nodes, which is exactly why TalkBack often can't read
-  anything inside them. If that's true of Umamusume, neither "read the
-  choice aloud" (this section) nor "read the screen to know what to tap"
-  (REQ-M1) works via the standard accessibility-tree approach at all, and
-  OCR or something similarly heavier becomes necessary instead. This is
-  worth an early spike, likely before the gesture-detection question
-  already flagged under REQ-M1 — it's upstream of most of the rest of this
-  document.
+  anything inside them. Spiked live against Umamusume and **confirmed
+  true** — see REQ-M1's `SPIKED` finding. Resolved via REQ-M3 (offline
+  corpus-matching, no OCR needed) rather than the root-access path this
+  note originally worried about; see REQ-T4's update bullets below for how
+  that changed this section's status.
 - **REQ-T4 — This whole section is a soft, conditional requirement, not a
   hard 1.0 commitment.** Hard-required for 1.0 only if it's achievable
   through `AccessibilityService` alone (REQ-M1), same mechanism as
@@ -448,15 +435,13 @@ decision point recurs. That's a selection (replay), not a choice
     accessibility node tree at all, unlike node-based reading. If the
     canvas-rendering risk turns out to be real, pixel-wait may end up
     being the more dependable signal generally, not just for this feature.
-- **Open question / real tension with REQ-A1**: REQ-A1 rules out full
-  gameplay automation and open-ended "play the game" loops. An arbitrary,
-  user-recordable tap sequence could in principle be used to approximate
-  exactly that (e.g. recording a long grind loop). This needs guardrails
-  to stay consistent with REQ-A1's scope-limiting intent before it ships —
-  candidates: no autonomous looping/repeat-until-condition semantics,
-  playback always explicitly user-commanded per run rather than "run
-  forever." Not decided — just flagged as something that has to be
-  resolved before this is built, not after.
+- **Resolved, no longer open**: this section originally flagged a real
+  tension with REQ-A1 (an arbitrary recordable tap sequence could
+  approximate the full-gameplay-loop automation REQ-A1 rules out). That's
+  now closed by REQ-A5's hard no-self-looping requirement above, which
+  applies to REQ-R by name. Left this note in place, rather than deleting
+  it, so the reasoning behind REQ-A5 stays traceable from where the
+  tension originally surfaced.
 
 ## Validation: mobility assistance, not botting
 
@@ -496,10 +481,9 @@ decision point recurs. That's a selection (replay), not a choice
   already made.
   - Supersedes the earlier open "ToS/fair-use review" note — that's now
     formally this requirement rather than a loose open question.
-- **Open question**: whether this validation is purely an internal design
+- **Open — OQ-12**: whether this validation is purely an internal design
   review, or should also draw on outside precedent/community norms around
-  accessibility tooling for gacha games specifically. Not decided — this
-  requirement establishes that the check happens, not exactly how.
+  accessibility tooling for gacha games specifically.
 
 ## Non-functional: security & privacy
 
@@ -516,10 +500,87 @@ decision point recurs. That's a selection (replay), not a choice
     means there's no path for that trust to be exfiltrated or remotely
     abused.
 
-## Open questions (not yet requirements)
+## Open Questions Registry
 
-- Distribution: sideload APK (signed release, like japanglify) or purely
-  personal/local build?
-- Minimum Android API level / version floor to target.
-- UI shape for configuring which sequences get consolidated — settings
-  screen vs. floating overlay control panel vs. both.
+- **REQ-OQ1 — Maintain a single canonical registry of every open question
+  in this doc, not scattered inline notes.** Exists so this project is
+  self-contained and pickup-ready for any agent or contributor, without
+  needing this doc's edit history or the conversation that produced it —
+  read this section to know exactly what's unresolved and why, and follow
+  each `REQ-*` cross-reference back into the body for full context.
+  - **Recursive on purpose, and worth naming**: this document's whole
+    operating pattern — visible in REQ-M3, REQ-A5, REQ-V5, REQ-T4, and
+    every other requirement that started life as an open question — is
+    that *resolving* an open question produces a proper numbered
+    requirement documenting the decision, not a silently-closed checkbox.
+    REQ-OQ1 is that same rule, applied to itself: the rule for handling
+    open questions is itself a requirement, and applying that rule to any
+    future open question in this registry produces another requirement,
+    following the same rule, indefinitely. A strange loop, deliberately.
+- **REQ-OQ2 — When an open question resolves, update its entry in place.**
+  Mark it resolved, name the requirement ID that now covers it, and leave
+  the original question text rather than deleting it — the resolution
+  history is part of what makes this self-contained.
+
+Status tags below: **BLOCKING** = worth resolving before 1.0 architecture
+work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
+= intentionally not needed yet.
+
+- **OQ-1 (REQ-M1) — BLOCKING.** Does Umamusume's client detect/block
+  synthetic gestures dispatched by an `AccessibilityService`? Not yet
+  spiked — the accessibility-tree question got spiked (see REQ-M1's
+  confirmed finding); this sibling risk about gesture *dispatch* (as
+  opposed to screen *reading*) hasn't been.
+- **OQ-2 (REQ-M3) — BLOCKING.** Which specific existing community/datamined
+  Umamusume event database should the offline corpus be sourced from, and
+  does using/redistributing its data raise licensing considerations? The
+  underlying game text is Cygames' IP regardless of which community site
+  catalogued it.
+- **OQ-3 (REQ-M3) — OPEN.** How does the corpus stay current as Umamusume
+  ships new events over time? Operational/process question, not blocking
+  the initial build but blocking long-term maintenance.
+- **OQ-4 (REQ-M3) — BLOCKING.** How robust does offline corpus-matching
+  need to be against real-world variance (device resolution, UI scale)
+  between the reference corpus and a live capture? A smaller, more
+  tractable version of the original OCR-accuracy question, not a new one.
+- **OQ-5 (REQ-F1) — OPEN.** What priority order should shop-check and
+  training-check ship in, and do race-skip/dialogue join the target-
+  sequence list? Product scoping, not blocking architecture.
+- **OQ-6 (REQ-F2) — BLOCKING.** What's the explicit detection rule for "no
+  real choice on this screen" vs. "looks like no-choice but actually has
+  one"? The failure mode (silently skipping a real choice) is bad enough
+  that this needs a rule, not a heuristic, before REQ-F2 ships.
+- **OQ-7 (REQ-F3) — DEFERRED.** Of switch input and dwell/gaze input,
+  which (if either) becomes the second concrete alternate-input target
+  after voice? Architecturally accounted for already; concrete choice not
+  needed yet.
+- **OQ-8 (REQ-A3) — BLOCKING.** What's the specific detection heuristic
+  for a likely-accidental/seizure-pattern tap burst, as distinct from fast
+  intentional play? REQ-A3 states the goal (detect and offer to undo), not
+  the detection rule itself.
+- **OQ-9 (REQ-A4) — OPEN.** Narrowed by REQ-M3 (the corpus match supplies
+  the matching key), but: do same-text recurring decision points that want
+  a context-dependent different answer (e.g. current training goals) need
+  per-context overrides, or is a single standing answer per exact prompt
+  good enough?
+- **OQ-10 (REQ-V2) — BLOCKING.** Which specific on-device speech
+  recognition engine? Needs evaluation against accuracy, language-pack
+  size, and latency.
+- **OQ-11 (REQ-T3) — OPEN.** When REQ-A4 auto-replays a previously-made
+  selection, does that get announced via TTS, or stay silent since no live
+  decision is being made? UX decision, not technically blocking.
+- **OQ-12 (REQ-VAL3) — OPEN.** Should the mobility-assistance-vs-botting
+  validation pass be purely an internal design review, or also draw on
+  outside precedent/community norms around accessibility tooling for gacha
+  games specifically? Doesn't block starting the validation criteria work.
+- **OQ-13 (distribution) — OPEN, not architecture-blocking.** Signed
+  sideload APK release (like japanglify) or a purely personal/local build?
+  Blocks release logistics, not feature work.
+- **OQ-14 (platform floor) — OPEN, partially resolved.** Minimum Android
+  API level/version floor to target. Already constrained to **API 30+**
+  (Android 11+) as a floor, since REQ-M3 depends on
+  `AccessibilityService.takeScreenshot()`, which requires it — the exact
+  floor above that is still open.
+- **OQ-15 (config UI) — OPEN.** UI shape for configuring which sequences
+  get consolidated — settings screen vs. floating overlay control panel vs.
+  both. Design question, not blocking architecture.
