@@ -49,14 +49,32 @@ barrier, not the game's difficulty itself.
   synthetic gestures from an `AccessibilityService` (some games do). Not
   yet investigated — worth an early spike before betting the whole design
   on this path working.
-- **Open question, likely more urgent than the one above**: whether
-  Umamusume's client exposes real text through the accessibility node tree
-  at all, or renders to an opaque canvas the way many Unity-based games do
-  (in which case standard `AccessibilityService` text-reading — which both
-  this mechanism and REQ-T rely on — doesn't work, full stop, regardless of
-  the gesture-detection question). See REQ-T4 for how this gates the
-  audio-readout feature specifically. Worth spiking first, since it's
-  upstream of nearly everything else.
+- **SPIKED — confirmed 2026-08-12, live client, real career in progress.**
+  Dumped the accessibility node tree (`uiautomator dump`) against the Home
+  screen. Result: the entire screen is one `android.view.SurfaceView`
+  (`resource-id=".../unitySurfaceView"`, `content-desc="Game view"`) with
+  **zero child nodes** — none of the visible text (TP/RP, currency,
+  "Enhance"/"Story"/"Home"/"Race"/"Scout", event banners, etc.) exists in
+  the accessibility tree at all. The Unity-canvas risk flagged above is
+  **confirmed real**, not hypothetical. Node-tree-based element detection
+  does not work for this game, full stop. (Only checked the Home screen,
+  but the single-persistent-SurfaceView architecture makes it very
+  unlikely any other screen behaves differently — Unity renders the whole
+  game viewport through this one surface, not per-screen.)
+- **REQ-M3 — Screen understanding falls back to screenshot-based reading
+  (OCR / template matching), not the accessibility node tree.** Direct
+  consequence of the finding above. The good news: this does **not**
+  require root — `AccessibilityService.takeScreenshot()` (stable since
+  Android 11 / API 30) lets a plain, no-root `AccessibilityService`
+  capture the screen itself, for OCR/template-matching to run against.
+  Gesture dispatch (`dispatchGesture()`, coordinate-based) is unaffected
+  by any of this — only "what's on screen" needed a new answer, not "how
+  do we tap it."
+  - **Open question**: OCR accuracy/latency against the game's stylized
+    fonts and animated UI hasn't been validated — `takeScreenshot()` being
+    available answers "can we get a screenshot without root," not "can
+    OCR read it reliably in real time." That's the next thing worth
+    spiking.
 
 ## Functional: strain reduction
 
@@ -166,6 +184,46 @@ decision point recurs. That's a selection (replay), not a choice
     current training goals). Whether that needs per-context overrides, or
     a single standing answer per exact prompt is good enough, isn't
     decided yet.
+  - **Closing a gap (see REQ-A5): as originally written, this requirement
+    didn't say REQ-A4 couldn't be triggered proactively/on a schedule** —
+    only that when it fires, it replays rather than decides. That's a real
+    gap now closed by REQ-A5 below: REQ-A4 only ever fires reactively, in
+    response to the game presenting a recognized decision point during
+    play the user is already driving. It never seeks that decision point
+    out or re-triggers it unattended.
+- **REQ-A5 — Hard requirement: UMAssisted must never self-loop.** No
+  feature may re-arm or repeat itself without a fresh, explicit user
+  command each time it fires. Promoted from an open question (it started
+  as a caveat under REQ-R) to a hard, cross-cutting requirement — this
+  isn't scoped to any one feature:
+  - **REQ-R (tap record & playback)**: no autonomous looping /
+    repeat-until-condition semantics. Playback runs the recorded sequence
+    once per explicit command. "Run this N times" or "run until X" is not
+    supported — if the user wants it run again, they command it again.
+  - **REQ-A4 (decision replay)**: fires only reactively (see the gap
+    closed above) — never proactively re-triggered on its own.
+  - **REQ-V (voice)**: a voice command is a single-shot instruction, same
+    as a tap. It must not be able to arm a standing/repeating loop either
+    — "keep doing X" or equivalent standing instructions are out of scope.
+  - **REQ-R2's pixel-wait needs a bounded timeout, not an indefinite
+    wait.** Flagging this now because it's the same failure mode in
+    disguise: a "wait for this pixel to match" with no timeout that keeps
+    silently retrying is functionally a self-loop, even though no single
+    piece of it looks like one. Any wait condition must give up and
+    surface to the user after a bounded time, not wait forever.
+  - This directly operationalizes REQ-VAL2's "no speed/uptime advantage...
+    no running unattended" criterion — not just a philosophical stance,
+    it's an enforced constraint on every input surface in this doc.
+- **REQ-A6 — Hard requirement: never faster or easier than best-case human
+  manual play.** UMAssisted can make training easier and faster than it
+  would otherwise be for the specific user running it — that's the whole
+  point. It must never be easier or faster than a human with full mobility
+  and a very fast reaction time could accomplish using the app normally,
+  by hand. That's the ceiling, not a soft aspiration: gesture timing,
+  traversal speed, and reaction-to-decision-point latency throughout REQ-A1
+  through REQ-R2 should be bounded at what a fast, able-bodied human could
+  physically do, never faster. Sharpens REQ-VAL2's speed/uptime criterion
+  into a concrete, checkable bound rather than a general principle.
 
 ## Non-functional: non-interference & safety
 
@@ -292,6 +350,15 @@ decision point recurs. That's a selection (replay), not a choice
   to be backed into implicitly by TTS needing it. REQ-M2's root-fallback
   seam exists architecturally either way, but *using* it is still an open
   decision, not a given.
+  - **Update after spike (see REQ-M1/REQ-M3)**: the risk above is
+    confirmed real, but root turned out **not** to be the resulting gate —
+    `AccessibilityService.takeScreenshot()` covers screen capture without
+    root, so REQ-T can in principle stay achievable via
+    `AccessibilityService` alone, same as everything else. The live gate
+    is now OCR accuracy/latency (REQ-M3's open question), not root access.
+    Leaving this requirement's root-contingency language in place rather
+    than deleting it, since it's still the fallback if OCR turns out to be
+    unreliable enough to need something heavier.
 
 ## Haptic / motion input (deferred design)
 
@@ -361,11 +428,12 @@ decision point recurs. That's a selection (replay), not a choice
     tapping through it themselves — it only reduces the physical/sensory
     cost of doing so. Already implied by REQ-A4: no independent
     decision-making, only replay of the user's own prior choices.
-  - **No speed/uptime advantage beyond human capability.** No tapping
-    faster than a human plausibly could, and — critically — no running
-    unattended. "Bot" implies acting while the user is away; this project
-    only acts while the user is actively present and engaged, per
-    REQ-A1's "the player still chooses to invoke" framing.
+  - **No speed/uptime advantage beyond human capability.** Hardened into
+    concrete requirements rather than left as a general principle — see
+    REQ-A5 (no self-looping/unattended running, cross-cutting across
+    REQ-R/REQ-A4/REQ-V) and REQ-A6 (never faster/easier than best-case
+    human manual play). "Bot" implies acting while the user is away or
+    faster than any human could; this project rules out both, explicitly.
   - **Auditable and overridable at every step.** The user can always see
     what's about to happen or did happen, and stop or undo it (REQ-A3,
     REQ-A4's reviewability requirement) — a bot typically runs opaquely;
