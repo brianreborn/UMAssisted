@@ -169,9 +169,47 @@ but deferred, not ruled out).
 - **REQ-F2 — Auto-advance repetitive/no-choice screens.** Screens with no
   real decision behind them (dialogue advances, animation skips, result
   screens) should advance without the user tapping through each one.
-  - **Open — OQ-6**: the failure mode of getting "no choice here" detection
-    wrong is bad (silently skipping something the user needed to decide),
-    so this needs an explicit rule, not a heuristic that could misfire.
+  - **Resolved — see REQ-F4.** Originally flagged as needing an explicit
+    rule rather than a runtime heuristic; REQ-F4 is that rule.
+- **REQ-F4 — No-choice detection is corpus-based pre-labeling, done once
+  offline by a human, never a runtime heuristic.** Resolves OQ-6. Whether
+  a screen is safe to auto-advance is never inferred at runtime from
+  visual pattern (button count, layout, timing, etc.) — that's exactly the
+  kind of heuristic that could misfire, which is what made OQ-6 worth
+  blocking on in the first place. Instead, it reuses the same
+  corpus-matching mechanism REQ-M3 already establishes for identifying
+  known screens: every corpus entry carries an explicit, human-assigned
+  label — "no real choice, safe to auto-advance" or "has a choice, never
+  auto-advance" — set once, offline, by a person reviewing that specific
+  catalogued screen. The app looks the label up; it never decides it.
+  Same overall pattern as REQ-A4 (look up a pre-decided fact by matched
+  identity, don't decide live), applied to a different question.
+  - **Default is safe, not permissive.** Any screen that doesn't cleanly
+    match a corpus entry, or matches one that hasn't been explicitly
+    labeled "no-choice," is treated as "has a choice" by default — REQ-F2
+    never auto-advances a screen it isn't certain about. Mirrors the
+    fallback discipline REQ-M3 and REQ-SF3 already establish (don't guess,
+    fall through to the user), applied to this specific decision. The
+    failure mode of wrongly treating a real choice as "no choice" is bad
+    (lost agency); the failure mode of wrongly treating "no choice" as "has
+    a choice" is a single extra manual tap. The default has to be
+    asymmetric in favor of the cheap failure mode.
+  - **Two corpus sources feed the same mechanism.** The event corpus
+    (REQ-M3, sourced from community event databases — training-event
+    dialogues with real choices) and a second, project-maintained
+    **generic-UI corpus** (result screens, animation-skip prompts, generic
+    confirmations — not covered by any external event database, so this
+    one has to be catalogued and labeled by hand during development).
+    Different sourcing, same match-then-look-up mechanism and the same
+    human-labels-offline discipline.
+  - **Open — OQ-17 (§9)**: what happens if the *same* visually-matched
+    screen can have different choice-availability depending on hidden game
+    state (e.g. a normally-choiceless continue screen that occasionally
+    gains an extra option)? Not yet encountered or confirmed as a real
+    case for this game. REQ-SF3 covers it if the difference is visually
+    distinguishable (that's just a different corpus match) — it doesn't
+    cover a case where the extra choice is visually identical to the safe
+    version. Flagged as a known residual risk, not resolved.
 - **REQ-F3 — Alternate input methods.** Support triggering the above via
   something other than a touchscreen tap, for users who can perform very
   few or no touchscreen gestures — e.g. a single external switch/button,
@@ -694,10 +732,11 @@ work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
 - **OQ-5 (REQ-F1) — OPEN.** What priority order should shop-check and
   training-check ship in, and do race-skip/dialogue join the target-
   sequence list? Product scoping, not blocking architecture.
-- **OQ-6 (REQ-F2) — BLOCKING.** What's the explicit detection rule for "no
-  real choice on this screen" vs. "looks like no-choice but actually has
-  one"? The failure mode (silently skipping a real choice) is bad enough
-  that this needs a rule, not a heuristic, before REQ-F2 ships.
+- **OQ-6 (REQ-F2) — RESOLVED by REQ-F4.** What's the explicit detection
+  rule for "no real choice on this screen" vs. "looks like no-choice but
+  actually has one"? Answer: corpus-based pre-labeling done once, offline,
+  by a human — never a runtime heuristic, and never a default of "assume
+  no choice." See REQ-F4 for the full rule and its residual risk (OQ-17).
 - **OQ-7 (REQ-F3) — DEFERRED.** Of switch input and dwell/gaze input,
   which (if either) becomes the second concrete alternate-input target
   after voice? Architecturally accounted for already; concrete choice not
@@ -736,3 +775,11 @@ work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
   UMAssisted and other concurrently-dispatching accessibility services
   (e.g. TalkBack, Switch Access, Voice Access) haven't been designed yet —
   only the requirement to coexist safely has been established.
+- **OQ-17 (REQ-F4) — OPEN, residual risk.** Can the *same* visually-matched
+  screen have different choice-availability depending on hidden game
+  state (e.g. a normally-choiceless continue screen that occasionally
+  gains an extra option)? Not yet encountered or confirmed as a real case
+  for this game. REQ-SF3 covers it if the difference is visually
+  distinguishable (that's just a different corpus match); it doesn't cover
+  a case where the extra choice looks visually identical to the safe
+  version.
