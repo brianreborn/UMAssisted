@@ -822,36 +822,45 @@ decision point recurs. That's a selection (replay), not a choice
     one to avoid) couldn't support anyway.
 - **REQ-V12 — Accepting a repeated command as confirmation of that
   command.** Extends REQ-V4: when a voice-triggered action is armed and
-  waiting for confirmation, speaking the **same action command again**
-  (any phrase from that action's set under REQ-V11 — not only the exact
-  string just spoken) counts as confirming it. The user doesn't need a
-  separate "yes"/"confirm" vocabulary just to finish a deliberate action
-  they already named.
+  waiting for confirmation, speaking the **same action again** counts as
+  confirming it. The user doesn't need a separate "yes"/"confirm"
+  vocabulary just to finish a deliberate action they already named.
+  - **A synonym counts as a repetition — not only the exact phrase just
+    spoken.** "Same action" is defined by the action identity, not by
+    string equality. Any phrase in that action's registered set under
+    REQ-V11 is a valid confirm utterance for it. Example: if Speed
+    training has `{"speed", "select speed", "speed training"}`, then
+    "speed" … "select speed" is a successful confirm, same as
+    "speed" … "speed". Requiring the identical string would undercut
+    REQ-V11's whole point (natural speech varies phrase-to-phrase even
+    when intent is identical) right at the moment the user is trying to
+    finish a consequential action.
   - **Why this fits accessibility specifically**: naming the action twice
-    is a natural deliberate-intent signal — "speed" … "speed" — that
-    reuses vocabulary the user already knows, rather than introducing a
-    second abstract confirm phrase they have to remember under motor or
-    speech constraint. It also mirrors a common physical pattern (tap to
-    select, tap again to commit).
+    is a natural deliberate-intent signal — "speed" … "speed", or
+    "speed" … "speed training" — that reuses vocabulary the user already
+    knows, rather than introducing a second abstract confirm phrase they
+    have to remember under motor or speech constraint. It also mirrors a
+    common physical pattern (tap to select, tap again to commit).
   - **Doesn't weaken REQ-V4's bar — it is one form of the explicit
     confirmation step, not a bypass of it.** The first utterance still
     only *arms* the action (preview/announce what's about to happen);
     the second utterance is the independent deliberate step that fires
     it. Misrecognition of a single ambient utterance still cannot cause
     an irreversible action on its own.
-  - **Scoped to the armed confirmation window only.** Repetition only
-    confirms while that specific action is pending confirmation — outside
-    that window, saying the command again is just another ordinary
-    command attempt (which, if consequential, re-arms rather than
-    auto-fires). This is what keeps REQ-V3's false-activation resistance
-    intact: ambient double-matches don't silently commit unless the
-    system has already entered a deliberate confirm state from a prior
-    recognized command.
+  - **Scoped to the armed confirmation window only.** Repetition (or a
+    synonym for the same action) only confirms while that specific action
+    is pending confirmation — outside that window, saying the command
+    again is just another ordinary command attempt (which, if
+    consequential, re-arms rather than auto-fires). This is what keeps
+    REQ-V3's false-activation resistance intact: ambient double-matches
+    don't silently commit unless the system has already entered a
+    deliberate confirm state from a prior recognized command.
   - **An explicit confirm/cancel vocabulary remains valid alongside
     repetition.** REQ-V12 adds a confirmation *path*, it doesn't remove
     others. A user who prefers "yes"/"confirm"/"cancel" (or phrases of
-    their own under REQ-V8) can still use those; repetition is required
-    to work, not required to be the only option.
+    their own under REQ-V8) can still use those; repetition (including
+    synonym-as-repetition) is required to work, not required to be the
+    only option.
   - **Doesn't touch REQ-A11.** Both utterances are still the user's own
     originated commands for one specific, already-defined action —
     nothing is being decided on their behalf.
