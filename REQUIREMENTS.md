@@ -57,10 +57,14 @@ barrier, not the game's difficulty itself.
   "Enhance"/"Story"/"Home"/"Race"/"Scout", event banners, etc.) exists in
   the accessibility tree at all. The Unity-canvas risk flagged above is
   **confirmed real**, not hypothetical. Node-tree-based element detection
-  does not work for this game, full stop. (Only checked the Home screen,
-  but the single-persistent-SurfaceView architecture makes it very
-  unlikely any other screen behaves differently — Unity renders the whole
-  game viewport through this one surface, not per-screen.)
+  does not work for this game, full stop.
+  - **Second data point, same result**: also dumped the "Continue Career"
+    modal (goals, stats, Cancel/Resume/Delete Data buttons) — a very
+    different screen type from the Home hub, and one that in a lot of
+    other games would be a native Android dialog rather than an in-engine
+    one. Identical result: same single opaque `unitySurfaceView`, zero
+    real nodes. Converging evidence this is a universal property of the
+    client's rendering, not a quirk of one screen.
 - **REQ-M3 — Screen understanding falls back to screenshot-based reading
   (OCR / template matching), not the accessibility node tree.** Direct
   consequence of the finding above. The good news: this does **not**
