@@ -173,11 +173,17 @@ barrier, not the game's difficulty itself.
   OCR output feeds REQ-M3's fuzzy corpus-matching as an input signal, not
   as a final answer — the same technique UmatoMusume validates in
   production (see the earlier prior-art discussion).
-  - **Open — OQ-19 (§9), verify before implementation**: whether the
-    bundled variant has zero Google Play Services *runtime* dependency at
-    inference time, or only zero *network* dependency — those aren't the
-    same bar, and REQ-S1's "structurally impossible to phone home"
-    standard needs the stricter one confirmed, not assumed.
+  - **Resolved — OQ-19.** The bundled dependency
+    (`com.google.mlkit:text-recognition`) lives in a completely different
+    Maven namespace than the unbundled one
+    (`com.google.android.gms:play-services-mlkit-text-recognition`) — the
+    Play Services (`gms`) package only exists on the unbundled artifact.
+    That means the bundled variant doesn't route through Play Services at
+    all, at build time or runtime — it's a standalone library shipping and
+    running its own model in-process. Satisfies REQ-S1's stricter
+    "structurally impossible to phone home" bar, not just "no network
+    call." (Minimum API level for this API is 23, well under REQ-PL4's
+    existing API 30+ floor — no new constraint there.)
 
 ## 6. Functional Requirements
 
@@ -948,11 +954,11 @@ work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
 - **OQ-18 (REQ-M4) — RESOLVED.** Which on-device OCR engine? Answer: ML
   Kit Text Recognition v2, bundled model variant specifically (not
   unbundled, which requires a network download).
-- **OQ-19 (REQ-M4) — BLOCKING, verify before implementation.** Does ML
-  Kit's bundled Text Recognition variant have zero Google Play Services
-  *runtime* dependency at inference time, or only zero *network*
-  dependency? REQ-S1's "structurally impossible to phone home" bar needs
-  the stricter one confirmed, not assumed.
+- **OQ-19 (REQ-M4) — RESOLVED.** Does ML Kit's bundled Text Recognition
+  variant have zero Google Play Services *runtime* dependency, or only
+  zero network dependency? Answer: zero runtime dependency too — the
+  bundled artifact is in a different Maven namespace entirely from the
+  Play-Services-backed one, confirming it satisfies REQ-S1's stricter bar.
 - **OQ-20 (REQ-A8) — OPEN.** Should the auto-replay toggle be per-(support
   card, event), a single global toggle, or both? Ties into REQ-A7/OQ-15's
   still-open config UI shape work.
