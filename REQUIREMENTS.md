@@ -1061,6 +1061,10 @@ decision point recurs. That's a selection (replay), not a choice
     think of Wit training as the energy-oriented facility; the synonym is
     required in defaults (REQ-V14), not merely optional. User may remove
     or extend it like any other phrase (REQ-V11).
+  - **Shipped synonym — "date" means Recreation.** **"date"** is a default
+    alternate phrase for the hub **Recreation** action (same as
+    "recreation"). Natural player language for that outing; required in
+    defaults, user-overridable like any other phrase (REQ-V11).
   - **Context-gated vs REQ-A15.** Bare **"energy"** on the **training**
     UI selects Wit. On an **event choice** screen, energy-best option
     selection remains the full **"take the energy"** family (REQ-A15) —
@@ -1256,8 +1260,9 @@ decision point recurs. That's a selection (replay), not a choice
   - First-run may *offer* customization; it must not *block* on it.
   - **Event-option selection defaults — see REQ-V15** (ordinal forms and
     matching spoken option text are first-class, not an afterthought).
-  - **Facility defaults include "energy" → Wit** (REQ-V8), in addition to
-    the obvious stat names for Speed/Stamina/Power/Guts/Wit.
+  - **Facility / hub defaults include "energy" → Wit and "date" →
+    Recreation** (REQ-V8), in addition to the obvious stat names for
+    Speed/Stamina/Power/Guts/Wit and "recreation."
 - **REQ-V15 — When selecting an event option, accept multiple utterance
   forms; two are main forms.** At a recognized choice screen (REQ-A4 /
   REQ-M3), any of the following must be able to name the option — the user
