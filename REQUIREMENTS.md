@@ -844,6 +844,9 @@ decision point recurs. That's a selection (replay), not a choice
     three+ options, dual multi-outcome branches, or "single-outcome" that
     is still a bad deal (safe ≠ good). Architecture above stands; catalog
     edge rules can refine offline tags without new command semantics.
+  - **How the user names the option — see REQ-V15.** Gamble/safe are
+    additional forms alongside ordinal and on-screen-text selection, not
+    replacements for them.
 
 ### 6.3 Voice Assistance (Primary Input Method)
 
@@ -944,9 +947,9 @@ decision point recurs. That's a selection (replay), not a choice
       directly (bypassing the sweep); Back.
     - **Confirmed, event dialogs**: speaking the chosen option — already
       implied by REQ-T/REQ-V's design, called out here explicitly as part
-      of "everything." Includes semantic **gamble** / **safe** when the
-      event's options are tagged that way (REQ-A14), not only literal
-      option text.
+      of "everything." Selection **forms** for that pick are specified in
+      REQ-V15 (ordinal / on-screen text as main forms, plus semantic
+      gamble/safe under REQ-A14 and custom phrases under REQ-V8).
     - **Not yet observed on this client — need dedicated screenshots
       before they can be enumerated precisely, not just assumed**: Shop's
       purchase actions specifically (browsing is scoped under REQ-A1, but
@@ -1162,6 +1165,61 @@ decision point recurs. That's a selection (replay), not a choice
     Umamusume voice lines where known (REQ-V6); user override remains the
     real fix for residual collisions.
   - First-run may *offer* customization; it must not *block* on it.
+  - **Event-option selection defaults — see REQ-V15** (ordinal forms and
+    matching spoken option text are first-class, not an afterthought).
+- **REQ-V15 — When selecting an event option, accept multiple utterance
+  forms; two are main forms.** At a recognized choice screen (REQ-A4 /
+  REQ-M3), any of the following must be able to name the option — the user
+  is not limited to a single grammar. All forms resolve to the same
+  concrete option identity for execution, recording (REQ-A4), don't-save
+  (REQ-A13), and auto-replay (REQ-A8).
+  1. **Ordinal / index (main form).** Position-based reference to the
+     option as laid out on screen, top-to-bottom (or the corpus's canonical
+     option order for that event, which must match on-screen order for the
+     Global client). Examples that ship as defaults (REQ-V14) and remain
+     user-extensible (REQ-V8/V11):
+     - "first option", "second option", "third option", …
+     - "option one", "option 1", "1", "number two", "2", …
+     - equivalent short forms the user registers ("top", "bottom", …) via
+       the same multi-phrase machinery.
+     Index is **1-based in user speech** ("1" = first option), matching
+     natural reading of a numbered list after TTS readout (REQ-T1).
+  2. **On-screen option text (main form — the most natural).** Speaking
+     the option **as it appears on screen** (the choice label / dialogue
+     line the game shows for that button). This is the primary
+     content-addressed form: the user indicates the selection the way they
+     would point at it by reading it. Matching uses the corpus's known
+     option strings for the current event (REQ-M5) plus the same
+     fuzzy-match tolerance used elsewhere for OCR/ASR noise (REQ-M6 /
+     Vosk): exact match is not required; a clear best match to one option
+     on *this* screen selects that option. If two options are too close
+     or nothing matches confidently → fall through / ask for ordinal or
+     rephrase (do not guess). Partial phrases may match when unique
+     ("the energy one" only if a single option is uniquely identifiable
+     that way — prefer matching against full option text first).
+  3. **Semantic role forms (additional, not exclusive):** "gamble" /
+     "safe" per REQ-A14 when tags allow.
+  4. **User-defined custom phrases (additional):** any REQ-V8/V11 phrase
+     mapped to a specific option identity for that event or globally to
+     "option N" — same as other actions.
+  - **All main forms are first-class.** Neither ordinal nor on-screen-text
+    is a fallback for the other; both must work for every multi-option
+    event in the corpus. TTS readout (REQ-T1) should make ordinal use
+    easy ("option 1: …; option 2: …") and should speak the same strings
+    text-matching expects, so "read it back and say it" is a coherent
+    loop with REQ-T3.
+  - **Composable with confirmation and don't-save.** "first option" …
+    "first option" confirms under REQ-V12 (synonyms/same action);
+    "option 2, don't save" applies REQ-A13; spoken option text can
+    likewise take a don't-save clause if the phrase grammar allows (or
+    sticky don't-save arm).
+  - **Does not require the user to invent a private nickname** for each
+    option before voice works (aligns with REQ-V14). Custom phrases are
+    additive power, not a gate.
+  - **Open residual — OQ-39 (§9):** how much of a long option string must
+    be spoken for a unique fuzzy match (prefix-only? content words only?),
+    and whether live OCR of the option region is a secondary signal when
+    corpus text and ASR disagree. Defaults can ship; tuning is empirical.
 
 ### 6.4 Audio Readout for Choices (Text-to-Speech)
 
@@ -1171,6 +1229,10 @@ decision point recurs. That's a selection (replay), not a choice
   wherever the game presents a choice, the option text (and enough
   surrounding context to actually understand what's being decided) should
   be available by ear, not just by sight.
+  - **Supports REQ-V15's main forms:** readout should make ordinal
+    reference natural (e.g. number or "first/second" before each option)
+    and should speak the **same option wording** the user can repeat as
+    the on-screen-text selection form.
 - **REQ-T2 — On-device TTS only.** Same consequence as REQ-V2, coming from
   the same REQ-S1 constraint (no network access): this runs on Android's
   on-device `TextToSpeech` engine, not a cloud voice API.
@@ -1868,6 +1930,11 @@ work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
   single-outcome options that are still undesirable. Command validity
   rules in REQ-A14 are decided; how aggressively human labeling marks
   exotic layouts is not.
+- **OQ-39 (REQ-V15) — OPEN.** For on-screen-text option selection: how
+  much of a long option string must be spoken for a unique fuzzy match,
+  and whether live OCR of the option region is a secondary signal when
+  corpus text and ASR disagree. Main forms (ordinal + full/natural option
+  text) are decided; match-threshold detail is empirical.
 
 ## 10. License
 
