@@ -1015,6 +1015,11 @@ decision point recurs. That's a selection (replay), not a choice
       from a single screenshot); the HINT button.
     - **Confirmed, training sub-screen**: select any of the 5 facilities
       directly (bypassing the sweep); Back.
+    - **Scenario-specific — Aoharu Hai spirit burst (REQ-V17):** on the
+      training UI in the **Aoharu Hai** (Aoharu Cup) scenario, also select
+      a facility by unambiguous **spirit burst** type/color (e.g. "purple",
+      "blue", or bare "burst" / "spirit burst" when only one burst is
+      showing).
     - **Confirmed, event dialogs**: speaking the chosen option — already
       implied by REQ-T/REQ-V's design, called out here explicitly as part
       of "everything." Selection **forms** for that pick are specified in
@@ -2156,6 +2161,10 @@ work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
   open + pick + enter. Compound **"just race the scheduled race"** path
   and selection forms in REQ-V16 are decided; screen inventory is not
   (ties to OQ-22).
+- **OQ-42 (REQ-V17) — OPEN.** Aoharu Hai spirit-burst inventory on Global:
+  which colors/types exist, how they render (icon/color/text), and which
+  training rows can show them. Selection rules in REQ-V17 (unambiguous
+  color; bare "burst" only if unique) are decided.
 
 ## 10. License
 
