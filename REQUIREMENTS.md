@@ -72,20 +72,48 @@ barrier, not the game's difficulty itself.
     depends on. Identical opaque `unitySurfaceView`, zero real nodes.
     Three different screen types, three-for-three — this is a settled
     finding for this client, not an open risk anymore.
-- **REQ-M3 — Screen understanding falls back to screenshot-based reading
-  (OCR / template matching), not the accessibility node tree.** Direct
-  consequence of the finding above. The good news: this does **not**
-  require root — `AccessibilityService.takeScreenshot()` (stable since
-  Android 11 / API 30) lets a plain, no-root `AccessibilityService`
-  capture the screen itself, for OCR/template-matching to run against.
-  Gesture dispatch (`dispatchGesture()`, coordinate-based) is unaffected
-  by any of this — only "what's on screen" needed a new answer, not "how
-  do we tap it."
-  - **Open question**: OCR accuracy/latency against the game's stylized
-    fonts and animated UI hasn't been validated — `takeScreenshot()` being
-    available answers "can we get a screenshot without root," not "can
-    OCR read it reliably in real time." That's the next thing worth
-    spiking.
+- **REQ-M3 — Screen understanding falls back to screenshot-based
+  recognition, not the accessibility node tree.** Direct consequence of
+  the finding above. The good news: this does **not** require root —
+  `AccessibilityService.takeScreenshot()` (stable since Android 11 / API
+  30) lets a plain, no-root `AccessibilityService` capture the screen
+  itself. Gesture dispatch (`dispatchGesture()`, coordinate-based) is
+  unaffected by any of this — only "what's on screen" needed a new answer,
+  not "how do we tap it."
+  - **Decided: not general-purpose real-time OCR.** Umamusume's training
+    events, dialog text, and choice options are a **known, finite,
+    already-catalogued set** — extant community/datamined event databases
+    exist for this game. That reframes the problem from "read arbitrary
+    text off the screen reliably" (hard, uncertain accuracy/latency) to
+    "match the current screen against a pre-built, offline corpus of known
+    events" (bounded classification, a much easier and more tractable
+    computer-vision problem). Build the corpus ahead of time from the
+    existing event database, then do offline image matching against it —
+    not OCR on live screenshots.
+  - **This also simplifies REQ-T (audio readout) considerably**: once a
+    screen is matched to a known corpus entry, the text to read aloud is
+    the corpus's already-known dialog/option text, not something extracted
+    from pixels at all. TTS doesn't need to "read" the screen — it needs
+    to know *which* known thing is showing, then speak text we already
+    have. Makes REQ-T4's 1.0-eligibility noticeably more likely.
+  - **This also sharpens REQ-A4's "what counts as the same decision
+    point" open question**: the corpus match *is* the decision-point
+    identity — whatever key the corpus uses to identify a known event is
+    the natural key for looking up the user's recorded selection too. One
+    matching system serves both REQ-M3 and REQ-A4, not two separate ones.
+  - **Fallback discipline stays consistent with REQ-A4**: if the current
+    screen doesn't match anything in the corpus (new/uncatalogued event,
+    unexpected state), the right behavior is the same as a first-occurrence
+    decision point — fall through to the user, don't guess.
+  - **Open questions**: which specific existing database to source the
+    corpus from, and whether using/redistributing its data has licensing
+    considerations worth checking (the underlying game text is Cygames'
+    IP regardless of which community site catalogued it); how to keep the
+    corpus current as new events ship; and how robust the offline matching
+    needs to be to real-world variance (device resolution, UI scale)
+    between the reference corpus and the live capture. Matching
+    robustness is a smaller, more tractable version of the old OCR
+    question, not a new one.
 
 ## Functional: strain reduction
 
@@ -365,11 +393,17 @@ decision point recurs. That's a selection (replay), not a choice
     confirmed real, but root turned out **not** to be the resulting gate —
     `AccessibilityService.takeScreenshot()` covers screen capture without
     root, so REQ-T can in principle stay achievable via
-    `AccessibilityService` alone, same as everything else. The live gate
-    is now OCR accuracy/latency (REQ-M3's open question), not root access.
-    Leaving this requirement's root-contingency language in place rather
-    than deleting it, since it's still the fallback if OCR turns out to be
-    unreliable enough to need something heavier.
+    `AccessibilityService` alone, same as everything else. Leaving this
+    requirement's root-contingency language in place rather than deleting
+    it, since it's still the fallback if the recognition approach below
+    turns out to be unreliable enough to need something heavier.
+  - **Further update (see REQ-M3)**: the live gate isn't OCR accuracy
+    anymore either. REQ-M3 dropped real-time OCR in favor of matching the
+    screen against a pre-built offline corpus of Umamusume's known,
+    catalogued events — which means the readout text usually comes
+    straight from the corpus's already-known dialog text, not from
+    extracting text off live pixels. This makes REQ-T's 1.0-eligibility
+    look considerably more likely than it did right after the spike.
 
 ## Haptic / motion input (deferred design)
 
