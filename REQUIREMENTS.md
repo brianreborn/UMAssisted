@@ -183,9 +183,8 @@ barrier, not the game's difficulty itself.
     screen doesn't match anything in the corpus (new/uncatalogued event,
     unexpected state), the right behavior is the same as a first-occurrence
     decision point — fall through to the user, don't guess.
-  - **Open — OQ-2, OQ-3, OQ-4 (§9)**: corpus data source/licensing,
-    keeping it current as new events ship, and matching robustness across
-    device/resolution variance.
+  - **Corpus text source — see REQ-M5.** Matching robustness — see REQ-M6.
+    Currency as new events ship remains open (OQ-3).
 - **REQ-M4 — On-device OCR engine: ML Kit Text Recognition v2, bundled
   model variant.** Resolves OQ-18. Specifically the **bundled** install
   option (~4MB per script, baked into the APK) rather than **unbundled**
@@ -208,6 +207,97 @@ barrier, not the game's difficulty itself.
     "structurally impossible to phone home" bar, not just "no network
     call." (Minimum API level for this API is 23, well under REQ-PL4's
     existing API 30+ floor — no new constraint there.)
+- **REQ-M5 — Event-corpus text is sourced from a local extract of the
+  Global client's own game data files (`master.mdb` / equivalent tables),
+  not redistributed from a third-party community database.** Resolves
+  OQ-2. The offline corpus that ships inside the private APK (REQ-P3)
+  carries event identity keys, event titles, and choice-option text
+  extracted offline by the maintainer from the Global/English client's
+  installed data — the same strings the game itself renders. That extract
+  is built once (and rebuilt on client updates; see OQ-3), then bundled;
+  the app never downloads event data at runtime (REQ-S1).
+  - **Why not GameTora / UmaEvents / Game8 as the redistribution source.**
+    Those tools are the community's best-known event catalogues, and prior
+    art (UmatoMusume, Umaplay, Uma-Event-Helper) scrapes or embeds them —
+    but none of them publish a clear license that authorizes redistributing
+    their curated datasets inside a closed-source binary. UmaEvents itself
+    has no public source repo to inspect. Scraping a third-party site also
+    creates a currency dependency on someone else's maintenance (OQ-3)
+    and a second-order ToS surface with that site. For a personal/private
+    tool (REQ-P3), deriving text from the user's own game client is the
+    cleaner chain of custody: the strings already live on the device that
+    will run UMAssisted; we aren't republishing a community author's work.
+  - **Cygames IP still applies to the text content itself** — `master.mdb`
+    is not a free-license dataset. REQ-P3's "never public, personal build
+    only" is what keeps that exposure bounded; this requirement does not
+    authorize public redistribution of extracted game text either.
+  - **Community databases remain valid human reference during offline
+    labeling work (REQ-F4), not corpus source.** When a human labels a
+    corpus entry "no-choice" vs. "has a choice," or when building the
+    project-maintained generic-UI corpus, looking at GameTora's Training
+    Event Helper (or similar) as a *read-only aid to understanding* is
+    fine — the same way a human might open a wiki while labeling. What
+    ships in the APK is our extract + our labels, not a copy of their
+    JSON/site dump.
+  - **Two layers of the corpus, same source discipline:**
+    1. **Event text layer** (this requirement): structured identity +
+       dialog/option strings from the local `master.mdb` extract — feeds
+       REQ-A4's decision-point key, REQ-T1's TTS text, and REQ-M6's
+       fuzzy-match targets.
+    2. **Generic-UI layer** (already under REQ-F4): project-maintained
+       screenshots/templates + human labels for non-event screens (result
+       screens, skips, etc.) — not covered by `master.mdb` event tables,
+       still hand-catalogued.
+  - **Natural identity key for REQ-A4.** Game-internal event IDs (or the
+    stable `(support card / character, event)` pairing those tables
+    already encode — consistent with OQ-9's resolution) are the corpus
+    keys, not a scraped page URL or a third-party slug. One key system
+    from the data source through match through replay.
+  - **What this does *not* resolve:** OQ-3 (how the extract gets refreshed
+    when the client ships new events) and the residual question of whether
+    every choice-relevant string actually lives in `master.mdb` on Global
+    (community tools note some story text is elsewhere). Unmatched screens
+    still fall through to the user per REQ-M3 — gaps become manual taps,
+    not guesses.
+- **REQ-M6 — Screen matching is OCR-assisted fuzzy text match first,
+  resolution-normalized visual match second; low confidence always falls
+  through.** Resolves OQ-4. Prior art that actually ships for this game
+  (UmatoMusume: OCR → string-similarity against a known event database;
+  Uma-Event-Helper: same shape) converges on text as the primary signal
+  for *event* screens, not pure pixel templates. That is the robustness
+  answer against device resolution / UI scale variance: OCR'd event-title
+  (and, when available, option) text is far more stable across pixel
+  geometry than a reference screenshot is.
+  - **Primary signal (event / dialog screens):** crop the known title
+    region (and option regions when useful) from the
+    `AccessibilityService.takeScreenshot()` capture → ML Kit OCR
+    (REQ-M4) → fuzzy string match against REQ-M5's event-text corpus.
+    Match identity is the corpus key (REQ-M5 / OQ-9), not "this image
+    looks like that image."
+  - **Secondary signal (generic-UI corpus, and disambiguation):**
+    resolution-normalized template / feature matching against
+    project-maintained reference captures — required for screens with
+    little or no stable unique text (result banners, skip prompts, etc.).
+    Always normalize the live capture to a fixed reference coordinate
+    space before comparing, so a 1080×2400 phone and a 1440×3200 phone
+    aren't different match problems.
+  - **Confidence gate, not best-guess.** A match only counts when it
+    clears an explicit confidence threshold (fuzzy score for text;
+    similarity score for visual). Below threshold, or when two candidates
+    are too close to call: **no match** — same fallback as an unknown
+    screen (REQ-M3 / REQ-A4 / REQ-F4). Never silently pick the "closest"
+    of a bad set.
+  - **Why this is tractable rather than "general OCR."** The search space
+    is the finite, offline corpus (REQ-M3's original reframe), not open-
+    ended text understanding. OCR errors are absorbed by fuzzy match
+    against that bounded set; they don't have to produce a perfect
+    transcript. REQ-M4 already chose the engine; this requirement chooses
+    the *role* OCR plays.
+  - **Open residual — OQ-31 (§9)**: exact confidence thresholds and the
+    precise on-screen crop regions for title/options need empirical
+    tuning on the target device(s), not numbers picked a priori. Same
+    shape as OQ-29 (thresholds after the rule). Architecture is decided;
+    calibration is not.
 
 ## 6. Functional Requirements
 
@@ -252,13 +342,13 @@ but deferred, not ruled out).
     a choice" is a single extra manual tap. The default has to be
     asymmetric in favor of the cheap failure mode.
   - **Two corpus sources feed the same mechanism.** The event corpus
-    (REQ-M3, sourced from community event databases — training-event
-    dialogues with real choices) and a second, project-maintained
-    **generic-UI corpus** (result screens, animation-skip prompts, generic
-    confirmations — not covered by any external event database, so this
-    one has to be catalogued and labeled by hand during development).
-    Different sourcing, same match-then-look-up mechanism and the same
-    human-labels-offline discipline.
+    (REQ-M3/REQ-M5 — training-event dialogues with real choices, text
+    sourced from a local Global `master.mdb` extract) and a second,
+    project-maintained **generic-UI corpus** (result screens,
+    animation-skip prompts, generic confirmations — not covered by event
+    tables, so this one has to be catalogued and labeled by hand during
+    development). Different sourcing, same match-then-look-up mechanism
+    and the same human-labels-offline discipline.
   - **Open — OQ-17 (§9)**: what happens if the *same* visually-matched
     screen can have different choice-availability depending on hidden game
     state (e.g. a normally-choiceless continue screen that occasionally
@@ -540,7 +630,7 @@ decision point recurs. That's a selection (replay), not a choice
     recognition (transcribing a full spoken command) and wake-word
     detection (REQ-V5) turned out to be genuinely separate engineering
     problems with different engines — REQ-V10 covers the former; the
-    latter is still open (OQ-27).
+    latter is resolved by OQ-27 (`heed-wakeword`).
 - **REQ-V3 — Resistant to false activation.** Ambient noise, the game's
   own voice lines/audio, or unrelated speech in the room must not trigger
   an action. Held to a higher bar than REQ-SF1's stale-state check because
@@ -551,6 +641,10 @@ decision point recurs. That's a selection (replay), not a choice
   that can't be replayed) requires an explicit confirmation step, not a
   single utterance. Misrecognition must never be able to cause an
   irreversible or costly in-game action on its own.
+  - **One accepted confirmation form — see REQ-V12**: repeating the same
+    command counts as confirmation of that command. Not the only possible
+    confirm path (an explicit "confirm"/"yes" phrase is still valid), but
+    a required one.
 - **REQ-V5 — Activation model: always-listening, on-device wake word.**
   Decided: no push-to-talk, no external switch needed to arm listening —
   the mic listens continuously (on-device only, per REQ-V2/REQ-S1) for a
@@ -604,11 +698,37 @@ decision point recurs. That's a selection (replay), not a choice
     REQ-A5 already requires (single-shot per command, no standing loop).
     It expands how the user can act, not what UMAssisted decides on its
     own.
-  - **Open — OQ-22 (§9)**: full inventory of what "everything inside a
-    career" actually covers (training, racing, resting, skills,
-    recreation, races menu, etc.) hasn't been enumerated yet — this
-    requirement commits to the goal and the beta deadline, not yet the
-    checklist.
+  - **Partial enumeration — OQ-22 (§9), still open where noted.** Split
+    into confirmed (actually seen on-device this session) and
+    general-knowledge/unconfirmed, per REQ-QA1's verified-not-assumed
+    discipline:
+    - **Confirmed, main training hub**: select/confirm a training facility
+      (Speed/Stamina/Power/Guts/Wit — the actual commit action, distinct
+      from REQ-A9's preview-hover sweep); Rest; Skills; Infirmary;
+      Recreation; Races; Back; Skip; Quick; Log; the hamburger/settings
+      menu (contents not yet observed); Details (goal details); Full
+      Stats; the "NORMAL" mode toggle (exact purpose not yet confirmed
+      from a single screenshot); the HINT button.
+    - **Confirmed, training sub-screen**: select any of the 5 facilities
+      directly (bypassing the sweep); Back.
+    - **Confirmed, event dialogs**: speaking the chosen option — already
+      implied by REQ-T/REQ-V's design, called out here explicitly as part
+      of "everything."
+    - **Not yet observed on this client — need dedicated screenshots
+      before they can be enumerated precisely, not just assumed**: Shop's
+      purchase actions specifically (browsing is scoped under REQ-A1, but
+      the actual buy action isn't confirmed); the Skills purchase screen
+      (likely a long scrollable list, structure unknown); Races in full
+      (race selection/calendar, pre-race screens, in-race controls,
+      results — likely the single largest unscoped area); Recreation's
+      actual flow; Infirmary's actual flow; the hamburger menu's contents;
+      post-career/career-completion screens.
+    - **Open sub-question, affects total scope significantly**: does "once
+      inside a career" include the pre-career setup that precedes it
+      (support card deck-building, starting a new career, the "Continue
+      Career" resume screen we already dumped) — or does the boundary
+      start strictly once a career is already running? Not decided, and
+      changes how big this checklist actually is.
 - **REQ-V8 — User-definable vocalizations per action, not a fixed command
   grammar.** The user must be able to define their own spoken phrase for
   selecting each training facility — and, per REQ-V7, presumably other
@@ -653,6 +773,9 @@ decision point recurs. That's a selection (replay), not a choice
     Whether it shares one combined overlay panel with the sweep toggle or
     stays a separate control is left to REQ-A7/OQ-15's still-open config
     UI shape work.
+  - **Voice channel for the same control — see REQ-V13.** The overlay is
+    the visible state surface; spoken "start listening" / "stop listening"
+    commands toggle that same state without requiring touch.
 - **REQ-V10 — On-device speech recognition engine for voice commands:
   Vosk.** Resolves OQ-10 for the general command-recognition need (REQ-V2).
   Chosen specifically because it has zero ties to Google's infrastructure
@@ -697,6 +820,83 @@ decision point recurs. That's a selection (replay), not a choice
     model (like openWakeWord's, whose code is Apache-2.0 but whose
     pretrained models are CC-BY-NC-SA — non-commercial licensed, another
     one to avoid) couldn't support anyway.
+- **REQ-V12 — Accepting a repeated command as confirmation of that
+  command.** Extends REQ-V4: when a voice-triggered action is armed and
+  waiting for confirmation, speaking the **same action command again**
+  (any phrase from that action's set under REQ-V11 — not only the exact
+  string just spoken) counts as confirming it. The user doesn't need a
+  separate "yes"/"confirm" vocabulary just to finish a deliberate action
+  they already named.
+  - **Why this fits accessibility specifically**: naming the action twice
+    is a natural deliberate-intent signal — "speed" … "speed" — that
+    reuses vocabulary the user already knows, rather than introducing a
+    second abstract confirm phrase they have to remember under motor or
+    speech constraint. It also mirrors a common physical pattern (tap to
+    select, tap again to commit).
+  - **Doesn't weaken REQ-V4's bar — it is one form of the explicit
+    confirmation step, not a bypass of it.** The first utterance still
+    only *arms* the action (preview/announce what's about to happen);
+    the second utterance is the independent deliberate step that fires
+    it. Misrecognition of a single ambient utterance still cannot cause
+    an irreversible action on its own.
+  - **Scoped to the armed confirmation window only.** Repetition only
+    confirms while that specific action is pending confirmation — outside
+    that window, saying the command again is just another ordinary
+    command attempt (which, if consequential, re-arms rather than
+    auto-fires). This is what keeps REQ-V3's false-activation resistance
+    intact: ambient double-matches don't silently commit unless the
+    system has already entered a deliberate confirm state from a prior
+    recognized command.
+  - **An explicit confirm/cancel vocabulary remains valid alongside
+    repetition.** REQ-V12 adds a confirmation *path*, it doesn't remove
+    others. A user who prefers "yes"/"confirm"/"cancel" (or phrases of
+    their own under REQ-V8) can still use those; repetition is required
+    to work, not required to be the only option.
+  - **Doesn't touch REQ-A11.** Both utterances are still the user's own
+    originated commands for one specific, already-defined action —
+    nothing is being decided on their behalf.
+  - **Open — OQ-30 (§9)**: how long the armed confirmation window stays
+    open before it expires (and what feedback tells the user it armed vs.
+    expired). UX/timing detail, not architecture-blocking.
+- **REQ-V13 — Spoken "start listening" and "stop listening" commands that
+  toggle the same listening state already reflected by REQ-V9's overlay
+  control.** The always-visible overlay toggle (REQ-V9) is the *state
+  surface* — on or off, visible at a glance. These two voice commands are
+  the *zero-touch path* to flip that exact same state: "stop listening"
+  turns voice assist off (and the overlay shows off); "start listening"
+  turns it back on (and the overlay shows on). One state, two channels —
+  touch on the overlay and speech stay in sync; neither is a separate
+  parallel flag.
+  - **Why this is load-bearing for REQ-V1, not a convenience.** REQ-V5's
+    kill switch already has to work without precise touch; REQ-V9 puts it
+    on an always-visible overlay, which still requires *some* touch.
+    Users who can do little or no reliable touchscreen interaction at all
+    (REQ-V1's motivating case) still need a spoken way to mute and unmute
+    listening — especially for the concurrent-phone-call case REQ-V9
+    already cites. Without this, the kill switch itself reintroduces a
+    touch dependency the rest of voice was designed to remove.
+  - **Asymmetric availability, by necessity.** "Stop listening" must be
+    recognized while listening is on (that's the point). "Start listening"
+    must still be reachable while listening is *off* — otherwise the user
+    who stopped via voice can never restart without touch, defeating the
+    requirement. Concretely: when voice assist is off, the always-on
+    wake-word path (or an equivalent low-power path) must still accept the
+    "start listening" phrase (and only that class of arming phrase), not
+    full command recognition. Turning listening fully off does not mean
+    the mic becomes unreachable forever; it means game-action commands
+    stop firing, while the re-arm phrase remains available.
+  - **Same configurability rules as other voice phrases (REQ-V8/V11).**
+    The exact wording of start/stop is user-definable, with multiple
+    phrases allowed per action — "stop listening," "mute," "voice off"
+    can all map to the same stop action. Defaults still subject to OQ-23.
+  - **Doesn't replace REQ-V6's automatic mic-yielding** (e.g. yielding to
+    a phone call). REQ-V13 is the deliberate user-initiated toggle;
+    automatic yield remains a separate, still-required behavior. A user
+    who was auto-yielded should still be able to re-arm via "start
+    listening" (or the overlay) once the conflicting use ends.
+  - **Doesn't violate REQ-A11 / REQ-A5.** These are single-shot,
+    user-originated commands that change UMAssisted's own assist state —
+    not game decisions, not standing loops, not autonomous judgment.
 
 ### 6.4 Audio Readout for Choices (Text-to-Speech)
 
@@ -1101,18 +1301,29 @@ work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
     needs either a user-performed comparison tap with the agent only
     observing, or waits for real `AccessibilityService` code the user
     explicitly triggers per-instance.
-- **OQ-2 (REQ-M3) — BLOCKING.** Which specific existing community/datamined
-  Umamusume event database should the offline corpus be sourced from, and
-  does using/redistributing its data raise licensing considerations? The
-  underlying game text is Cygames' IP regardless of which community site
-  catalogued it.
+- **OQ-2 (REQ-M3) — RESOLVED by REQ-M5.** Which specific existing
+  community/datamined Umamusume event database should the offline corpus
+  be sourced from, and does using/redistributing its data raise licensing
+  considerations? Answer: don't redistribute a third-party community
+  database at all. Event-corpus text comes from a local extract of the
+  Global client's own `master.mdb` (or equivalent), bundled into the
+  private APK. Community sites (GameTora, etc.) stay human reference for
+  offline labeling only. Cygames IP still applies; REQ-P3 bounds exposure.
 - **OQ-3 (REQ-M3) — OPEN.** How does the corpus stay current as Umamusume
   ships new events over time? Operational/process question, not blocking
-  the initial build but blocking long-term maintenance.
-- **OQ-4 (REQ-M3) — BLOCKING.** How robust does offline corpus-matching
-  need to be against real-world variance (device resolution, UI scale)
-  between the reference corpus and a live capture? A smaller, more
-  tractable version of the original OCR-accuracy question, not a new one.
+  the initial build but blocking long-term maintenance. Partially
+  narrowed by REQ-M5: refresh path is "re-extract from an updated local
+  client `master.mdb` + re-label new entries," not "re-scrape GameTora" —
+  but the trigger, cadence, and who runs that extract are still undecided
+  (related to OQ-26's maintainer-driven update trigger).
+- **OQ-4 (REQ-M3) — RESOLVED by REQ-M6.** How robust does offline
+  corpus-matching need to be against real-world variance (device
+  resolution, UI scale) between the reference corpus and a live capture?
+  Answer: primary signal is OCR-assisted fuzzy text match against the
+  event-text corpus (resolution-stable); secondary is
+  resolution-normalized visual match for generic-UI screens; below
+  confidence threshold → fall through, never best-guess. Residual
+  calibration detail is OQ-31.
 - **OQ-5 (REQ-F1) — OPEN.** What priority order should shop-check and
   training-check ship in, and do race-skip/dialogue join the target-
   sequence list? Product scoping, not blocking architecture.
@@ -1182,10 +1393,14 @@ work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
 - **OQ-21 (REQ-A9) — OPEN.** Exact dwell duration per facility during
   auto-sweep — fixed, or adaptive to how much text is in that facility's
   preview panel? Not specified yet.
-- **OQ-22 (REQ-V7) — BLOCKING for 1.0 beta, not for alpha.** Full
-  inventory of what "everything inside a career" covers for voice-control
-  parity purposes (training, racing, resting, skills, recreation, races
-  menu, etc.) hasn't been enumerated yet.
+- **OQ-22 (REQ-V7) — BLOCKING for 1.0 beta, not for alpha; partially
+  enumerated.** Full inventory of what "everything inside a career"
+  covers for voice-control parity. Main hub and training sub-screen are
+  now enumerated from confirmed on-device observation. Still open: Shop's
+  purchase actions, Skills, Races (likely the largest single gap),
+  Recreation, Infirmary, and the hamburger menu all need dedicated
+  screenshots before they can be enumerated rather than assumed; plus
+  whether pre-career setup counts as "inside a career" at all.
 - **OQ-23 (REQ-V8) — OPEN.** Default/fallback vocalizations for users who
   don't customize their own — ship with sensible per-action defaults the
   user can override, or require setup before voice control works at all?
@@ -1214,3 +1429,13 @@ work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
   accidental-tap heuristic (taps-per-window, position-variance cutoff,
   timing-variance cutoff) aren't specified — need empirical tuning against
   real play, not picked a priori.
+- **OQ-30 (REQ-V12) — OPEN.** How long the armed confirmation window stays
+  open after the first utterance of a consequential command, and what
+  feedback tells the user it armed vs. expired? UX/timing detail; the
+  confirmation *path* (repetition counts) is decided, the window duration
+  is not.
+- **OQ-31 (REQ-M6) — OPEN.** Exact confidence thresholds (fuzzy-text score,
+  visual-similarity score) and the precise on-screen crop regions for
+  event title / option OCR need empirical tuning on the target device(s),
+  not numbers picked a priori. Architecture is decided by REQ-M6;
+  calibration is not.
