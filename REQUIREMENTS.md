@@ -151,6 +151,22 @@ barrier, not the game's difficulty itself.
   - **Open — OQ-2, OQ-3, OQ-4 (§9)**: corpus data source/licensing,
     keeping it current as new events ship, and matching robustness across
     device/resolution variance.
+- **REQ-M4 — On-device OCR engine: ML Kit Text Recognition v2, bundled
+  model variant.** Resolves OQ-18. Specifically the **bundled** install
+  option (~4MB per script, baked into the APK) rather than **unbundled**
+  (~260KB per script, but dynamically downloaded via Play Services on
+  first use) — unbundled would require a network call at least once,
+  which REQ-S1 rules out categorically, not just as a preference. Latin
+  script coverage is sufficient for the Global/English server, which the
+  UmaEvents investigation confirmed is this project's actual target.
+  OCR output feeds REQ-M3's fuzzy corpus-matching as an input signal, not
+  as a final answer — the same technique UmatoMusume validates in
+  production (see the earlier prior-art discussion).
+  - **Open — OQ-19 (§9), verify before implementation**: whether the
+    bundled variant has zero Google Play Services *runtime* dependency at
+    inference time, or only zero *network* dependency — those aren't the
+    same bar, and REQ-S1's "structurally impossible to phone home"
+    standard needs the stricter one confirmed, not assumed.
 
 ## 6. Functional Requirements
 
@@ -244,7 +260,8 @@ decision point recurs. That's a selection (replay), not a choice
       have to repeatedly scroll/tap themselves.
     - **Checking training options** — requires hovering over each training
       card in turn to preview its outcome; automation handles the
-      per-card hover traversal.
+      per-card hover traversal. Named and detailed further as "auto-sweep"
+      — see REQ-A9/REQ-A10.
 - **REQ-A2 — Hover-based traversal is a distinct accidental-tap risk, and
   the automation must not introduce accidental taps of its own.** Moving a
   synthetic touch across multiple targets and pausing on each one (to
@@ -293,10 +310,14 @@ decision point recurs. That's a selection (replay), not a choice
   - Recorded selections are local-only config, consistent with REQ-S1 — no
     network sync — and should live in whatever local settings
     export/import mechanism this project ends up with.
-  - **Open — OQ-9**: narrowed by REQ-M3 (the corpus match supplies the
-    matching key), but whether same-text recurring events that want a
-    context-dependent different answer need per-context overrides, or a
-    single standing answer per prompt is good enough, is still unresolved.
+  - **Resolved — OQ-9.** The decision-point identity key is the
+    **(support card, event) pair** — which specific support card triggered
+    it, plus which specific event — nothing more granular. No per-context
+    override mechanism on top of that: a single standing answer per
+    (support card, event) is the actual design, not a stopgap. The same
+    narrative event can recur under different support cards with different
+    context, which is exactly what the pair-key already disambiguates
+    without needing anything fancier.
   - **Closing a gap (see REQ-A5): as originally written, this requirement
     didn't say REQ-A4 couldn't be triggered proactively/on a schedule** —
     only that when it fires, it replays rather than decides. That's a real
@@ -342,6 +363,49 @@ decision point recurs. That's a selection (replay), not a choice
 - **REQ-A7 — UI shape for configuring which sequences are enabled is not
   yet decided.** Settings screen vs. floating overlay control panel vs.
   both. Design question, not blocking architecture. (Registry: OQ-15.)
+- **REQ-A8 — Auto-replay is a separate on/off control from the recorded
+  selection itself.** Whether a recorded (support card, event) selection
+  actually fires automatically is its own toggle, independent of what the
+  recorded answer is — "last time I picked option 2" and "auto-replay this
+  one" are two different pieces of state. Turning auto-replay off doesn't
+  erase the recorded selection, it just stops it from firing on its own —
+  consistent with REQ-A4's requirement that everything stay reviewable and
+  changeable rather than silently baked in.
+  - **Open — OQ-20 (§9)**: per-(support card, event) toggle, a single
+    global toggle, or both — not specified yet. Ties into REQ-A7/OQ-15's
+    still-open config UI shape work rather than being fully separate from
+    it.
+- **REQ-A9 — "Auto-sweep": named feature for REQ-A1's training-check
+  sequence.** Automatically hovers each training facility (Speed/Stamina/
+  Power/Guts/Wit) in turn, holding at each one long enough for the user to
+  actually read the stat-preview panel — without the user having to
+  manually swipe between facilities or tap-and-hold each one themselves.
+  - **Dwell time is paced for human reading comprehension, not just
+    human-possible tap speed — a distinct constraint layered on top of
+    REQ-A6, not a substitute for it.** REQ-A6 sets a ceiling ("never
+    faster than a fast human could physically do"); auto-sweep's whole
+    point is to actually be *read*, which is a slower, UX-driven pacing
+    decision than the bare motor-speed ceiling REQ-A6 defines. Both apply
+    simultaneously — REQ-A6 as the outer bound, this as the tighter,
+    comprehension-driven pace within it.
+  - Still governed by REQ-A2's hover-safety discipline — the hover
+    gesture and any tap/release stay mechanically distinct throughout the
+    sweep, no accidental confirm on any facility along the way.
+  - **Open — OQ-21 (§9)**: exact dwell duration per facility — fixed, or
+    adaptive to how much text is actually in that facility's preview panel
+    — not specified yet.
+- **REQ-A10 — Auto-sweep gets a dedicated, always-visible overlay control,
+  not just a settings-screen toggle.** Given how central this feature is,
+  its on/off control is a persistent "sweep" slider/switch overlay
+  element, visible and actionable at any time — not buried in a menu.
+  This is REQ-SF1's kill-switch requirement made concrete for this
+  specific feature, and pushed a step further: beyond "trivially
+  reachable," it's *always visible*.
+  - Partially informs REQ-A7/OQ-15 (config UI shape, still open
+    generally): establishes that at least this one control is
+    overlay-based. Doesn't resolve the broader question of every
+    sequence's configuration UI — just this feature's on/off switch
+    specifically.
 
 ### 6.3 Voice Assistance (Primary Input Method)
 
@@ -745,11 +809,9 @@ work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
   for a likely-accidental/seizure-pattern tap burst, as distinct from fast
   intentional play? REQ-A3 states the goal (detect and offer to undo), not
   the detection rule itself.
-- **OQ-9 (REQ-A4) — OPEN.** Narrowed by REQ-M3 (the corpus match supplies
-  the matching key), but: do same-text recurring decision points that want
-  a context-dependent different answer (e.g. current training goals) need
-  per-context overrides, or is a single standing answer per exact prompt
-  good enough?
+- **OQ-9 (REQ-A4) — RESOLVED.** What counts as "the same decision point"
+  for matching purposes? Answer: the (support card, event) pair. No
+  per-context override mechanism on top of it.
 - **OQ-10 (REQ-V2) — BLOCKING.** Which specific on-device speech
   recognition engine? Needs evaluation against accuracy, language-pack
   size, and latency.
@@ -783,3 +845,17 @@ work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
   distinguishable (that's just a different corpus match); it doesn't cover
   a case where the extra choice looks visually identical to the safe
   version.
+- **OQ-18 (REQ-M4) — RESOLVED.** Which on-device OCR engine? Answer: ML
+  Kit Text Recognition v2, bundled model variant specifically (not
+  unbundled, which requires a network download).
+- **OQ-19 (REQ-M4) — BLOCKING, verify before implementation.** Does ML
+  Kit's bundled Text Recognition variant have zero Google Play Services
+  *runtime* dependency at inference time, or only zero *network*
+  dependency? REQ-S1's "structurally impossible to phone home" bar needs
+  the stricter one confirmed, not assumed.
+- **OQ-20 (REQ-A8) — OPEN.** Should the auto-replay toggle be per-(support
+  card, event), a single global toggle, or both? Ties into REQ-A7/OQ-15's
+  still-open config UI shape work.
+- **OQ-21 (REQ-A9) — OPEN.** Exact dwell duration per facility during
+  auto-sweep — fixed, or adaptive to how much text is in that facility's
+  preview panel? Not specified yet.
