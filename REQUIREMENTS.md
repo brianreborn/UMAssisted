@@ -87,6 +87,13 @@ to reduce precision demand rather than tap count.
 
 ## Automation scope & tap safety
 
+Operating principle for this whole section: **UMAssisted only makes
+selections, never choices or decisions.** The user makes every decision
+that exists in the game — full stop. What UMAssisted can do is execute a
+decision the user already made, again, mechanically, when that same
+decision point recurs. That's a selection (replay), not a choice
+(judgment).
+
 - **REQ-A1 — Automate specific interaction sequences, not full gameplay.**
   UMAssisted assists with named, discrete sequences the player still
   chooses to invoke — it is not a general-purpose autoplay/bot. Each
@@ -128,6 +135,29 @@ to reduce precision demand rather than tap count.
     actions) — same principle, applied to raw touch input: consequential
     actions deserve a safety net against unintended input, regardless of
     input source.
+- **REQ-A4 — Recurring decision points are handled by replaying the user's
+  own last selection, never by UMAssisted picking on its own.** Example:
+  a training-card event dialog offers a choice — UMAssisted taps through
+  it choosing whichever option the user picked the last time that exact
+  dialog appeared. It does not evaluate the options and does not apply any
+  "best" heuristic of its own.
+  - **First occurrence of any given decision point always falls through to
+    the user.** There is nothing recorded to replay yet, so UMAssisted
+    must not guess, infer, or apply a default — the user makes that first
+    choice themselves, same as if the tool weren't there at all.
+  - Every recorded selection must be visible, reviewable, and changeable
+    by the user at any time — it's the user's standing decision, stored as
+    data they control, not a rule baked in silently.
+  - Recorded selections are local-only config, consistent with REQ-S1 — no
+    network sync — and should live in whatever local settings
+    export/import mechanism this project ends up with.
+  - **Open question**: what counts as "the same decision point" for
+    matching purposes. Matching on exact dialog/event text+options is the
+    obvious baseline, but some events may recur with identical text while
+    the user actually wants a different answer depending on context (e.g.
+    current training goals). Whether that needs per-context overrides, or
+    a single standing answer per exact prompt is good enough, isn't
+    decided yet.
 
 ## Non-functional: non-interference & safety
 
