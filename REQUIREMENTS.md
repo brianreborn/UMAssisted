@@ -2,12 +2,15 @@
 
 **Status**: Living draft, pre-implementation. Requirement IDs are stable
 once assigned; content is amended in place as decisions are made — see
-§9 (Open Questions Registry) for what's still unresolved.
+§9 (Open Questions Registry) for what's still unresolved. Gaps found in
+this document are themselves documented as open requirements/questions
+to address (REQ-OQ3), not left as unspoken assumptions.
 
 Accessibility software to reduce physical strain for players with limited
 mobility playing Umamusume Pretty Derby. Decisions get added as they're
 made; open questions get resolved into requirements as they're answered
-(see §9's REQ-OQ1 for why that pattern is load-bearing, not incidental).
+(see §9's REQ-OQ1 for why that pattern is load-bearing, not incidental);
+underspecified holes get written down as new open work (REQ-OQ3).
 
 ## 1. Problem Statement
 
@@ -1292,6 +1295,56 @@ decision point recurs. That's a selection (replay), not a choice
   Mark it resolved, name the requirement ID that now covers it, and leave
   the original question text rather than deleting it — the resolution
   history is part of what makes this self-contained.
+- **REQ-OQ3 — Actively search for gaps in this requirements document, and
+  document each gap as an open requirement (or open question) to address —
+  do not leave gaps as unspoken assumptions.** Standing process
+  requirement, not a one-time pass. Complements REQ-OQ1/REQ-OQ2: those
+  govern how *already-known* open questions are registered and resolved;
+  this one requires looking for what the document has *not yet noticed* —
+  missing feature areas, unstated failure modes, unscoped screens, silent
+  dependencies, contradictions between requirements, places where "not
+  decided" is doing work that should be a numbered OQ or REQ.
+  - **What counts as a gap (non-exhaustive):** a behavior the shipped
+    product will need that no `REQ-*` currently covers; a decision the
+    architecture depends on that has no OQ and no resolved REQ; a
+    cross-cutting constraint (privacy, ethics, performance, accessibility)
+    stated in one section but not applied where it would change another;
+    a milestone/gate with no verification path; an interaction between two
+    requirements that neither side acknowledges.
+  - **How gaps get written down.** Prefer the existing machinery, not a
+    parallel "gap list":
+    1. If the gap is an unresolved *question* (we know we need an answer
+       before we can write the requirement), add an **OQ-N** entry in this
+       registry and an inline `Open — OQ-N` pointer from the relevant body
+       section — same as every other open question.
+    2. If the gap is a *missing requirement* whose shape is clear enough to
+       state but not yet decided in full (we know roughly what must be
+       true, details open), add a numbered **REQ-*** stub in the body that
+       names the obligation and marks what remains open — same pattern as
+       requirements that landed with residual OQs (e.g. REQ-A12/OQ-29,
+       REQ-V12/OQ-30, REQ-M6/OQ-31).
+    3. Either way: the gap becomes a durable, findable entry in *this
+       document*, not a chat note, not a mental TODO, not "we'll notice
+       during implementation."
+  - **Who and when.** Applies to any agent or human working on this
+    document — including during ordinary requirement work, not only as a
+    dedicated audit. Finding a gap while resolving something else is a
+    success of this requirement, not a distraction from it. A dedicated
+    gap-search pass is also in scope whenever the document has grown
+    substantially or before architecture/implementation work starts in a
+    new area.
+  - **Does not authorize inventing product scope.** Gap-finding surfaces
+    *underspecification of already-implied needs* and *internal holes in
+    the existing design*; it is not a license to expand 1.0 scope or
+    quietly promote deferred items. Out-of-scope discoveries go under
+    existing out-of-scope notes or as DEFERRED OQs, not as silent 1.0
+    commitments.
+  - **Open — OQ-32 (§9)**: is there a minimum cadence or pre-milestone
+    checklist for a deliberate full-document gap pass (e.g. before 1.0
+    alpha architecture work, before beta), or does opportunistic
+    discovery during ordinary edits suffice? Not decided — the standing
+    obligation to document gaps when found is decided; formal audit
+    rhythm is not.
 
 Status tags below: **BLOCKING** = worth resolving before 1.0 architecture
 work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
@@ -1448,3 +1501,9 @@ work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
   event title / option OCR need empirical tuning on the target device(s),
   not numbers picked a priori. Architecture is decided by REQ-M6;
   calibration is not.
+- **OQ-32 (REQ-OQ3) — OPEN.** Is there a minimum cadence or pre-milestone
+  checklist for a deliberate full-document gap-search pass (e.g. before
+  1.0 alpha architecture work, before beta), or does opportunistic
+  discovery during ordinary edits suffice? The standing obligation to
+  document gaps when found (REQ-OQ3) is decided; formal audit rhythm is
+  not.
