@@ -796,7 +796,79 @@ decision point recurs. That's a selection (replay), not a choice
     edge rules can refine offline tags without new command semantics.
   - **How the user names the option — see REQ-V15.** Gamble/safe are
     additional forms alongside ordinal and on-screen-text selection, not
-    replacements for them.
+    replacements for them. Energy-maximizing selection is **REQ-A15**.
+- **REQ-A15 — Semantic selection "take the energy": pick the option that
+  is best on guaranteed energy change.** Another first-class way to name
+  an event option (alongside ordinal / on-screen text / gamble / safe):
+  the user asks for the choice that **guarantees** the best energy result
+  among the options on this event — **most energy gained, or least energy
+  lost**, when comparing each option's guaranteed (non-random) energy
+  delta. Shipped default phrase: **"take the energy"** (user-extensible
+  under REQ-V8/V11; that wording is the accurate default for this role).
+  - **What "guaranteed" means here.** For each option, use the energy
+    change that is **fixed / certain** for that option in the event data
+    (or in the game's own Effects / Choices readout). For a **gamble**
+    option with multiple possible energy results, do **not** use the lucky
+    branch as if it were certain — use only what is guaranteed for that
+    option (e.g. a fixed component, or the worst-case energy if the data
+    only lists a range and no fixed floor is published). If an option has
+    **no** interpretable guaranteed energy figure, it is out of the
+    comparison set for this command.
+  - **Selection rule:** among options that have a guaranteed energy
+    figure, choose the unique option with the **maximum** guaranteed
+    energy delta (highest gain, or smallest loss if all are negative /
+    mixed). If two or more options tie for best, or none have usable
+    figures → **fall through**, announce why, do not guess (same
+    discipline as REQ-A14 / REQ-M3).
+  - **User-originated criterion, not a hidden "best build" AI
+    (REQ-A11).** The user is explicitly asking for the energy-best option
+    under a fixed comparison rule. UMAssisted is not optimizing stats,
+    mood, skill hints, or long-term career value — **energy only**, and
+    only when commanded. First occurrence and non-energy goals still
+    require other selection forms.
+  - **Data for the comparison — offline first, Effects UI as the live
+    accessibility path.**
+    1. **Preferred:** offline corpus fields for this event's options
+       (REQ-M5 extract / human-reviewed labels) include guaranteed energy
+       deltas so "take the energy" can resolve without extra taps.
+    2. **When offline data is missing or insufficient:** use the game's
+       own **Effects → Choices** presentation (see below) to obtain the
+       option→outcome mapping, then apply the same comparison rule.
+  - **REQ-A15a — Automating "Effects" (and the Choices outcome map) is
+    in-scope accessibility, not forbidden decision automation.** Many
+    events expose an **Effects** control that opens a **Choices** (or
+    equivalent) dialog mapping each named option to its resultant
+    outcomes. Opening that UI is **information access** — the same job as
+    REQ-T1 readout — and often requires precise taps the user may not be
+    able to make. Therefore UMAssisted **may** automate:
+    - tapping **Effects** (or the equivalent control on the matched
+      screen),
+    - waiting for the Choices / effects panel (REQ-R2-style bounded wait /
+      corpus match),
+    - reading or matching the option→outcome mapping (corpus and/or OCR
+      under REQ-M4/M6),
+    - dismissing the panel when done if needed to return to the choice
+      screen,
+    when that sequence is needed for TTS readout, for resolving "take the
+    energy," or when the user explicitly asks to show effects.
+    That automation **does not** select an option by itself. Selecting
+    still requires a user command (including "take the energy") or a
+    stored REQ-A4/A8 replay. Fits REQ-A1 (named sequence: "open event
+    effects") and REQ-A11 (no independent choice of which option is
+    "best" beyond executing a user-stated rule).
+  - **Composable with other forms.** After effects are known, the user
+    may still pick by "1", on-screen text, "gamble", "safe", or "take the
+    energy." Recorded precedent stores the **concrete option id**, not the
+    phrase "take the energy."
+  - **TTS:** when announcing options, may include guaranteed energy when
+    known ("option 2, +10 energy") and may offer a short "energy-best is
+    option N" only **after** the user has a path to request it — do not
+    auto-steer. Optional one-line on request: "take the energy would pick
+    option 2."
+  - **Open residual — OQ-40 (§9):** exact Global-client control labels and
+    layout for Effects / Choices across event types; whether energy is
+    always a numeric field in `master.mdb` or sometimes only on the
+    Effects screen; tie-break policy if any beyond "fall through."
 
 ### 6.3 Voice Assistance (Primary Input Method)
 
@@ -899,7 +971,8 @@ decision point recurs. That's a selection (replay), not a choice
       implied by REQ-T/REQ-V's design, called out here explicitly as part
       of "everything." Selection **forms** for that pick are specified in
       REQ-V15 (ordinal / on-screen text as main forms, plus semantic
-      gamble/safe under REQ-A14 and custom phrases under REQ-V8).
+      gamble/safe under REQ-A14, take-the-energy under REQ-A15, and
+      custom phrases under REQ-V8).
     - **Not yet observed on this client — need dedicated screenshots
       before they can be enumerated precisely, not just assumed**: Shop's
       purchase actions specifically (browsing is scoped under REQ-A1, but
@@ -1148,7 +1221,8 @@ decision point recurs. That's a selection (replay), not a choice
      ("the energy one" only if a single option is uniquely identifiable
      that way — prefer matching against full option text first).
   3. **Semantic role forms (additional, not exclusive):** "gamble" /
-     "safe" per REQ-A14 when tags allow.
+     "safe" per REQ-A14 when tags allow; **"take the energy"** per
+     REQ-A15 when a unique energy-best option exists.
   4. **User-defined custom phrases (additional):** any REQ-V8/V11 phrase
      mapped to a specific option identity for that event or globally to
      "option N" — same as other actions.
@@ -1160,8 +1234,8 @@ decision point recurs. That's a selection (replay), not a choice
     loop with REQ-T3.
   - **Composable with confirmation (REQ-V12).** "first option" … "first
     option" (or synonym for the same action) confirms; spoken option text
-    and "gamble"/"safe" follow the same confirm rules when the action is
-    consequential.
+    "gamble"/"safe", and "take the energy" follow the same confirm rules
+    when the action is consequential.
   - **Does not require the user to invent a private nickname** for each
     option before voice works (aligns with REQ-V14). Custom phrases are
     additive power, not a gate.
@@ -1884,6 +1958,10 @@ work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
   and whether live OCR of the option region is a secondary signal when
   corpus text and ASR disagree. Main forms (ordinal + full/natural option
   text) are decided; match-threshold detail is empirical.
+- **OQ-40 (REQ-A15) — OPEN.** Global-client Effects / Choices UI labels
+  and layouts across event types; whether guaranteed energy is always in
+  the offline extract or sometimes only on the Effects screen; any
+  tie-break beyond fall-through for equal best energy.
 
 ## 10. License
 
