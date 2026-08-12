@@ -1,25 +1,60 @@
 # UMAssisted — Requirements
 
-Accessibility software to reduce physical strain for players with limited
-mobility playing Umamusume Pretty Derby. This is a living doc — decisions
-get added as we make them, open questions get resolved into requirements
-as we answer them.
+**Status**: Living draft, pre-implementation. Requirement IDs are stable
+once assigned; content is amended in place as decisions are made — see
+§9 (Open Questions Registry) for what's still unresolved.
 
-## Problem
+Accessibility software to reduce physical strain for players with limited
+mobility playing Umamusume Pretty Derby. Decisions get added as they're
+made; open questions get resolved into requirements as they're answered
+(see §9's REQ-OQ1 for why that pattern is load-bearing, not incidental).
+
+## 1. Problem Statement
 
 Umamusume asks for a high volume of taps/clicks (training turns, dialogue
 advances, race skips, result screens) and small precise tap targets. For a
 player with limited mobility, that volume and precision requirement is the
 barrier, not the game's difficulty itself.
 
-## Product
+## 2. Scope
+
+**In scope for 1.0:**
+- Android client for Umamusume Pretty Derby (§4, REQ-PL1)
+- `AccessibilityService`-based automation, with a root-fallback
+  architectural seam that exists but isn't used yet (§5, REQ-M1/REQ-M2)
+- Tap-consolidation and auto-advance for specific, named interaction
+  sequences — never full gameplay automation (§6.1/§6.2, REQ-F1/F2, REQ-A1)
+- Voice as a primary input method, on-device only, always-listening wake
+  word (§6.3, REQ-V)
+- Audio readout of choices via on-device TTS — conditional on REQ-T4's
+  gate, currently looking achievable for 1.0 (§6.4)
+- No network access, structurally (§7.2, REQ-S1)
+- A formal validation pass distinguishing mobility assistance from
+  botting, gating what actually ships (§8.1, REQ-VAL)
+
+**Explicitly out of scope for 1.0:**
+- PC/Steam/DMM support (REQ-PL2 — longer-term goal, not scoped yet)
+- Switch and dwell/gaze input (REQ-F3 — architecturally accounted for,
+  not built)
+- Haptic/motion input, e.g. a shake gesture (§6.5, REQ-H1 — deferred design)
+- Tap record & playback (§6.6, REQ-R1/R2 — provisionally 2.0)
+- Bigger/fewer/relocated tap targets for precision (noted under §6.1,
+  deferred)
+- Actually using the root-access fallback path — the seam exists (REQ-M2),
+  but using it is a separate decision not yet made (see REQ-T4)
+
+## 3. Product
 
 - **REQ-P1 — Product name is UMAssisted.**
   - Not for Play Store distribution — same trademark-exposure reasoning as
     naming a fan tool after the branded game (see conversation). Sideload
     distribution only, similar to japanglify's release model.
+- **REQ-P2 — Distribution model within "sideload only" is not yet decided.**
+  A signed public release APK (like japanglify's GitHub Releases model) or
+  a purely personal/local build never distributed to anyone else. Blocks
+  release logistics, not feature work. (Registry: OQ-13.)
 
-## Platform & environment
+## 4. Platform & Environment
 
 - **REQ-PL1 — Initial target platform is Android.**
 - **REQ-PL2 — Longer-term goal is to support PC (Steam/DMM client)** and
@@ -37,8 +72,12 @@ barrier, not the game's difficulty itself.
     `adb shell monkey -p com.cygames.umamusume -c android.intent.category.LAUNCHER 1`;
     the device connects over wireless debugging (`adb connect
     <ip>:<port>`, port varies per session/pairing) rather than USB.
+- **REQ-PL4 — Minimum Android API level/version floor is not fully decided.**
+  Already constrained to **API 30+** (Android 11+) as a floor, since REQ-M3
+  depends on `AccessibilityService.takeScreenshot()`, which requires it —
+  the exact floor above that is still open. (Registry: OQ-14.)
 
-## Core mechanism
+## 5. Core Mechanism
 
 - **REQ-M1 — Primary implementation is an Android `AccessibilityService`**
   — reads the screen's accessibility node tree and dispatches gestures on
@@ -51,9 +90,8 @@ barrier, not the game's difficulty itself.
   trigger/decision logic should be decoupled from the "how do we actually
   send a tap" mechanism from day one, even though only the
   `AccessibilityService` path is being built now.
-- **Open — OQ-1 (Open Questions Registry, near the end of this doc)**:
-  whether Umamusume's client detects/blocks synthetic
-  `AccessibilityService` gestures — not yet spiked.
+- **Open — OQ-1 (§9)**: whether Umamusume's client detects/blocks
+  synthetic `AccessibilityService` gestures — not yet spiked.
 - **SPIKED — confirmed 2026-08-12, live client, real career in progress.**
   Dumped the accessibility node tree (`uiautomator dump`) against the Home
   screen. Result: the entire screen is one `android.view.SurfaceView`
@@ -95,7 +133,7 @@ barrier, not the game's difficulty itself.
     computer-vision problem). Build the corpus ahead of time from the
     existing event database, then do offline image matching against it —
     not OCR on live screenshots.
-  - **This also simplifies REQ-T (audio readout) considerably**: once a
+  - **This also simplifies §6.4 (audio readout) considerably**: once a
     screen is matched to a known corpus entry, the text to read aloud is
     the corpus's already-known dialog/option text, not something extracted
     from pixels at all. TTS doesn't need to "read" the screen — it needs
@@ -110,11 +148,13 @@ barrier, not the game's difficulty itself.
     screen doesn't match anything in the corpus (new/uncatalogued event,
     unexpected state), the right behavior is the same as a first-occurrence
     decision point — fall through to the user, don't guess.
-  - **Open — OQ-2, OQ-3, OQ-4 (Open Questions Registry)**: corpus data
-    source/licensing, keeping it current as new events ship, and matching
-    robustness across device/resolution variance.
+  - **Open — OQ-2, OQ-3, OQ-4 (§9)**: corpus data source/licensing,
+    keeping it current as new events ship, and matching robustness across
+    device/resolution variance.
 
-## Functional: strain reduction
+## 6. Functional Requirements
+
+### 6.1 Strain Reduction
 
 Focus area chosen first: **tapping/clicking volume**, not precision/reach
 demands or sustained-hold/timing-sensitive input (those are acknowledged
@@ -136,7 +176,7 @@ but deferred, not ruled out).
   something other than a touchscreen tap, for users who can perform very
   few or no touchscreen gestures — e.g. a single external switch/button,
   voice, or dwell/gaze.
-  - **Voice is promoted out of this bucket** — see REQ-V below, it's now a
+  - **Voice is promoted out of this bucket** — see §6.3, it's now a
     primary, ship-now requirement, not a deferred architectural placeholder.
   - **Open — OQ-7**: which of switch/dwell-gaze (if either) becomes the
     second concrete alternate-input target after voice. Still treated as an
@@ -146,9 +186,9 @@ but deferred, not ruled out).
 Deferred (acknowledged, not scoped yet): bigger/fewer/relocated tap targets
 to reduce precision demand rather than tap count.
 
-## Automation scope & tap safety
+### 6.2 Automation Scope & Tap Safety
 
-Operating principle for this whole section: **UMAssisted only makes
+Operating principle for this whole subsection: **UMAssisted only makes
 selections, never choices or decisions.** The user makes every decision
 that exists in the game — full stop. What UMAssisted can do is execute a
 decision the user already made, again, mechanically, when that same
@@ -261,51 +301,11 @@ decision point recurs. That's a selection (replay), not a choice
   a fast, able-bodied human could physically do, never faster. Sharpens
   REQ-VAL2's speed/uptime criterion into a concrete, checkable bound
   rather than a general principle.
+- **REQ-A7 — UI shape for configuring which sequences are enabled is not
+  yet decided.** Settings screen vs. floating overlay control panel vs.
+  both. Design question, not blocking architecture. (Registry: OQ-15.)
 
-## Non-functional: non-interference & safety
-
-- **REQ-SF1 — The tap/gesture interface must never interfere with normal
-  application operation.** Baseline standard for any input mechanism this
-  project builds:
-  - Never dispatch a gesture while the user is mid-touch themselves — no
-    fighting the user's own input.
-  - Verify screen state immediately before acting, not just at decision
-    time — stale state (the screen moved on since we last read it) means
-    **do nothing** rather than act on a guess.
-  - Every automated behavior needs an instant, trivially-reachable kill
-    switch — the user is never stuck waiting out an automation they didn't
-    want.
-  - When a feature is toggled off, it must have **zero** effect on manual
-    operation — no residual input consumption, no swallowed touches.
-- **REQ-SF2 — Voice must be held to a strictly higher bar than REQ-SF1.**
-  See REQ-V below for specifics. Rationale: a mistimed tap-consolidation
-  is usually a wasted or redundant tap; a misheard voice command can
-  trigger an action the user never asked for at all, with no "my thumb
-  slipped" physical tell to notice it happened. The failure mode is worse,
-  so the standard has to be higher.
-- **REQ-SF3 — Refuse to act when the screen isn't purely the game's own
-  UI.** A notification banner, permission dialog, another app's overlay,
-  or anything else drawn on top of or instead of Umamusume breaks REQ-M3's
-  corpus-matching assumption. Safe behavior is the same fallback discipline
-  as an unmatched corpus (REQ-M3/REQ-A4): detect that the screen doesn't
-  cleanly match what's expected, and **do nothing** rather than guess —
-  never dispatch a gesture that might land on foreign content instead of
-  the game (e.g. accidentally interacting with a notification's own
-  content, which could be sensitive and unrelated to the game entirely).
-- **REQ-SF4 — Coexist safely with other concurrently-running accessibility
-  services.** Android supports multiple simultaneous `AccessibilityService`
-  instances, and this population is likely to actually use that — someone
-  combining a motor accessibility need (this project) with a vision one
-  (TalkBack) or another assistive tool isn't an edge case, it's an expected
-  scenario for this project's own users. UMAssisted must not assume it's
-  the only service acting on the screen, must remain fully functional
-  alongside others, and must avoid stepping on another service's gesture
-  dispatch where that's detectable.
-  - **Open — OQ-16 (Open Questions Registry)**: exact conflict-avoidance
-    mechanics between concurrently-dispatching accessibility services
-    aren't trivial and haven't been designed yet.
-
-## Voice assistance (primary input method)
+### 6.3 Voice Assistance (Primary Input Method)
 
 - **REQ-V1 — Voice is a primary input method, not a fallback.** Unlike
   switch/dwell (still deferred, REQ-F3), voice assistance ships as a
@@ -365,7 +365,7 @@ decision point recurs. That's a selection (replay), not a choice
     rather than the whole userbase sharing one fixed phrase's false-trigger
     risk.
 
-## Audio readout for choices (text-to-speech)
+### 6.4 Audio Readout for Choices (Text-to-Speech)
 
 - **REQ-T1 — Read choice text aloud at decision points.** Users with
   limited vision/reading ability shouldn't have to read the screen to know
@@ -376,9 +376,10 @@ decision point recurs. That's a selection (replay), not a choice
 - **REQ-T2 — On-device TTS only.** Same consequence as REQ-V2, coming from
   the same REQ-S1 constraint (no network access): this runs on Android's
   on-device `TextToSpeech` engine, not a cloud voice API.
-- **REQ-T3 — Designed together with REQ-V, not as a separate feature that
-  happens to coexist.** Hear the choice (REQ-T1) → speak the selection
-  (REQ-V) → done — a fully non-visual, non-touch loop at decision points.
+- **REQ-T3 — Designed together with §6.3 (voice), not as a separate
+  feature that happens to coexist.** Hear the choice (REQ-T1) → speak the
+  selection (REQ-V) → done — a fully non-visual, non-touch loop at
+  decision points.
   - **Open — OQ-11**: when REQ-A4 auto-replays a previously-made selection,
     does that still get read aloud, or stay silent since no live decision
     is being made?
@@ -389,23 +390,23 @@ decision point recurs. That's a selection (replay), not a choice
   games commonly are — draw everything to an opaque canvas with no real
   accessible text nodes, which is exactly why TalkBack often can't read
   anything inside them. Spiked live against Umamusume and **confirmed
-  true** — see REQ-M1's `SPIKED` finding. Resolved via REQ-M3 (offline
-  corpus-matching, no OCR needed) rather than the root-access path this
-  note originally worried about; see REQ-T4's update bullets below for how
-  that changed this section's status.
-- **REQ-T4 — This whole section is a soft, conditional requirement, not a
-  hard 1.0 commitment.** Hard-required for 1.0 only if it's achievable
-  through `AccessibilityService` alone (REQ-M1), same mechanism as
-  everything else in this doc. If the risk above turns out to be real and
-  root access (or something similarly heavier) becomes necessary to read
-  choice text at all, REQ-T drops to **post-1.0**, and stays there until a
-  separate, dedicated decision is made on whether root access is even
-  potentially appropriate for this application at all — that's a much
-  bigger trust/attack-surface call than any single feature, and it isn't
-  to be backed into implicitly by TTS needing it. REQ-M2's root-fallback
-  seam exists architecturally either way, but *using* it is still an open
-  decision, not a given.
-  - **Update after spike (see REQ-M1/REQ-M3)**: the risk above is
+  true** — see REQ-M1's `SPIKED` finding (§5). Resolved via REQ-M3
+  (offline corpus-matching, no OCR needed) rather than the root-access
+  path this note originally worried about; see REQ-T4's update bullets
+  below for how that changed this requirement's status.
+- **REQ-T4 — This whole subsection is a soft, conditional requirement,
+  not a hard 1.0 commitment.** Hard-required for 1.0 only if it's
+  achievable through `AccessibilityService` alone (REQ-M1), same mechanism
+  as everything else in this doc. If the risk above turns out to be real
+  and root access (or something similarly heavier) becomes necessary to
+  read choice text at all, REQ-T drops to **post-1.0**, and stays there
+  until a separate, dedicated decision is made on whether root access is
+  even potentially appropriate for this application at all — that's a
+  much bigger trust/attack-surface call than any single feature, and it
+  isn't to be backed into implicitly by TTS needing it. REQ-M2's
+  root-fallback seam exists architecturally either way, but *using* it is
+  still an open decision, not a given.
+  - **Update after spike (see §5, REQ-M1/REQ-M3)**: the risk above is
     confirmed real, but root turned out **not** to be the resulting gate —
     `AccessibilityService.takeScreenshot()` covers screen capture without
     root, so REQ-T can in principle stay achievable via
@@ -421,7 +422,7 @@ decision point recurs. That's a selection (replay), not a choice
     extracting text off live pixels. This makes REQ-T's 1.0-eligibility
     look considerably more likely than it did right after the spike.
 
-## Haptic / motion input (deferred design)
+### 6.5 Haptic / Motion Input (Deferred Design)
 
 - **REQ-H1 — Add haptic/motion-based input where it can be done cleanly**,
   e.g. a shake gesture. Decided in principle; **full design deliberately
@@ -431,7 +432,7 @@ decision point recurs. That's a selection (replay), not a choice
   REQ-A3, or serving as a general alternate-input trigger per REQ-F3).
   Flagged here so it isn't lost, not to be designed yet.
 
-## Tap record & playback (2.0, tentative)
+### 6.6 Tap Record & Playback (2.0, Tentative)
 
 - **REQ-R1 — User-controlled recording of an arbitrary tap sequence,
   played back on command.** The user records a sequence of screen taps
@@ -464,15 +465,77 @@ decision point recurs. That's a selection (replay), not a choice
     accessibility node tree at all, unlike node-based reading. If the
     canvas-rendering risk turns out to be real, pixel-wait may end up
     being the more dependable signal generally, not just for this feature.
-- **Resolved, no longer open**: this section originally flagged a real
+- **Resolved, no longer open**: this subsection originally flagged a real
   tension with REQ-A1 (an arbitrary recordable tap sequence could
   approximate the full-gameplay-loop automation REQ-A1 rules out). That's
-  now closed by REQ-A5's hard no-self-looping requirement above, which
+  now closed by REQ-A5's hard no-self-looping requirement (§6.2), which
   applies to REQ-R by name. Left this note in place, rather than deleting
   it, so the reasoning behind REQ-A5 stays traceable from where the
   tension originally surfaced.
 
-## Validation: mobility assistance, not botting
+## 7. Non-Functional Requirements
+
+### 7.1 Non-Interference & Safety
+
+- **REQ-SF1 — The tap/gesture interface must never interfere with normal
+  application operation.** Baseline standard for any input mechanism this
+  project builds:
+  - Never dispatch a gesture while the user is mid-touch themselves — no
+    fighting the user's own input.
+  - Verify screen state immediately before acting, not just at decision
+    time — stale state (the screen moved on since we last read it) means
+    **do nothing** rather than act on a guess.
+  - Every automated behavior needs an instant, trivially-reachable kill
+    switch — the user is never stuck waiting out an automation they didn't
+    want.
+  - When a feature is toggled off, it must have **zero** effect on manual
+    operation — no residual input consumption, no swallowed touches.
+- **REQ-SF2 — Voice must be held to a strictly higher bar than REQ-SF1.**
+  See §6.3 for specifics. Rationale: a mistimed tap-consolidation is
+  usually a wasted or redundant tap; a misheard voice command can trigger
+  an action the user never asked for at all, with no "my thumb slipped"
+  physical tell to notice it happened. The failure mode is worse, so the
+  standard has to be higher.
+- **REQ-SF3 — Refuse to act when the screen isn't purely the game's own
+  UI.** A notification banner, permission dialog, another app's overlay,
+  or anything else drawn on top of or instead of Umamusume breaks REQ-M3's
+  corpus-matching assumption. Safe behavior is the same fallback discipline
+  as an unmatched corpus (REQ-M3/REQ-A4): detect that the screen doesn't
+  cleanly match what's expected, and **do nothing** rather than guess —
+  never dispatch a gesture that might land on foreign content instead of
+  the game (e.g. accidentally interacting with a notification's own
+  content, which could be sensitive and unrelated to the game entirely).
+- **REQ-SF4 — Coexist safely with other concurrently-running accessibility
+  services.** Android supports multiple simultaneous `AccessibilityService`
+  instances, and this population is likely to actually use that — someone
+  combining a motor accessibility need (this project) with a vision one
+  (TalkBack) or another assistive tool isn't an edge case, it's an expected
+  scenario for this project's own users. UMAssisted must not assume it's
+  the only service acting on the screen, must remain fully functional
+  alongside others, and must avoid stepping on another service's gesture
+  dispatch where that's detectable.
+  - **Open — OQ-16 (§9)**: exact conflict-avoidance mechanics between
+    concurrently-dispatching accessibility services aren't trivial and
+    haven't been designed yet.
+
+### 7.2 Security & Privacy
+
+- **REQ-S1 — No network access, structurally.** `android.permission.INTERNET`
+  is **absent** from the manifest, not just unused — it should be
+  impossible for the app to make a network call even if some future code
+  path tried to.
+  - Rules out: analytics, crash reporting, remote config, auto-update
+    checks, cloud-synced settings.
+  - Settings/config are local-only. If sharing a config between devices is
+    ever needed, it's manual file export/import, not sync.
+  - Rationale: an accessibility service already has a lot of on-device
+    trust (reads screen content, dispatches input) — no network access
+    means there's no path for that trust to be exfiltrated or remotely
+    abused.
+
+## 8. Process & Governance
+
+### 8.1 Validation: Mobility Assistance, Not Botting
 
 - **REQ-VAL1 — Before 1.0 ships, run an explicit validation pass checking
   this design against a "mobility assistance vs. botting" line, not just
@@ -510,11 +573,11 @@ decision point recurs. That's a selection (replay), not a choice
   already made.
   - Supersedes the earlier open "ToS/fair-use review" note — that's now
     formally this requirement rather than a loose open question.
-- **Open — OQ-12**: whether this validation is purely an internal design
-  review, or should also draw on outside precedent/community norms around
-  accessibility tooling for gacha games specifically.
+- **Open — OQ-12 (§9)**: whether this validation is purely an internal
+  design review, or should also draw on outside precedent/community norms
+  around accessibility tooling for gacha games specifically.
 
-## Development process: unbroken chain of ethics
+### 8.2 Development Process: Unbroken Chain of Ethics
 
 - **REQ-DEV1 — Agents working on this project — Claude or any other —
   don't act as a bot against the live game either, including during
@@ -577,22 +640,7 @@ decision point recurs. That's a selection (replay), not a choice
     isn't, the blast radius is bounded to one button, caught by a human
     watching in real time, against a target that doesn't matter.
 
-## Non-functional: security & privacy
-
-- **REQ-S1 — No network access, structurally.** `android.permission.INTERNET`
-  is **absent** from the manifest, not just unused — it should be
-  impossible for the app to make a network call even if some future code
-  path tried to.
-  - Rules out: analytics, crash reporting, remote config, auto-update
-    checks, cloud-synced settings.
-  - Settings/config are local-only. If sharing a config between devices is
-    ever needed, it's manual file export/import, not sync.
-  - Rationale: an accessibility service already has a lot of on-device
-    trust (reads screen content, dispatches input) — no network access
-    means there's no path for that trust to be exfiltrated or remotely
-    abused.
-
-## Open Questions Registry
+## 9. Open Questions Registry
 
 - **REQ-OQ1 — Maintain a single canonical registry of every open question
   in this doc, not scattered inline notes.** Exists so this project is
@@ -673,16 +721,16 @@ work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
   validation pass be purely an internal design review, or also draw on
   outside precedent/community norms around accessibility tooling for gacha
   games specifically? Doesn't block starting the validation criteria work.
-- **OQ-13 (distribution) — OPEN, not architecture-blocking.** Signed
-  sideload APK release (like japanglify) or a purely personal/local build?
-  Blocks release logistics, not feature work.
-- **OQ-14 (platform floor) — OPEN, partially resolved.** Minimum Android
-  API level/version floor to target. Already constrained to **API 30+**
+- **OQ-13 (REQ-P2) — OPEN, not architecture-blocking.** Signed sideload
+  APK release (like japanglify) or a purely personal/local build? Blocks
+  release logistics, not feature work.
+- **OQ-14 (REQ-PL4) — OPEN, partially resolved.** Minimum Android API
+  level/version floor to target. Already constrained to **API 30+**
   (Android 11+) as a floor, since REQ-M3 depends on
   `AccessibilityService.takeScreenshot()`, which requires it — the exact
   floor above that is still open.
-- **OQ-15 (config UI) — OPEN.** UI shape for configuring which sequences
-  get consolidated — settings screen vs. floating overlay control panel vs.
+- **OQ-15 (REQ-A7) — OPEN.** UI shape for configuring which sequences get
+  consolidated — settings screen vs. floating overlay control panel vs.
   both. Design question, not blocking architecture.
 - **OQ-16 (REQ-SF4) — OPEN.** Exact conflict-avoidance mechanics between
   UMAssisted and other concurrently-dispatching accessibility services
