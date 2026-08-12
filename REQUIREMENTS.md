@@ -49,6 +49,14 @@ barrier, not the game's difficulty itself.
   synthetic gestures from an `AccessibilityService` (some games do). Not
   yet investigated — worth an early spike before betting the whole design
   on this path working.
+- **Open question, likely more urgent than the one above**: whether
+  Umamusume's client exposes real text through the accessibility node tree
+  at all, or renders to an opaque canvas the way many Unity-based games do
+  (in which case standard `AccessibilityService` text-reading — which both
+  this mechanism and REQ-T rely on — doesn't work, full stop, regardless of
+  the gesture-detection question). See REQ-T4 for how this gates the
+  audio-readout feature specifically. Worth spiking first, since it's
+  upstream of nearly everything else.
 
 ## Functional: strain reduction
 
@@ -240,6 +248,50 @@ decision point recurs. That's a selection (replay), not a choice
     collision with Umamusume's own dialogue for that user's play patterns,
     rather than the whole userbase sharing one fixed phrase's false-trigger
     risk.
+
+## Audio readout for choices (text-to-speech)
+
+- **REQ-T1 — Read choice text aloud at decision points.** Users with
+  limited vision/reading ability shouldn't have to read the screen to know
+  what's being asked — applies at the same decision points REQ-A4 covers:
+  wherever the game presents a choice, the option text (and enough
+  surrounding context to actually understand what's being decided) should
+  be available by ear, not just by sight.
+- **REQ-T2 — On-device TTS only.** Same consequence as REQ-V2, coming from
+  the same REQ-S1 constraint (no network access): this runs on Android's
+  on-device `TextToSpeech` engine, not a cloud voice API.
+- **REQ-T3 — Designed together with REQ-V, not as a separate feature that
+  happens to coexist.** Hear the choice (REQ-T1) → speak the selection
+  (REQ-V) → done — a fully non-visual, non-touch loop at decision points.
+  - **Open question**: when REQ-A4 auto-replays a previously-made
+    selection, does that still get read aloud (so the user knows what just
+    happened) or stay silent since no live decision is being made? Not
+    decided.
+- **Open question / known risk — likely more foundational than anything
+  else in this doc.** Both this requirement and REQ-M1's core mechanism
+  assume the game exposes real text through Android's accessibility node
+  tree. Many mobile games — especially Unity-rendered ones, which gacha
+  games commonly are — draw everything to an opaque canvas with no real
+  accessible text nodes, which is exactly why TalkBack often can't read
+  anything inside them. If that's true of Umamusume, neither "read the
+  choice aloud" (this section) nor "read the screen to know what to tap"
+  (REQ-M1) works via the standard accessibility-tree approach at all, and
+  OCR or something similarly heavier becomes necessary instead. This is
+  worth an early spike, likely before the gesture-detection question
+  already flagged under REQ-M1 — it's upstream of most of the rest of this
+  document.
+- **REQ-T4 — This whole section is a soft, conditional requirement, not a
+  hard 1.0 commitment.** Hard-required for 1.0 only if it's achievable
+  through `AccessibilityService` alone (REQ-M1), same mechanism as
+  everything else in this doc. If the risk above turns out to be real and
+  root access (or something similarly heavier) becomes necessary to read
+  choice text at all, REQ-T drops to **post-1.0**, and stays there until a
+  separate, dedicated decision is made on whether root access is even
+  potentially appropriate for this application at all — that's a much
+  bigger trust/attack-surface call than any single feature, and it isn't
+  to be backed into implicitly by TTS needing it. REQ-M2's root-fallback
+  seam exists architecturally either way, but *using* it is still an open
+  decision, not a given.
 
 ## Haptic / motion input (deferred design)
 
