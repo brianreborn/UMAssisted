@@ -1456,10 +1456,14 @@ decision point recurs. That's a selection (replay), not a choice
     depths and forms above are decided in principle.
 - **REQ-V17 — Aoharu Hai: select a training facility by spirit-burst type
   when that indication is unambiguous.** In the **Aoharu Hai** career
-  scenario (Aoharu Cup in some materials), training facilities can show
-  **spirit burst** markers of distinct types/colors. Voice (and other
-  input under REQ-V7) must allow choosing the facility by that burst, not
-  only by stat name (Speed/Stamina/…).
+  scenario (also called **Aoharu Cup** in some materials; on the **Global**
+  client the scenario UI labels it **Unity Cup** — confirmed on-device
+  2026-08-12, training hub shows "Until the Unity Cup"), training
+  facilities can show **spirit burst** markers of distinct types/colors.
+  Voice (and other input under REQ-V7) must allow choosing the facility by
+  that burst, not only by stat name (Speed/Stamina/…). Detect via spirit-
+  burst chrome and/or known scenario identity; do not rely on the user
+  saying "Aoharu" vs "Unity" for the feature to arm.
   - **Color / type forms (primary).** Utterances such as **"purple"**,
     **"blue"**, and other burst colors/types the Global client actually
     displays (exact set — OQ-42). If **exactly one** facility currently
