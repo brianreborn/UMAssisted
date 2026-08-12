@@ -1055,13 +1055,25 @@ decision point recurs. That's a selection (replay), not a choice
   shouldn't assume there's one correct way to say something.
   - **Resolved — OQ-23 / see REQ-V14:** defaults-plus-override, not
     setup-required-before-use.
+  - **Shipped synonym — "energy" means the Wit facility.** In training-
+    facility selection context, **"energy"** is a default alternate phrase
+    for **Wit** (same action as "wit" / "wit training"). Players often
+    think of Wit training as the energy-oriented facility; the synonym is
+    required in defaults (REQ-V14), not merely optional. User may remove
+    or extend it like any other phrase (REQ-V11).
+  - **Context-gated vs REQ-A15.** Bare **"energy"** on the **training**
+    UI selects Wit. On an **event choice** screen, energy-best option
+    selection remains the full **"take the energy"** family (REQ-A15) —
+    bare "energy" alone is not required to fire A15, so the Wit synonym
+    does not steal event-option semantics.
 - **REQ-V11 — Multiple triggering phrases per distinct UI element
   selection, not just one.** Extends REQ-V8: the user isn't limited to a
   single defined phrase per action — they can register a *set* of phrases
   that all trigger the same selection (e.g. "speed," "select speed," and
-  "speed training" could all map to the same training facility). Any
-  phrase in the set fires the same action; there's no requirement to
-  remember or use one exact, canonical phrase every time.
+  "speed training" could all map to the same training facility; **"wit"**
+  and **"energy"** both map to Wit per REQ-V8). Any phrase in the set
+  fires the same action; there's no requirement to remember or use one
+  exact, canonical phrase every time.
   - Same underlying reasoning as REQ-V8, extended: accessibility software
     shouldn't assume there's one correct way to say something — and
     natural speech varies moment to moment even when the intent is
@@ -1244,6 +1256,8 @@ decision point recurs. That's a selection (replay), not a choice
   - First-run may *offer* customization; it must not *block* on it.
   - **Event-option selection defaults — see REQ-V15** (ordinal forms and
     matching spoken option text are first-class, not an afterthought).
+  - **Facility defaults include "energy" → Wit** (REQ-V8), in addition to
+    the obvious stat names for Speed/Stamina/Power/Guts/Wit.
 - **REQ-V15 — When selecting an event option, accept multiple utterance
   forms; two are main forms.** At a recognized choice screen (REQ-A4 /
   REQ-M3), any of the following must be able to name the option — the user
