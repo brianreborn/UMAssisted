@@ -1364,23 +1364,46 @@ decision point recurs. That's a selection (replay), not a choice
        races **currently offered on the race selection UI** (visible list
        and/or the set the client is presenting for this open — same scope
        used for name match), there is **exactly one** race of a given
-       graded class, the user may select it by saying that class:
+       graded class, the user may address it by saying that class:
        **"G1"**, **"G2"**, or **"G3"** (and natural variants: "G 1",
        "grade one", "grade 1", etc., user-extensible).  
-       - **Exactly one** matching grade → select that row.  
+       - **Exactly one** matching grade → that row is the target.  
        - **Zero or two+** races of that grade in the current offer set →
          **do not** pick; fall through and say so (e.g. "multiple G2s" /
          "no G1 here") — same no-guess rule as other semantic forms.  
        - Applies to **G1 / G2 / G3** only as shipped defaults for this
          form; other list badges (OP, pre-OP, maiden, etc.) may get the
          same treatment later if useful, but are not required for this
-         rule.  
-       - Selecting by grade only **focuses/selects the row**; entering
-         the race still needs confirm/enter or a compound that includes
-         begin (unless the user used a separate full-sequence command that
-         already ends in begin for the scheduled race specifically).
+         rule.
+       - **Single utterance (e.g. "G1") — select only.** Focuses/selects
+         the unique matching row; does **not** press begin. User can then
+         enter with a separate confirm ("enter", "race it", etc.) or use
+         the double form below.
+       - **Repeated grade (e.g. "G1 G1") — select and begin the race.**
+         Same pattern as REQ-V12 (repetition as confirmation of the same
+         action family): the first "G1" arms/selects the unique G1 row;
+         the second "G1" (synonym-grade counts — "G1" then "grade one")
+         **also presses the begin/enter control**, advancing into the race
+         scene. This is the multi-press accessibility path for "I mean
+         that G1, and start it," without requiring a different second
+         vocabulary word. Applies equally to **G2 G2** / **G3 G3** when
+         those grades are unambiguous.
+       - **Timing:** double form may be two utterances inside the armed
+         confirm window (REQ-V12 / OQ-30 class), or one continuous phrase
+         the recognizer hears as repeated tokens — either must work.
+         If the grade is ambiguous, **neither** select-only nor
+         select-and-begin fires.
+       - **Still REQ-V4.** Beginning a race is consequential; the double
+         grade is the explicit confirm path for that commit, and feedback
+         should name the race being entered (TTS) when the second hit
+         arms/fires.
     6. **User-defined custom phrases** mapping to a race identity or to
        "nth list slot" (REQ-V8/V11), same as elsewhere.
+    - **Same select-vs-double-begin pattern may apply to other unique
+      race pointers** where natural (e.g. "default" then "default", or
+      race name twice) — preferred consistency with REQ-V12; **grade
+      double ("G1 G1") is required.** Extending double-begin to name/
+      default/scheduled is allowed and encouraged for uniformity.
   - **Stepwise path remains available.** User can still **"race"** →
     pick by name/ordinal/scheduled → **"enter"** / **"confirm race"**
     without using the compound. The compound is an accessibility shortcut
@@ -1808,7 +1831,8 @@ decision point recurs. That's a selection (replay), not a choice
     "current extract fully labeled + fall-through proven for unknowns."
 - **REQ-QA2 — UI overlay tested against every scenario, hard blocker for
   1.0 final release.** All of UMAssisted's own overlay elements (REQ-A10's
-  sweep toggle, REQ-V9's voice toggle, and any future overlay controls)
+  sweep toggle — covering facility sweep and list auto-scroll — REQ-V9's
+  voice toggle, and any future overlay controls)
   must be tested across every game scenario/screen state before **1.0
   final** — a milestone later than both 1.0 alpha and 1.0 beta (REQ-V7).
   Concretely: the overlay stays visible, functional, and correctly
