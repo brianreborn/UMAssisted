@@ -1248,17 +1248,49 @@ decision point recurs. That's a selection (replay), not a choice
   "just race" (etc.), then accept multiple forms to pick which race.**
   Parallel to REQ-V15 (event options), specialized to the career **race
   selection** flow.
-  - **Opening the race UI (from the in-career hub, when Races is
-    available).** Shipped defaults include **"race"** and **"just race"**
-    (user-extensible, REQ-V8/V11). These navigate into the race selection
-    screen the same way the hub **Races** control does — they do **not**
-    by themselves commit the uma into a race. "Just race" is an allowed
-    natural variant of the same open action, not a different policy
-    (e.g. it does not mean "skip training forever" or auto-pick a race).
-  - **Once on the race selection / list screen**, the user must be able to
-    indicate **which** listed race to target using any of the following
-    forms (same multi-form idea as REQ-V15; all resolve to one concrete
-    list entry):
+  - **Two command depths — open-only vs full "scheduled race" sequence.**
+    1. **Open race list only.** Shipped defaults include **"race"** and
+       bare **"just race"** (user-extensible, REQ-V8/V11). These navigate
+       into the race selection screen the same way the hub **Races**
+       control does — they do **not** by themselves pick a race or press
+       begin. Useful when the user wants to browse or pick by name.
+    2. **Full accessibility sequence — race the scheduled/default race
+       (named multi-press consolidation).** Accept compound commands in
+       the family of **"just race the scheduled race"**, **"race the
+       scheduled race"**, **"race the default"**, **"just do the
+       scheduled race"** (defaults + user synonyms). This is a **single
+       user command** that executes the multi-tap path the user would
+       otherwise have to perform by hand:
+       - open Races (hub → race selection),
+       - select the **highlighted default / scheduled** race row (same
+         target as "default" / scheduled goal row below),
+       - press the control that **begins / enters** the race
+         (the consequential commit button on that flow).
+       Purpose: make accessible the **several precise presses** that path
+       normally requires — same spirit as REQ-F1 / REQ-A1 named sequences,
+       on the voice channel. One explicit utterance → one bounded sequence
+       → done (REQ-A5: does not re-arm or loop into the next race).
+  - **Scheduled / default race identity.** For both the compound command
+    and on-list "default" / "scheduled" picks, the target row is the one
+    the UI already treats as **scheduled / default / pre-highlighted**
+    when the race list is in its normal career state (typically the
+    goal-relevant race the client focuses). If that row cannot be
+    identified → **abort the sequence**, announce failure, do not pick an
+    arbitrary race or press begin (REQ-M3 fall-through discipline).
+  - **Consequential commit still under REQ-V4.** Beginning a race spends
+    turns and cannot be casually undone. The compound "scheduled race"
+    command is allowed as the user's single deliberate instruction, but
+    it must still satisfy confirmation rules for irreversible actions —
+    at minimum: clear arm/feedback of *which* race will be entered (TTS
+    name the scheduled race), and the usual confirm path (repeat command
+    or explicit confirm per REQ-V12 / V4). It must not silently chain into
+    pre-race defaults the user did not ask for beyond "enter this
+    scheduled race" until those screens are themselves voice-specified
+    (OQ-22 residual).
+  - **Once on the race selection / list screen** (after open-only, or if
+    the user stops mid-flow), the user must be able to indicate **which**
+    listed race to target using any of the following forms (same multi-
+    form idea as REQ-V15; all resolve to one concrete list entry):
     1. **On-screen race name (main form — most natural content form).**
        Speak the race name as listed (e.g. the event title shown on the
        row). Fuzzy-match against visible / corpus-known names for the
@@ -1269,49 +1301,42 @@ decision point recurs. That's a selection (replay), not a choice
        "second", "option 2", etc. — **1-based**, top-to-bottom of the
        **currently visible list order** (or the order TTS just read).
        Same family as event "first option."
-    3. **"Default" / pre-selected / focus row (main form).** Speak
-       **"default"** (and close defaults: "the default", "default race")
-       to mean: the race the UI already treats as the default selection —
-       typically the **pre-highlighted / currently focused / game-suggested
-       row** when the screen opens (often the goal-relevant race when the
-       client marks one). If the screen has **no** identifiable default
-       focus, fall through and say so — do not invent one.
-    4. **Goal / recommended race (additional form — easy to forget, load-
-       bearing for career).** When the list (or chrome) marks a race as
-       the **current career goal / recommended / objective** race, allow
-       phrases such as **"goal race"**, **"recommended"**, **"objective"**
-       (defaults + user synonyms) to select that row. Distinct from
-       "default" only when the UI can show both a generic focus and a
-       goal badge that might differ; if they are always the same row on
-       Global, both phrase families may resolve to the same entry (still
-       ship both — natural speech varies).
+    3. **"Default" / "scheduled" / pre-selected row (main form).** Speak
+       **"default"**, **"scheduled"**, **"scheduled race"**, **"the
+       default"**, etc. to mean: the race the UI already treats as the
+       default / scheduled selection — typically the **pre-highlighted /
+       currently focused / game-scheduled** row. If none is identifiable,
+       fall through — do not invent one.
+    4. **Goal / recommended race (additional form).** When the list (or
+       chrome) marks a race as the **current career goal / recommended /
+       objective** race, allow **"goal race"**, **"recommended"**,
+       **"objective"** (defaults + user synonyms). Often the same row as
+       scheduled/default on Global; ship both phrase families anyway.
     5. **User-defined custom phrases** mapping to a race identity or to
        "nth list slot" (REQ-V8/V11), same as elsewhere.
-  - **Other obvious pieces of the same flow (required for voice parity,
-    easy to under-specify):**
+  - **Stepwise path remains available.** User can still **"race"** →
+    pick by name/ordinal/scheduled → **"enter"** / **"confirm race"**
+    without using the compound. The compound is an accessibility shortcut
+    for the common full path, not a replacement for stepwise control.
+  - **Other pieces of the same flow:**
     - **List readout (REQ-T / TTS):** read visible races (name ± grade /
-      fans / date as available) so ordinal and name forms are usable
-      non-visually; support **"next"** / **"previous"** (or "more") to
-      move selection or scroll the list when not everything fits on one
-      screen — race lists are long.
-    - **Scroll without picking:** explicit scroll commands so the user can
-      browse before committing a name/ordinal.
-    - **Confirm enter race:** selecting a row and **entering** the race
-      (the consequential commit) are separate where the game separates
-      them. Entering is **REQ-V4** material (confirmation / repeat-to-
-      confirm). Defaults like "enter", "race it", "confirm race" after a
-      row is selected.
+      fans / date as available); **"next"** / **"previous"** (or "more")
+      to move selection or scroll when the list is long.
+    - **Scroll without picking:** explicit scroll before committing.
+    - **Confirm enter race (stepwise):** after a row is selected without
+      using the compound, enter via **"enter"**, **"race it"**,
+      **"confirm race"** under REQ-V4.
     - **Back / cancel** out of race selection without racing.
-    - **Pre-race and later race screens** (strategy, position, skip, results)
-      remain under OQ-22's still-unobserved inventory — V16 covers **open
-      list + pick a listed race + confirm enter** as the first slice.
-  - **Does not auto-pick a race on open.** "race" / "just race" only opens
-    the UI. Picking and entering remain explicit user commands (REQ-A5 /
-    A11). No "always race the goal" standing loop.
-  - **Open residual — OQ-41 (§9):** exact Global race-list chrome (what
-    "default" focus looks like vs goal badge), filter tabs if any, and
-    full pre-race control set — needs screenshots; forms above are decided
-    in principle.
+    - **Pre-race and later race screens** (strategy, position, skip,
+      results) remain under OQ-22 — V16 covers **open list + pick + enter
+      scheduled/default via compound or steps** as the first slice.
+  - **No standing "always race" loop.** Neither open-only nor the
+    scheduled-race compound re-arms itself (REQ-A5). Each race entry needs
+    a fresh user command.
+  - **Open residual — OQ-41 (§9):** exact Global race-list chrome (default
+    vs goal badge vs "scheduled" labeling), filter tabs, begin-race button
+    affordance, and full pre-race control set — needs screenshots; command
+    depths and forms above are decided in principle.
 
 ### 6.4 Audio Readout for Choices (Text-to-Speech)
 
@@ -2032,10 +2057,11 @@ work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
   the offline extract or sometimes only on the Effects screen; any
   tie-break beyond fall-through for equal best energy.
 - **OQ-41 (REQ-V16) — OPEN.** Race-list UI details on Global: visual
-  "default" focus vs goal/recommended badge, filter/sort chrome, scroll
-  behavior, and the rest of pre-race / in-race controls beyond list pick +
-  enter. Selection **forms** in REQ-V16 are decided; screen inventory is
-  not (ties to OQ-22).
+  "default" / scheduled focus vs goal badge, begin-race control, filter/
+  sort chrome, scroll behavior, and pre-race / in-race controls beyond
+  open + pick + enter. Compound **"just race the scheduled race"** path
+  and selection forms in REQ-V16 are decided; screen inventory is not
+  (ties to OQ-22).
 
 ## 10. License
 
