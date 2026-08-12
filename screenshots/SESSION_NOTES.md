@@ -113,3 +113,94 @@
 | `races/20260812_103834_snap129.png` | **Scheduled Races calendar** (near duplicate); Late Nov slot highlighted; Zen-Nippon card in Late Dec; My Agendas; Unity Cup / Aoharu Hai. |
 | `races/20260812_103848_snap130.png` | **Reset Schedule modal**; "Reset scheduled races?"; warning "You cannot undo a reset."; Cancel / Confirm (green); blurred calendar background; Junior Year / Late Nov. |
 | `races/20260812_103927_snap131.png` | **Reset Schedule result**; "Scheduled races have been reset."; single **Close** button; blurred Scheduled Races calendar (Junior Year, Late Nov highlighted, Zen-Nippon Junior Yushun card); Unity Cup / Aoharu Hai. |
+| `races/20260812_103613_snap124.png` | **Schedule Settings**; Junior Year Late Dec; G1 Hopeful Stakes, G1 Zen-Nippon Junior Yushun (pink Scheduled), OP Christmas Rose, Pre-Op Senyo Sho; Cancel / Save Schedule; Unity Cup. |
+| `races/20260812_103629_snap125.png` | **Schedule Settings** (duplicate); Zen-Nippon Junior Yushun marked Scheduled; same Junior Year Late Dec list; Unity Cup. |
+| `races/20260812_103727_snap126.png` | **Schedule Settings** (duplicate framing); Zen-Nippon highlighted; Cancel / Save; Unity Cup / Aoharu Hai. |
+| `races/20260812_103738_snap127.png` | **Schedule Settings** (duplicate); Zen-Nippon pink-bordered Scheduled; other G1/OP listed; Unity Cup. |
+| `races/20260812_103816_snap128.png` | **Scheduled Races calendar**; Junior Year tab; Late Nov slot highlighted; Zen-Nippon card in Late Dec; Reset / My Agendas / Close; Unity Cup. |
+| `races/20260812_103834_snap129.png` | **Scheduled Races calendar** (near duplicate); Late Nov highlighted; Zen-Nippon card; My Agendas; Unity Cup. |
+| `races/20260812_103848_snap130.png` | **Reset Schedule modal**; "Reset scheduled races?"; "You cannot undo a reset"; Cancel / Confirm; blurred calendar; Junior Year / Late Nov. |
+| `races/20260812_104120_snap135.png` | **Scheduled Race Available modal**; G1 Zen-Nippon Junior Yushun (Scheduled); "Proceed to the Races screen?"; Close / Race; blurred hub; Unity Cup. |
+| `races/20260812_104135_snap136.png` | **Race List**; Junior Year Late Dec; Zen-Nippon Junior Yushun (Scheduled, pink); G1 Hopeful Stakes etc.; Predictions / Race / Agenda; Unity Cup. |
+| `races/20260812_104148_snap137.png` | **Race List** (near duplicate); Zen-Nippon Scheduled highlighted; full list + buttons; Unity Cup. |
+| `races/20260812_104207_snap138.png` | **Race Details modal**; G1 Zen-Nippon Junior Yushun (Kawasaki Dirt 1600 Mile); Full Gate 14, Firm, Held; "Enter race?"; Cancel / Race; Unity Cup. |
+| `races/20260812_104219_snap139.png` | **Race Details modal** (duplicate framing); same Zen-Nippon details; Cancel / Race; Unity Cup. |
+| `races/20260812_104242_snap140.png` | **Race gate / pre-race**; G1 Zen-Nippon; Haru Urara (No. 1 Fav); stats/aptitudes/strategy; View Results / Race / Runners; Unity Cup. |
+| `races/20260812_104303_snap141.png` | **Race loading screen**; "Now Loading..." with horseshoe pattern; Haru Urara chibi; landscape; Unity Cup. |
+| `races/20260812_104326_snap142.png` | **Live race view**; Haru Urara (8/14); commentary "leaving the second corner"; Smart Falcon leading; Photo / playback / menu; Unity Cup. |
+| `races/20260812_104342_snap143.png` | **Victory close-up** (photo mode); Haru Urara happy eyes-closed fist-pump; night bokeh; Unity Cup. |
+| `races/20260812_104407_snap144.png` | **Trophy Won modal**; 1st place G1 Zen-Nippon Junior Yushun; +100 Carats; 32/34 G1 trophies; "A new trophy was added"; Close; Unity Cup. |
+| `races/20260812_104423_snap145.png` | **Post-race results**; 1st Haru Urara 1:37.6 Late; 2nd Smart Falcon, 3rd Taiki Shuttle etc.; Replay / Next; Unity Cup. |
+| `races/20260812_104440_snap146.png` | **Placing / class up**; 1st Haru Urara; Bronze ←UP; Fans 8,663 (+7,425); Items/Bonus bars; Placing / Next; Unity Cup. |
+| `misc/20260812_104545_snap148.png` | **Choices modal** (post-race event); "Me too" (Energy -15 + random skill) vs "This is only the beginning!" (Energy -5 or -20); Haru Urara; Close; Unity Cup. |
+| `misc/20260812_104602_snap149.png` | **Loading screen**; horseshoe pattern; "Now Loading..."; post-event transition; Unity Cup. |
+| `misc/20260812_104632_snap150.png` | **Auto-Fill modal** (Unity Cup); "Team members have been auto-selected"; first-time warning; Close / Edit Team; Team Carrot 300 fans; Unity Cup. |
+| `misc/20260812_104652_snap151.png` | **Edit Team** (Unity Cup); Team Carrot, 30th, On the Brink; 5 Uma + support cards; Sprint/Mile/Medium/Long/Dirt ACE slots; Auto-Fill / Confirm; Unity Cup. |
+| `misc/20260812_104728_snap152.png` | **Team Showdown**; Haru Urara (Dirt) selected; support characters grid; Confirm; Unity Cup. |
+| `misc/20260812_104751_snap153.png` | **Team Showdown - Select Opponent**; Rank 23 E Logical Milk Tea, Rank 28 F Sparkly Effects, Rank 38 G After-School Racers; Select Opponent; Team Carrot 30th; Unity Cup. |
+| `misc/20260812_104812_snap154.png` | **Team Showdown Confirmation**; Rank 23 Logical Milk Tea; "Go against this team?"; Cancel / Begin Showdown!; Unity Cup. |
+| `misc/20260812_104834_snap155.png` | **Loading / Downloading**; 0.00% "Downloading"; horseshoe pattern; "Play on a stable connection"; Unity Cup transition. |
+| `races/20260812_104913_snap156.png` | **Team Showdown race preview**; Race 3 Hanshin Turf 2600m Long; Nice Nature (red/green ears); WIN/DRAW/VS indicators; Unity Cup. |
+| `races/20260812_104936_snap157.png` | **Team Showdown - Race Finished**; 3 wins, 1 draw, 1 loss; detailed per-race results; Next; Unity Cup. |
+| `races/20260812_104956_snap158.png` | **Team Showdown - Race Finished** (near duplicate); same 3W-1D-1L results; Next; Unity Cup. |
+| `misc/20260812_105017_snap159.png` | **Team Showdown Victory**; big WIN banner; 5 girls group pose (Haru Urara + Nice Nature + others); race summary; Try Again / Next; Unity Cup. |
+| `misc/20260812_105039_snap160.png` | **Unity Cup bracket**; Preseason Round 1 WIN (held after Junior Late Dec); Round 2 "After 12 turn(s)"; Next; Team Carrot 22nd; Unity Cup. |
+| `misc/20260812_105100_snap161.png` | **Unity Cup bracket** (near duplicate of snap160); same Round 1 WIN + Round 2 pending; Next; Unity Cup. |
+| `events/20260812_105117_snap162.png` | **Trainee Event** — "New Year's Resolutions"; Haru Urara; three choices (fighting spirit, sleep for growth, original killer technique); Effects; Classic Year Early Jan; Unity Cup. |
+| `events/20260812_105127_snap163.png` | **Trainee Event** — New Year's Resolutions (prompt); same three options; Classic Year Early Jan, 13 turns left; Unity Cup. |
+| `events/20260812_105206_snap164.png` | **Choices modal** (New Year's Resolutions outcome); Guts +25, Energy +20, Skill Pts +20; Haru Urara; Close; Classic Year Early Jan; Unity Cup. |
+| `hub/20260812_104055_snap134.png` | **Training hub**; Junior Year Early Dec; goal Earn 5000 fans; energy GREAT with "Rest is important" hint; Haru Urara sleepy "Yawn..."; stats E/F grades; Rest/Training/Skills/Infirmary/Recreation/Races; Unity Cup. |
+| `hub/20260812_105316_snap167.png` | **Training hub**; Classic Year Late Mar; goal achieved; Haru Urara "One, two! I'm all warmed up"; support girl; energy bar; bottom tiles; Unity Cup. |
+| `training/20260812_105229_snap165.png` | **Training sub**; Guts "Bunny-Hop" Lvl 2; failure 17%; stat deltas; supports; Junior Year Late Mar / Classic; Unity Cup. |
+| `training/20260812_105254_snap166.png` | **Training animation**; "Unit Train" / spirit burst style; Haru Urara + pink/red/yellow Uma cheering; Classic Year Early Feb; Unity Cup. |
+| `training/20260812_105334_snap168.png` | **Spirit Burst GO prompt**; Haru Urara fist-pump starry eyes; big yellow GO! button; training hub overlay; Classic Year Late Mar; Unity Cup. |
+| `training/20260812_105358_snap169.png` | **Training result** (after spirit burst); Speed +35, Stamina cap +2 / +7, Power cap +1 / +7; Haru Urara celebration pose; Unity Cup. |
+| `races/20260812_105429_snap170.png` | **Scheduled Race Available modal**; G3 Funabashi Dirt 1600 (Marine Cup); +2,500 fans; Dirt/Mile; Close / Race; Unity Cup. |
+| `misc/20260812_150604_delete_career_data.png` | **Delete Career Data** confirmation; menu option to permanently delete the current career run. Warning text + Cancel/Confirm (or Delete) buttons. Unity Cup / Aoharu Hai. |
+| `training/20260812_150739_purple_burst.png` | **Training sub-screen with purple spirit burst**; one of the facility rows (e.g. Speed/Stamina/etc.) showing purple burst badge/chrome. Relevant for REQ-V17 spirit-burst facility selection. Unity Cup / Aoharu Hai. |
+| `training/20260812_151153_purple_burst.png` | **Training sub-screen with purple spirit burst**; facility row showing purple burst badge/chrome (new capture). Relevant for REQ-V17. Unity Cup / Aoharu Hai. |
+| `training/20260812_151305_skip_off_post_training.png` | **Training result / post-training screen**; "Skip" toggle or button is Off (Skip Off state visible). After training completion, result summary area. Unity Cup / Aoharu Hai. |
+| `training/20260812_151333_skip_off_post_training.png` | **Training result / post-training screen**; "Skip" toggle or button is Off (Skip Off state visible). After training completion, result summary area. (Second capture of similar state.) Unity Cup / Aoharu Hai. |
+| `training/20260812_152122_skip_off_post_training.png` | **Training result / post-training screen**; "Skip" toggle or button is Off (Skip Off state visible). After training completion, result summary area. (Additional capture of similar state.) Unity Cup / Aoharu Hai. |
+| `training/20260812_152425_skip_off_post_training.png` | **Training result / post-training screen**; "Skip" toggle or button is Off (Skip Off state visible). After training completion, result summary area. (Another capture of similar state.) Unity Cup / Aoharu Hai. |
+| `training/20260812_152951_skip_off_post_training.png` | **Training result / post-training screen**; "Skip" toggle or button is Off (Skip Off state visible). After training completion, result summary area. (Additional capture of similar state.) Unity Cup / Aoharu Hai. |
+| `training/20260812_153233_skip_off_post_training.png` | **Training result / post-training screen**; "Skip" toggle or button is Off (Skip Off state visible). After training completion, result summary area. (Additional capture of similar state.) Unity Cup / Aoharu Hai. |
+| `misc/20260812_153348_summer.png` | **Summer**; screen or UI state containing "Summer" (seasonal indicator, event, or visual). Unity Cup / Aoharu Hai. |
+| `hub/20260812_153502_unity_cup.png` | **Training hub**; "Unity Cup" (Aoharu Hai) scenario indicator visible (e.g. "Until the Unity Cup" banner or counter); in-career main hub. Unity Cup / Aoharu Hai. |
+| `hub/20260812_153534_unity_cup.png` | **Training hub**; "Unity Cup" (Aoharu Hai) scenario indicator visible (e.g. "Until the Unity Cup" banner or counter); in-career main hub. (Additional capture / different frame.) Unity Cup / Aoharu Hai. |
+| `hub/20260812_153558_unity_cup.png` | **Training hub**; "Unity Cup" (Aoharu Hai) scenario indicator visible (e.g. "Until the Unity Cup" banner or counter); in-career main hub. (Additional capture / different frame.) Unity Cup / Aoharu Hai. |
+| `hub/20260812_153632_unity_cup.png` | **Training hub**; "Unity Cup" (Aoharu Hai) scenario indicator visible (e.g. "Until the Unity Cup" banner or counter); in-career main hub. (Additional capture / different frame.) Unity Cup / Aoharu Hai. |
+| `hub/20260812_153714_unity_cup.png` | **Training hub**; "Unity Cup" (Aoharu Hai) scenario indicator visible (e.g. "Until the Unity Cup" banner or counter); in-career main hub. (Additional capture / different frame.) Unity Cup / Aoharu Hai. |
+| `hub/20260812_153815_unity_cup.png` | **Training hub**; "Unity Cup" (Aoharu Hai) scenario indicator visible (e.g. "Until the Unity Cup" banner or counter); in-career main hub. (Additional capture / different frame.) Unity Cup / Aoharu Hai. |
+| `hub/20260812_153836_unity_cup.png` | **Training hub**; "Unity Cup" (Aoharu Hai) scenario indicator visible (e.g. "Until the Unity Cup" banner or counter); in-career main hub. (Additional capture / different frame.) Unity Cup / Aoharu Hai. |
+| `hub/20260812_153853_unity_cup.png` | **Training hub**; "Unity Cup" (Aoharu Hai) scenario indicator visible (e.g. "Until the Unity Cup" banner or counter); in-career main hub. (Additional capture / different frame.) Unity Cup / Aoharu Hai. |
+| `hub/20260812_153923_unity_cup.png` | **Training hub**; "Unity Cup" (Aoharu Hai) scenario indicator visible (e.g. "Until the Unity Cup" banner or counter); in-career main hub. (Additional capture / different frame.) Unity Cup / Aoharu Hai. |
+| `hub/20260812_153948_unity_cup.png` | **Training hub**; "Unity Cup" (Aoharu Hai) scenario indicator visible (e.g. "Until the Unity Cup" banner or counter); in-career main hub. (Additional capture / different frame.) Unity Cup / Aoharu Hai. |
+| `hub/20260812_154007_unity_cup.png` | **Training hub**; "Unity Cup" (Aoharu Hai) scenario indicator visible (e.g. "Until the Unity Cup" banner or counter); in-career main hub. (Additional capture / different frame.) Unity Cup / Aoharu Hai. |
+| `hub/20260812_154025_unity_cup.png` | **Training hub**; "Unity Cup" (Aoharu Hai) scenario indicator visible (e.g. "Until the Unity Cup" banner or counter); in-career main hub. (Additional capture / different frame.) Unity Cup / Aoharu Hai. |
+| `hub/20260812_154042_unity_cup.png` | **Training hub**; "Unity Cup" (Aoharu Hai) scenario indicator visible (e.g. "Until the Unity Cup" banner or counter); in-career main hub. (Additional capture / different frame.) Unity Cup / Aoharu Hai. |
+| `hub/20260812_154116_unity_cup.png` | **Training hub**; "Unity Cup" (Aoharu Hai) scenario indicator visible (e.g. "Until the Unity Cup" banner or counter); in-career main hub. (Additional capture / different frame.) Unity Cup / Aoharu Hai. |
+| `hub/20260812_154311_unity_cup.png` | **Training hub**; "Unity Cup" (Aoharu Hai) scenario indicator visible (e.g. "Until the Unity Cup" banner or counter); in-career main hub. (Additional capture / different frame.) Unity Cup / Aoharu Hai. |
+| `hub/20260812_154355_unity_cup.png` | **Training hub**; "Unity Cup" (Aoharu Hai) scenario indicator visible (e.g. "Until the Unity Cup" banner or counter); in-career main hub. (Additional capture / different frame.) Unity Cup / Aoharu Hai. |
+| `hub/20260812_154420_unity_cup.png` | **Training hub**; "Unity Cup" (Aoharu Hai) scenario indicator visible (e.g. "Until the Unity Cup" banner or counter); in-career main hub. (Additional capture / different frame.) Unity Cup / Aoharu Hai. |
+| `hub/20260812_154443_unity_cup.png` | **Training hub**; "Unity Cup" (Aoharu Hai) scenario indicator visible (e.g. "Until the Unity Cup" banner or counter); in-career main hub. (Additional capture / different frame.) Unity Cup / Aoharu Hai. |
+| `hub/20260812_154510_unity_cup.png` | **Training hub**; "Unity Cup" (Aoharu Hai) scenario indicator visible (e.g. "Until the Unity Cup" banner or counter); in-career main hub. (Additional capture / different frame.) Unity Cup / Aoharu Hai. |
+| `hub/20260812_154526_unity_cup.png` | **Training hub**; "Unity Cup" (Aoharu Hai) scenario indicator visible (e.g. "Until the Unity Cup" banner or counter); in-career main hub. (Additional capture / different frame.) Unity Cup / Aoharu Hai. |
+| `hub/20260812_154546_unity_cup.png` | **Training hub**; "Unity Cup" (Aoharu Hai) scenario indicator visible (e.g. "Until the Unity Cup" banner or counter); in-career main hub. (Additional capture / different frame.) Unity Cup / Aoharu Hai. |
+| `hub/20260812_154610_unity_cup.png` | **Training hub**; "Unity Cup" (Aoharu Hai) scenario indicator visible (e.g. "Until the Unity Cup" banner or counter); in-career main hub. (Additional capture / different frame.) Unity Cup / Aoharu Hai. |
+| `hub/20260812_154632_unity_cup.png` | **Training hub**; "Unity Cup" (Aoharu Hai) scenario indicator visible (e.g. "Until the Unity Cup" banner or counter); in-career main hub. (Additional capture / different frame.) Unity Cup / Aoharu Hai. |
+| `hub/20260812_154713_unity_cup.png` | **Training hub**; "Unity Cup" (Aoharu Hai) scenario indicator visible (e.g. "Until the Unity Cup" banner or counter); in-career main hub. (Additional capture / different frame.) Unity Cup / Aoharu Hai. |
+| `misc/20260812_154909_insufficient_fans_warning.png` | **Insufficient fans warning** (modal); fans/goal requirement not met for race or goal entry; warning text + buttons (Close/Cancel/Race); Unity Cup / Aoharu Hai. |
+| `misc/20260812_155029_summer_event.png` | **Summer event**; screen or UI state showing summer event/seasonal content (banner, training, or event screen); Unity Cup / Aoharu Hai. |
+| `misc/20260812_155055_summer_event_effects.png` | **Summer event effects**; summer event outcome/effects screen (stat changes, bonuses, or results); Unity Cup / Aoharu Hai. |
+| `races/20260812_155429_trophy.png` | **Trophy won**; G1 trophy award / results screen (modal or post-race trophy state); additional capture; Unity Cup / Aoharu Hai. |
+| `training/20260812_155603_purple_burst.png` | **Purple burst** (spirit burst); training sub-screen with purple spirit burst badge/chrome on a facility row; relevant for REQ-V17; Unity Cup / Aoharu Hai. |
+| `events/20260812_160721_new_years.png` | **New Year's** (New Year's Resolutions event); trainee event screen or prompt for New Year's Resolutions; choices/effects; Classic Year Early Jan; Unity Cup / Aoharu Hai. |
+| `events/20260812_160747_new_years.png` | **New Year's** (New Year's Resolutions event); additional capture / variant frame of the event prompt or choices; Classic Year Early Jan; Unity Cup / Aoharu Hai. |
+| `events/20260812_160807_new_years.png` | **New Year's** (New Year's Resolutions event); additional capture / variant frame of the event prompt or choices; Classic Year Early Jan; Unity Cup / Aoharu Hai. |
+| `events/20260812_161123_inspiration.png` | **Inspiration** (support inspiration event); support card triggers inspiration for the trainee; dialogue/effects shown; Unity Cup / Aoharu Hai. |
+| `misc/20260812_161254_give_up.png` | **Give Up**; confirmation / modal from menu (Give Up option); warning about ending career; Unity Cup / Aoharu Hai. |
+| `misc/20260812_161311_give_up.png` | **Give Up**; confirmation / modal from menu (Give Up option); warning about ending career; Unity Cup / Aoharu Hai. |
+| `misc/20260812_161325_give_up.png` | **Give Up**; confirmation / modal from menu (Give Up option); warning about ending career; Unity Cup / Aoharu Hai. |
+| `misc/20260812_161345_give_up.png` | **Give Up**; confirmation / modal from menu (Give Up option); warning about ending career; Unity Cup / Aoharu Hai. |
+| `misc/20260812_161403_give_up.png` | **Give Up**; confirmation / modal from menu (Give Up option); warning about ending career; Unity Cup / Aoharu Hai. |

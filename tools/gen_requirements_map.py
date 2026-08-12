@@ -55,6 +55,22 @@ EDGE_PATTERNS = [
     (re.compile(r"cross-?referenc\w*\s+(?:from\s+)?(REQ-[A-Z][A-Z0-9]*)", re.I), "xref"),
 ]
 
+MILESTONE_PATTERNS = [
+    (re.compile(r"1\.0\s*alpha|alpha-critical|acceptable.*alpha|for 1\.0 alpha|before 1\.0 alpha", re.I), "alpha"),
+    (re.compile(r"1\.0\s*beta|beta hard|hard blocker.*beta|for 1\.0 beta|before 1\.0 beta", re.I), "beta"),
+    (re.compile(r"1\.0\s*final|hard blocker.*final|for 1\.0 final|before 1\.0 final", re.I), "final"),
+    (re.compile(r"\b2\.0\b|provisionally.*2\.0|targeted at 2\.0|explicitly 2\.0|deferred.*2\.0", re.I), "2_0"),
+]
+
+def extract_milestones(title: str, body: str) -> set[str]:
+    text = (title or "") + " " + (body or "")
+    hits: set[str] = set()
+    for pat, key in MILESTONE_PATTERNS:
+        if pat.search(text):
+            hits.add(key)
+    return hits
+
+
 
 def line_no(text: str, pos: int) -> int:
     return text.count("\n", 0, pos) + 1
@@ -136,6 +152,7 @@ def parse(text: str) -> tuple[list[dict], list[dict], list[dict]]:
             "section": sec["title"] if sec else "(top)",
             "section_id": sec["id"] if sec else "sec-none",
             "snippet": re.sub(r"\s+", " ", body)[:280],
+            "milestones": sorted(extract_milestones(title, body)),
         }
         nodes[rid] = node
         if sec is not None:
@@ -193,6 +210,7 @@ def parse(text: str) -> tuple[list[dict], list[dict], list[dict]]:
             "section_id": sec["id"] if sec else "sec-none",
             "snippet": re.sub(r"\s+", " ", body)[:280],
             "related": related,
+            "milestones": sorted(extract_milestones(status_title, body)),
         }
         nodes[oid] = node
         if sec is not None:
@@ -226,11 +244,20 @@ def build_html(sections: list[dict], edges: list[dict], nodes: list[dict]) -> st
             cls = f"node {n['kind']} fam-{n['family']}"
             if status:
                 cls += f" st-{status}"
+            ms = n.get("milestones") or []
+            ms_attr = f' data-milestones="{" ".join(ms)}"' if ms else ""
+            ms_badges = ""
+            if ms:
+                badge_html = "".join(
+                    f'<span class="mbadge m-{m}">{m.replace("_",".")}</span>' for m in ms
+                )
+                ms_badges = f" {badge_html}"
             kids.append(
-                f'<li class="{cls}" data-id="{html.escape(nid)}">'
+                f'<li class="{cls}" data-id="{html.escape(nid)}"{ms_attr}>'
                 f'<button type="button" class="nbtn">'
                 f'<span class="nid">{html.escape(nid)}</span> '
                 f'<span class="ntitle">{html.escape(n["title"][:80])}</span>'
+                f"{ms_badges}"
                 f"{f' <span class=st>{html.escape(status)}</span>' if status else ''}"
                 f"</button></li>"
             )
@@ -327,6 +354,23 @@ def build_html(sections: list[dict], edges: list[dict], nodes: list[dict]) -> st
   li.st-DEFERRED .nid {{ color: var(--oq-def); }}
   .ntitle {{ color: var(--text); opacity: 0.9; }}
   .st {{ font-size: 10px; color: var(--muted); }}
+  .milestone-toggles {{ display:inline-flex; align-items:center; gap:4px; margin-left:6px; font-size:11px; }}
+  .milestone-toggles .mlabel {{ color:var(--muted); margin-right:2px; }}
+  .milestone-toggles label {{ padding:1px 4px; border-radius:3px; cursor:pointer; }}
+  .milestone-toggles label.malpha {{ background:rgba(126,182,255,0.15); }}
+  .milestone-toggles label.mbeta {{ background:rgba(255,93,93,0.15); }}
+  .milestone-toggles label.mfinal {{ background:rgba(107,203,139,0.15); }}
+  .milestone-toggles label.m2 {{ background:rgba(192,144,208,0.15); }}
+  .milestone-toggles input {{ vertical-align:middle; margin-right:2px; }}
+  #tree li.milestone-hit .nbtn {{ outline:1px solid #ffd166; outline-offset:-1px; }}
+  .mbadge {{
+    font-size:9px; line-height:1; padding:1px 3px; margin-left:3px; border-radius:2px;
+    background:#2a3a52; color:#c9d4e6; vertical-align:middle; display:inline-block;
+  }}
+  .mbadge.m-alpha {{ background:#3a5a80; color:#c5d9ff; }}
+  .mbadge.m-beta {{ background:#6b2f2f; color:#ffcfcf; }}
+  .mbadge.m-final {{ background:#2f5a36; color:#c6f0c6; }}
+  .mbadge.m-2_0 {{ background:#4a3a58; color:#e0c9f0; }}
   #cywrap {{
     position: relative; overflow: hidden; min-width: 0;
   }}
@@ -380,6 +424,13 @@ def build_html(sections: list[dict], edges: list[dict], nodes: list[dict]) -> st
     <label>section
       <select id="sectionFilter"><option value="">all</option></select>
     </label>
+    <span class="milestone-toggles" title="Toggle to highlight / filter items required or relevant for a named milestone. When any are checked, only nodes tagged for at least one checked milestone are shown (and visually emphasized).">
+      <span class="mlabel">milestones:</span>
+      <label class="malpha"><input type="checkbox" data-milestone="alpha"/> alpha</label>
+      <label class="mbeta"><input type="checkbox" data-milestone="beta"/> beta</label>
+      <label class="mfinal"><input type="checkbox" data-milestone="final"/> final</label>
+      <label class="m2"><input type="checkbox" data-milestone="2_0"/> 2.0</label>
+    </span>
   </div>
 </header>
 <nav id="tree">{''.join(tree_parts)}</nav>
@@ -434,21 +485,36 @@ sectionTitles.forEach(t => {{
   sectionSelect.appendChild(o);
 }});
 
+function activeMilestones() {{
+  const set = new Set();
+  document.querySelectorAll('.controls input[data-milestone]').forEach(cb => {{
+    if (cb.checked) set.add(cb.dataset.milestone);
+  }});
+  return set;
+}}
+
+function nodeMatchesMilestones(n, active) {{
+  if (!active.size) return true;
+  const ms = n.milestones || [];
+  return ms.some(m => active.has(m));
+}}
+
 function visibleNodeIds() {{
   const q = document.getElementById('filter').value.trim().toLowerCase();
   const sec = sectionSelect.value;
   const hideRes = document.getElementById('hideResolved').checked;
+  const activeMs = activeMilestones();
   const ids = new Set();
   for (const n of DATA.nodes) {{
     if (hideRes && n.kind === 'oq' && n.status === 'RESOLVED') continue;
     if (sec && n.section !== sec) continue;
+    if (!nodeMatchesMilestones(n, activeMs)) continue;
     if (q) {{
       const hay = (n.id + ' ' + n.title + ' ' + (n.snippet || '')).toLowerCase();
       if (!hay.includes(q)) continue;
     }}
     ids.add(n.id);
   }}
-  // keep endpoints of visible edges if both ends would show? only nodes matching filter
   return ids;
 }}
 
@@ -456,6 +522,7 @@ function buildElements() {{
   const ids = visibleNodeIds();
   const groups = enabledGroups();
   const els = [];
+  const activeMs = activeMilestones();
   for (const n of DATA.nodes) {{
     if (!ids.has(n.id)) continue;
     let color = n.kind === 'req' ? '#5b9fd4' : '#d4a15b';
@@ -463,6 +530,8 @@ function buildElements() {{
     if (n.status === 'OPEN') color = '#e07070';
     if (n.status === 'RESOLVED') color = '#6bcb8b';
     if (n.status === 'DEFERRED') color = '#9b8bb4';
+    const ms = n.milestones || [];
+    const isMilestoneHit = activeMs.size > 0 && ms.some(m => activeMs.has(m));
     els.push({{
       data: {{
         id: n.id,
@@ -473,6 +542,8 @@ function buildElements() {{
         section: n.section,
         status: n.status || '',
         snippet: n.snippet || '',
+        milestones: ms,
+        milestoneHit: isMilestoneHit ? 'true' : '',
       }},
       style: {{ 'background-color': color }},
     }});
@@ -567,6 +638,14 @@ const cy = cytoscape({{
       selector: 'edge[group = "about"]',
       style: {{ 'line-color': '#9b8bb4', 'target-arrow-color': '#9b8bb4', 'line-style': 'dotted' }},
     }},
+    {{
+      selector: 'node[milestoneHit = "true"]',
+      style: {{
+        'border-width': 2,
+        'border-color': '#ffd166',
+        'border-style': 'double',
+      }},
+    }},
   ],
   minZoom: 0.2,
   maxZoom: 3,
@@ -590,8 +669,20 @@ function relayout() {{
 
 function filterTree() {{
   const ids = visibleNodeIds();
+  const activeMs = activeMilestones();
   document.querySelectorAll('#tree li[data-id]').forEach(li => {{
-    li.style.display = ids.has(li.dataset.id) ? '' : 'none';
+    const show = ids.has(li.dataset.id);
+    li.style.display = show ? '' : 'none';
+    if (show && activeMs.size) {{
+      const ms = (li.dataset.milestones || '').split(/\\s+/).filter(Boolean);
+      if (ms.some(m => activeMs.has(m))) {{
+        li.classList.add('milestone-hit');
+      }} else {{
+        li.classList.remove('milestone-hit');
+      }}
+    }} else {{
+      li.classList.remove('milestone-hit');
+    }}
   }});
   document.querySelectorAll('#tree details').forEach(d => {{
     const any = [...d.querySelectorAll('li[data-id]')].some(li => li.style.display !== 'none');

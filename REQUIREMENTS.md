@@ -40,7 +40,17 @@ barrier, not the game's difficulty itself.
   gate, currently looking achievable for 1.0 (§6.4)
 - No network access, structurally (§7.2, REQ-S1)
 - A formal validation pass distinguishing mobility assistance from
-  botting, gating what actually ships (§8.1, REQ-VAL)
+  botting (hard blocker for 1.0 final; §8.1, REQ-VAL)
+
+**1.0 alpha scope restriction (narrower than general 1.0 scope):**
+- Alpha is limited exclusively to the Aoharu Hai (Unity Cup) career once
+  a run is already in progress. The in-career loop (training hub and
+  sub-screen, events/choices, races, spirit burst, results, etc.) plus
+  the ability to exit the career cleanly (e.g. Save & Exit or Give Up
+  from the menu) and stop the assist is sufficient.
+- Nothing on the main menu, pre-career flows (support card selection,
+  "Continue Career" modal, starting a new career), lobby, or non-Aoharu
+  Hai content needs to be accessible or functional for 1.0 alpha.
 
 **Explicitly out of scope for 1.0:**
 - PC/Steam/DMM support (REQ-PL2 — longer-term goal, not scoped yet)
@@ -55,14 +65,38 @@ barrier, not the game's difficulty itself.
 
 **Milestones** (referenced throughout — defined here once, in one place):
 - **1.0 alpha** — first working build. Incomplete voice coverage is
-  acceptable here (REQ-V7).
+  acceptable here (REQ-V7). **Alpha scope is narrowly limited to the
+  Aoharu Hai (Unity Cup) career loop itself once a run is already in
+  progress.** No main-menu, pre-career, lobby, support-card selection,
+  "Continue Career", or non-Aoharu-Hai flows are required for alpha.
+  The only out-of-career capability needed is the ability to exit the
+  career (e.g. via Save & Exit or Give Up) and stop the assist cleanly.
 - **1.0 beta** — feature-complete for 1.0 scope. Full voice control of
   everything inside a career becomes a hard blocker (REQ-V7); UI-element
   coverage verification is underway (REQ-QA1).
 - **1.0 final** — the actual 1.0 release. UI overlay tested against every
-  scenario is a hard blocker (REQ-QA2).
-- **2.0** — provisional, tentative scope only. Currently just tap record &
-  playback (REQ-R1/R2).
+  scenario is a hard blocker (REQ-QA2). Human/manual requirements
+  validation (REQ-VAL1/REQ-VAL3) is a hard blocker. For the initial 1.0
+  release this explicitly includes the last two available scenarios at the
+  time of release: **Twinkle URA Finals** and **Grand Live** (in addition
+  to Aoharu Hai / Unity Cup coverage already exercised during
+  development).
+- **2.0** — provisional, tentative scope only. Currently includes tap record &
+  playback (REQ-R1/R2) plus the items below. All are explicitly 2.0 and not
+  required for 1.0.
+
+**Additional provisional 2.0 items (not required for 1.0):**
+- Fan-requirement reminders: surface upcoming or current fan milestones/goals
+  (e.g. "you need X more fans by Y date") as gentle, non-blocking prompts or
+  readout, especially around race selection and goal banners.
+- Auto-scrolled long-list stitching (assistive reading): when a long list
+  (race list, shop, skills, etc.) is auto-scrolled (REQ-A16), optionally
+  stitch the visible pages into a single scaled full-screen overlay image
+  for easier reading without repeated swiping.
+- "Best" / "default" strategy shortcut: when the strategy selection screen
+  shows a single highest-affinity choice (e.g. one S-rank and the rest G–A),
+  allow a direct "Best" or "default" voice/tap action to pick it without
+  manually navigating the diagram.
 
 ## 3. Product
 
@@ -97,10 +131,25 @@ barrier, not the game's difficulty itself.
     license terms that apply to this requirements document are reproduced
     in full in §10 so the document is self-contained as a licensed work
     (same body as the root `LICENSE` file).
+    - **Pre-implementation artifacts are explicitly public.** Passive
+      capture tooling (`tools/capture_screen.sh`, `tools/new_snap.sh`,
+      and similar) and the entire development reference corpus under
+      `screenshots/` (`.png` captures, `.uixml` dumps, `.labels.txt`
+      files, `SESSION_NOTES.md`, `CAPTURE_GUIDE.md`, and related guides)
+      are open source and belong in this public repository. These are
+      collected via passive `adb screencap` + `uiautomator` before any
+      application code exists; they support requirements work, corpus
+      labeling (REQ-F4), and design. Because implementation has not
+      started, there is no closed-source boundary in effect for them.
   - **What stays closed / private:** application source code, build
-    scripts that compile the APK, corpora/assets bundled into the private
-    binary, and the APK itself — none of those are published on GitHub or
-    anywhere else. Open docs are not a precedent for open implementation.
+    scripts that compile the APK, and the final bundled runtime corpora
+    / assets that ship inside the private APK (REQ-M5 event-text layer
+    extracted from `master.mdb`, plus any refined/generic-UI templates
+    that are actually packaged for the running app). These are never
+    published. Pre-implementation development-time reference captures,
+    labels, and passive capture tooling remain open (see above). The
+    existence of open reference material here is not a precedent for
+    open implementation once application work begins.
   - **Trigger is the start of building the application, not a later
     milestone.** As soon as application work begins — scaffolding the
     Android project, first `AccessibilityService` stub, build files,
@@ -164,7 +213,9 @@ barrier, not the game's difficulty itself.
   send a tap" mechanism from day one, even though only the
   `AccessibilityService` path is being built now.
 - **Open — OQ-1 (§9)**: whether Umamusume's client detects/blocks
-  synthetic `AccessibilityService` gestures — not yet spiked.
+  synthetic `AccessibilityService` gestures — not yet spiked. (For alpha,
+  this is treated as an implementation risk rather than a hard pre-
+  scaffolding blocker; see updated OQ-32 resolution.)
 - **SPIKED — confirmed 2026-08-12, live client, real career in progress.**
   Dumped the accessibility node tree (`uiautomator dump`) against the Home
   screen. Result: the entire screen is one `android.view.SurfaceView`
@@ -283,9 +334,13 @@ barrier, not the game's difficulty itself.
        REQ-A4's decision-point key, REQ-T1's TTS text, and REQ-M6's
        fuzzy-match targets.
     2. **Generic-UI layer** (already under REQ-F4): project-maintained
-       screenshots/templates + human labels for non-event screens (result
-       screens, skips, etc.) — not covered by `master.mdb` event tables,
-       still hand-catalogued.
+       reference captures + human labels for non-event screens (result
+       screens, animation skips, generic confirmations, etc.) — not
+       covered by `master.mdb` event tables. The raw development-time
+       captures, dumps, and labels live openly in `screenshots/` during
+       the pre-implementation phase (per REQ-P3); any refined subset
+       actually bundled into the final private APK for runtime use is
+       treated as implementation material and stays private.
   - **Natural identity key for REQ-A4.** Game-internal event IDs (or the
     stable `(support card / character, event)` pairing those tables
     already encode — consistent with OQ-9's resolution) are the corpus
@@ -514,6 +569,17 @@ decision point recurs. That's a selection (replay), not a choice
     the user.** There is nothing recorded to replay yet, so UMAssisted
     must not guess, infer, or apply a default — the user makes that first
     choice themselves, same as if the tool weren't there at all.
+  - **Any deliberate user selection of an option at a recognized decision
+    point sets or updates the recorded selection for future replay
+    (REQ-A4).** This applies equally whether the user selects by directly
+    tapping the on-screen option button or by issuing a voice command that
+    names the option (REQ-V15 and related forms). Both input methods
+    establish the precedent: "last time this exact (support card, event)
+    appeared, the user chose this concrete option." The stored value is
+    the concrete option identity, not the input channel used to pick it.
+    This symmetry ensures that manual tapping and voice selection are
+    treated identically for the purpose of building a standing recorded
+    answer.
   - Every recorded selection must be visible, reviewable, and changeable
     by the user at any time — it's the user's standing decision, stored as
     data they control, not a rule baked in silently.
@@ -688,6 +754,11 @@ decision point recurs. That's a selection (replay), not a choice
   *always visible*. Fits REQ-A7's overlay vs. settings split.
   - Label/icon may stay "sweep" for brevity; behavior is the shared
     assist, not training-only.
+  - **Alpha bar (1.0 alpha)**: the persistent overlay control, correct
+    arm/disarm of sweep + auto-scroll, and proper self-exclusion under
+    REQ-SF3 (so the overlay itself does not cause the service to refuse
+    all game actions) must be present and working. Full cross-scenario
+    testing remains a 1.0 final blocker per REQ-QA2.
 - **REQ-A11 — Soft requirement: UMAssisted makes no decision automatically
   for the user, except under extreme constraints — and even then, only
   when the "automatic" action can be reconciled back to an explicit,
@@ -944,6 +1015,7 @@ decision point recurs. That's a selection (replay), not a choice
   that can't be replayed) requires an explicit confirmation step, not a
   single utterance. Misrecognition must never be able to cause an
   irreversible or costly in-game action on its own.
+  - **Double utterance is the general rule for any double-tap or tap-then-confirm selection.** See REQ-V12. Any on-screen selection whose normal touch path is "tap once to select/focus/preview, then tap again (or tap a confirm in a dialog) to commit" must be performed with two utterances under the same pattern: first utterance arms/selects, second utterance (repeat or synonym) commits. This applies uniformly — not only to race entry or training commits, but to every such two-step UI affordance in the game.
   - **One accepted confirmation form — see REQ-V12**: repeating the same
     command counts as confirmation of that command. Not the only possible
     confirm path (an explicit "confirm"/"yes" phrase is still valid), but
@@ -1009,12 +1081,50 @@ decision point recurs. That's a selection (replay), not a choice
     - **Confirmed, main training hub**: select/confirm a training facility
       (Speed/Stamina/Power/Guts/Wit — the actual commit action, distinct
       from REQ-A9's preview-hover sweep); Rest; Skills; Infirmary;
-      Recreation; Races; Back; Skip; Quick; Log; the hamburger/settings
+      Recreation; Races; Back; Skip; Quick; Turbo; Log; the hamburger/settings
       menu (contents not yet observed); Details (goal details); Full
       Stats; the "NORMAL" mode toggle (exact purpose not yet confirmed
       from a single screenshot); the HINT button.
+      Quick button on the hub (when visible) supports the same voice
+      commands as on the training sub-screen: "quick" (toggle), "toggle
+      quick", "enable quick", "disable quick".
+      Skip button on the hub (when visible) supports: "skip on",
+      "skip off", "press skip" (same as training sub-screen).
+      Turbo mode on the hub (when visible) supports the same commands as
+      the training sub-screen: "turbo" (bare — enables), "turbo mode",
+      "enable turbo", "turbo on", "disable turbo", "turbo off"
+      (plus user-defined variants). This compound command sets both Skip
+      to maximum ("skip on") and Quick enabled together for fastest
+      training flow. "disable turbo" / "turbo off" turns it off.
     - **Confirmed, training sub-screen**: select any of the 5 facilities
-      directly (bypassing the sweep); Back.
+      directly (bypassing the sweep); Back; Skip; Quick; Turbo (turbo mode);
+      Log; Menu.
+      Skip specifically supports (REQ-V8 / REQ-V14 / REQ-V11):
+      - "skip on"
+      - "skip off"
+      - "press skip"
+      (plus user-defined variants). These act on the Skip button to turn
+      skip mode on or off (skipping training animations and result screens).
+      Turbo mode (compound convenience command) sets both Skip to maximum
+      ("skip on") and Quick enabled at the same time (maximum animation +
+      result skipping / fastest training flow). Supported forms (REQ-V8 /
+      REQ-V14 / REQ-V11):
+      - "turbo" (bare word — enables Turbo mode)
+      - "turbo mode"
+      - "enable turbo"
+      - "turbo on"
+      - "disable turbo"
+      - "turbo off"
+      (plus user-defined variants). "turbo" / "enable turbo" / "turbo on"
+      turn Turbo mode on. "disable turbo" / "turbo off" turn it off.
+      This is a single command equivalent to Skip-on + Quick-enable.
+      Quick specifically supports:
+      - "quick" (bare word — acts as toggle)
+      - "toggle quick"
+      - "enable quick"
+      - "disable quick"
+      (plus user-defined variants under REQ-V8/V11). These directly act on
+      the Quick button in the bottom button row.
     - **Scenario-specific — Aoharu Hai spirit burst (REQ-V17):** on the
       training UI in the **Aoharu Hai** (Aoharu Cup) scenario, also select
       a facility by unambiguous **spirit burst** type/color (e.g. "purple",
@@ -1035,16 +1145,21 @@ decision point recurs. That's a selection (replay), not a choice
       in-race controls, results — still large); see **REQ-V16** for the
       race-list selection forms once on the race selection screen;
       Recreation's actual flow; Infirmary's actual flow; the hamburger
-      menu's contents; post-career/career-completion screens.
+      menu's contents; post-career/career-completion screens;
+      **grand concert / grand live** (post-race performance/concert stages
+      after race wins or key events).
     - **Resolved boundary — "inside a career" for REQ-V7's beta hard
       gate starts once a career run is already in progress**, not at
-      pre-career setup. Pre-career (support-card deck-building, starting
-      a new career, "Continue Career" resume modal) is **not** part of the
-      1.0-beta hard checklist. Voice coverage there is desirable for 1.0
-      final where cheap, but missing it does not block beta. Remaining
-      beta-blocking inventory is still the unobserved in-career flows
-      (Shop purchase, Skills, Races, Recreation, Infirmary, hamburger
-      contents) — those still need dedicated screenshots (OQ-22 residual).
+      pre-career setup. For **1.0 alpha**, the scope is even narrower:
+      only the Aoharu Hai (Unity Cup) career loop itself is required.
+      Pre-career flows, main menu (except the ability to exit the career
+      cleanly), lobby, and non-Aoharu-Hai content are explicitly out of
+      scope for alpha. See the 1.0 alpha scope restriction under §2.
+      Pre-career and full menu coverage are not part of the 1.0-beta hard
+      checklist either. Remaining beta-blocking inventory is still the
+      unobserved in-career flows (Shop purchase, Skills, Races,
+      Recreation, Infirmary, hamburger contents) — those still need
+      dedicated screenshots (OQ-22 residual).
 - **REQ-V8 — User-definable vocalizations per action, not a fixed command
   grammar.** The user must be able to define their own spoken phrase for
   selecting each training facility — and, per REQ-V7, presumably other
@@ -1108,6 +1223,10 @@ decision point recurs. That's a selection (replay), not a choice
   - **Voice channel for the same control — see REQ-V13.** The overlay is
     the visible state surface; spoken "start listening" / "stop listening"
     commands toggle that same state without requiring touch.
+  - **Alpha bar (1.0 alpha)**: the persistent overlay control, correct
+    arm/disarm of listening state, and proper self-exclusion under
+    REQ-SF3 must be present and working. Full cross-scenario testing
+    remains a 1.0 final blocker per REQ-QA2.
 - **REQ-V10 — On-device speech recognition engine for voice commands:
   Vosk.** Resolves OQ-10 for the general command-recognition need (REQ-V2).
   Chosen specifically because it has zero ties to Google's infrastructure
@@ -1152,11 +1271,7 @@ decision point recurs. That's a selection (replay), not a choice
     model (like openWakeWord's, whose code is Apache-2.0 but whose
     pretrained models are CC-BY-NC-SA — non-commercial licensed, another
     one to avoid) couldn't support anyway.
-- **REQ-V12 — Accepting a repeated command as confirmation of that
-  command.** Extends REQ-V4: when a voice-triggered action is armed and
-  waiting for confirmation, speaking the **same action again** counts as
-  confirming it. The user doesn't need a separate "yes"/"confirm"
-  vocabulary just to finish a deliberate action they already named.
+- **REQ-V12 — Double utterance for any selection that must be tapped twice or tapped then confirmed in a dialog.** This is the general upward rule covering every on-screen selection whose normal physical path is a two-step interaction: tap once to select/focus/preview, then tap again (or tap a confirm button in a dialog) to commit. When voice targets such a selection, the first utterance arms/selects it; speaking the same action again (or a synonym per REQ-V11) commits it. Extends REQ-V4 for consequential cases, but the double-utterance shape itself is not limited to consequential actions — it applies to any two-tap / tap-then-confirm affordance. The user does not need a separate "yes"/"confirm" vocabulary just to finish a deliberate selection they already named.
   - **A synonym counts as a repetition — not only the exact phrase just
     spoken.** "Same action" is defined by the action identity, not by
     string equality. Any phrase in that action's registered set under
@@ -1171,8 +1286,10 @@ decision point recurs. That's a selection (replay), not a choice
     is a natural deliberate-intent signal — "speed" … "speed", or
     "speed" … "speed training" — that reuses vocabulary the user already
     knows, rather than introducing a second abstract confirm phrase they
-    have to remember under motor or speech constraint. It also mirrors a
-    common physical pattern (tap to select, tap again to commit).
+    have to remember under motor or speech constraint. It directly mirrors
+    the physical UI pattern that the requirement now generalizes: any
+    selection that must be tapped once then tapped (or confirmed in a
+    dialog) again.
   - **Doesn't weaken REQ-V4's bar — it is one form of the explicit
     confirmation step, not a bypass of it.** The first utterance still
     only *arms* the action (preview/announce what's about to happen);
@@ -1263,6 +1380,21 @@ decision point recurs. That's a selection (replay), not a choice
   - **Facility / hub defaults include "energy" → Wit and "date" →
     Recreation** (REQ-V8), in addition to the obvious stat names for
     Speed/Stamina/Power/Guts/Wit and "recreation."
+  - **Training sub-screen / hub Quick button defaults** (quick training mode):
+    "quick" (bare word acts as toggle), "toggle quick", "enable quick",
+    "disable quick". These directly act on the Quick button (bottom row on
+    training sub-screen and on the hub when present) and control quick
+    animation / result skip mode.
+  - **Training sub-screen / hub Skip button defaults**: "skip on",
+    "skip off", "press skip" (plus user-defined variants). These act on
+    the Skip button to turn skip mode on or off (skipping training
+    animations and result screens).
+  - **Training sub-screen / hub Turbo mode defaults** (compound: maximum
+    skip + Quick enabled for fastest training flow): "turbo" (bare word
+    enables), "turbo mode", "enable turbo", "turbo on", "disable turbo",
+    "turbo off" (plus user-defined variants under REQ-V8/V11). "turbo"
+    sets Skip to maximum ("skip on") and enables Quick at the same time.
+    "disable turbo" / "turbo off" turns Turbo mode off.
 - **REQ-V15 — When selecting an event option, accept multiple utterance
   forms; two are main forms.** At a recognized choice screen (REQ-A4 /
   REQ-M3), any of the following must be able to name the option — the user
@@ -1287,6 +1419,9 @@ decision point recurs. That's a selection (replay), not a choice
      would point at it by reading it. Matching uses the corpus's known
      option strings for the current event (REQ-M5) plus the same
      fuzzy-match tolerance used elsewhere for OCR/ASR noise (REQ-M6 /
+     REQ-M3). Selecting via voice in this way sets or updates the recorded
+     selection (REQ-A4) exactly as directly tapping the same on-screen
+     option would — the input method does not matter for precedent.
      Vosk): exact match is not required; a clear best match to one option
      on *this* screen selects that option. If two options are too close
      or nothing matches confidently → fall through / ask for ordinal or
@@ -1402,32 +1537,31 @@ decision point recurs. That's a selection (replay), not a choice
        - **Single utterance (e.g. "G1") — select only.** Focuses/selects
          the unique matching row; does **not** press begin. User can then
          enter with a separate confirm ("enter", "race it", etc.) or use
-         the double form below.
+         the double utterance (REQ-V12) to commit.
        - **Repeated grade (e.g. "G1 G1") — select and begin the race.**
-         Same pattern as REQ-V12 (repetition as confirmation of the same
-         action family): the first "G1" arms/selects the unique G1 row;
-         the second "G1" (synonym-grade counts — "G1" then "grade one")
-         **also presses the begin/enter control**, advancing into the race
-         scene. This is the multi-press accessibility path for "I mean
-         that G1, and start it," without requiring a different second
-         vocabulary word. Applies equally to **G2 G2** / **G3 G3** when
-         those grades are unambiguous.
-       - **Timing:** double form may be two utterances inside the armed
-         confirm window (REQ-V12 / OQ-30 class), or one continuous phrase
-         the recognizer hears as repeated tokens — either must work.
-         If the grade is ambiguous, **neither** select-only nor
-         select-and-begin fires.
+         Follows the general double-utterance rule (REQ-V12): the first
+         "G1" arms/selects the unique G1 row; the second "G1" (synonym-grade
+         counts — "G1" then "grade one") **also presses the begin/enter
+         control**, advancing into the race scene. This is the multi-press
+         accessibility path for "I mean that G1, and start it," without
+         requiring a different second vocabulary word. Applies equally to
+         **G2 G2** / **G3 G3** when those grades are unambiguous.
+       - **Timing:** the double utterance may be two separate utterances
+         inside the armed confirm window (REQ-V12 / OQ-30 class), or one
+         continuous phrase the recognizer hears as repeated tokens —
+         either must work. If the grade is ambiguous, **neither** select-only
+         nor select-and-begin fires.
        - **Still REQ-V4.** Beginning a race is consequential; the double
          grade is the explicit confirm path for that commit, and feedback
          should name the race being entered (TTS) when the second hit
          arms/fires.
     6. **User-defined custom phrases** mapping to a race identity or to
        "nth list slot" (REQ-V8/V11), same as elsewhere.
-    - **Same select-vs-double-begin pattern may apply to other unique
+    - **Same select-then-double-commit pattern may apply to other unique
       race pointers** where natural (e.g. "default" then "default", or
-      race name twice) — preferred consistency with REQ-V12; **grade
-      double ("G1 G1") is required.** Extending double-begin to name/
-      default/scheduled is allowed and encouraged for uniformity.
+      race name twice) — follows the general double-utterance rule (REQ-V12);
+      **grade double ("G1 G1") is required.** Extending double-commit to
+      name/default/scheduled is allowed and encouraged for uniformity.
   - **Stepwise path remains available.** User can still **"race"** →
     pick by name/ordinal/scheduled → **"enter"** / **"confirm race"**
     without using the compound. The compound is an accessibility shortcut
@@ -1663,6 +1797,12 @@ decision point recurs. That's a selection (replay), not a choice
     and exclude its own rendered region(s) from this determination; it's
     still exactly the right behavior for anything it doesn't recognize as
     its own.
+  - **Alpha bar (1.0 alpha)**: the self-exclusion logic for UMAssisted's
+    own overlays must be implemented and effective. Without it, the
+    always-visible controls required by REQ-A10 and REQ-V9 would cause
+    the service to refuse all game actions whenever the overlays are
+    shown. Full cross-scenario robustness of the overlay remains a
+    1.0 final blocker per REQ-QA2.
 - **REQ-SF4 — Coexist safely with other concurrently-running accessibility
   services.** Android supports multiple simultaneous `AccessibilityService`
   instances, and this population is likely to actually use that — someone
@@ -1732,12 +1872,13 @@ decision point recurs. That's a selection (replay), not a choice
 
 ### 8.1 Validation: Mobility Assistance, Not Botting
 
-- **REQ-VAL1 — Before 1.0 ships, run an explicit validation pass checking
-  this design against a "mobility assistance vs. botting" line, not just
-  assume the distinction holds because that was the intent.** Intending
-  REQ-A1/REQ-A4 to land on the assistance side doesn't automatically mean
-  the shipped product does — this needs to be checked deliberately against
-  concrete criteria, not asserted.
+- **REQ-VAL1 — Human/manual requirements validation pass, hard blocker for
+  1.0 final.** Before 1.0 final ships, run an explicit validation pass
+  checking this design against a "mobility assistance vs. botting" line,
+  not just assume the distinction holds because that was the intent.
+  Intending REQ-A1/REQ-A4 to land on the assistance side doesn't
+  automatically mean the shipped product does — this needs to be checked
+  deliberately against concrete criteria, not asserted.
 - **REQ-VAL2 — Proposed criteria for that validation** (draft, to be
   refined during the validation pass itself, not treated as final):
   - **No capability beyond what the user could already do manually.**
@@ -1899,10 +2040,14 @@ decision point recurs. That's a selection (replay), not a choice
   voice toggle, and any future overlay controls)
   must be tested across every game scenario/screen state before **1.0
   final** — a milestone later than both 1.0 alpha and 1.0 beta (REQ-V7).
-  Concretely: the overlay stays visible, functional, and correctly
-  positioned across all screens (menus, races, loading, events, etc.); it
-  never obscures critical game UI; and it correctly exercises REQ-SF3's
-  now-clarified self-overlay exclusion rather than fighting it.
+  For the initial 1.0 release this explicitly includes the last two
+  available scenarios at the time of release: **Twinkle URA Finals** and
+  **Grand Live** (in addition to Aoharu Hai / Unity Cup coverage already
+  exercised during development). Concretely: the overlay stays visible,
+  functional, and correctly positioned across all screens (menus, races,
+  loading, events, etc.); it never obscures critical game UI; and it
+  correctly exercises REQ-SF3's now-clarified self-overlay exclusion
+  rather than fighting it.
 - **REQ-QA3 — Human-verified security architecture audit, hard blocker
   for 1.0 final.** Before 1.0 final ships, a human must directly verify —
   not infer from the code's stated intent — that the actual built APK's
@@ -2022,15 +2167,18 @@ decision point recurs. That's a selection (replay), not a choice
     commitments.
   - **Resolved — OQ-32: both.** Opportunistic discovery during ordinary
     edits is required always (finding a gap mid-work is success). **Plus**
-    a deliberate full-document gap pass before each milestone gate that
-    ships or hardens architecture: before **1.0 alpha** architecture work
-    starts in earnest, before **1.0 beta**, and before **1.0 final**. Pass
-    outcome is new OQs/REQ stubs written into this doc, not a separate
-    report that can rot.
+    a deliberate full-document gap pass before the beta and final
+    milestone gates that ship or harden architecture. For **1.0 alpha**
+    (first working build) a lighter bar applies: opportunistic discovery
+    during development plus a focused review of alpha-critical items is
+    sufficient before scaffolding begins. A stricter deliberate pass is
+    required before **1.0 beta** and before **1.0 final**. Pass outcome is
+    new OQs/REQ stubs written into this doc, not a separate report that
+    can rot.
 
-Status tags below: **BLOCKING** = worth resolving before 1.0 architecture
-work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
-= intentionally not needed yet.
+Status tags below: **BLOCKING** = worth resolving before 1.0 beta or final
+(or before alpha if it affects the core safety/ethics model); **OPEN** =
+unresolved, not currently blocking; **DEFERRED** = intentionally not needed yet.
 
 - **OQ-1 (REQ-M1) — BLOCKING.** Does Umamusume's client detect/block
   synthetic gestures dispatched by an `AccessibilityService`? Not yet
@@ -2106,10 +2254,13 @@ work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
   japanglify) or a purely personal/local build? Answer: **implementation
   and APK** are closed source / personal-private — never publicly released.
   Closed-source rule applies **as soon as application building begins**
-  (not after a public spike). **Top-level documentation** in this public
-  repo (requirements, review map, doc tooling, license, and similar
-  design/process docs) is open source; that exception does not extend to
-  the app.
+  (not after a public spike). **Top-level documentation** and
+  **pre-implementation reference artifacts** in this public repo
+  (requirements, review map, doc tooling, passive capture scripts such as
+  `capture_screen.sh`/`new_snap.sh`, the `screenshots/` corpus of passive
+  captures + labels + notes, license, and similar design/process material)
+  are open source; that exception does not extend to the app source or to
+  any corpus that ships inside the final private binary.
 - **OQ-14 (REQ-PL4) — RESOLVED.** Minimum Android API level/version floor
   to target. Answer: **API 30 (Android 11)** exactly as the floor —
   required by `takeScreenshot()`; nothing current forces higher.
@@ -2146,7 +2297,8 @@ work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
   covers for voice-control parity. Main hub and training sub-screen
   confirmed on-device. **Boundary decided:** pre-career setup is outside
   the beta hard gate. Still need screenshots for: Shop purchase, Skills,
-  Races (largest gap), Recreation, Infirmary, hamburger contents.
+  Races (largest gap), Recreation, Infirmary, hamburger contents,
+  **grand concert / grand live** (post-race concert performance stages).
 - **OQ-23 (REQ-V8) — RESOLVED by REQ-V14.** Default/fallback
   vocalizations? Answer: **defaults-plus-override** — ship English
   defaults; setup not required before voice works.
@@ -2178,8 +2330,9 @@ work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
 - **OQ-31 (REQ-M6) — OPEN, empirical.** Exact confidence thresholds and
   crop regions for title/option OCR — need device tuning (OQ-33 set).
 - **OQ-32 (REQ-OQ3) — RESOLVED.** Gap-pass cadence? Answer: **always
-  opportunistic** + **deliberate full pass before alpha / beta / final
-  milestone gates**.
+  opportunistic** + stricter deliberate full pass before **beta and final**
+  milestone gates. For **1.0 alpha** a lighter bar applies (opportunistic
+  + focused review of alpha-critical items is sufficient before scaffolding).
 - **OQ-33 (calibration bucket) — OPEN, empirical / needs device + play.**
   Shared bucket for numeric defaults that are architecturally decided but
   not yet tuned: REQ-A12 thresholds (OQ-29), REQ-M6 confidence/crops
