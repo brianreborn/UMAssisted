@@ -575,17 +575,18 @@ decision point recurs. That's a selection (replay), not a choice
 - **REQ-A7 — Config UI is both: always-visible overlay for kill switches
   / high-frequency toggles, and a settings screen for depth.** Resolves
   OQ-15. Split by job, not by preference:
-  - **Overlay (always visible during assist):** on/off for auto-sweep
-    (REQ-A10), voice listening (REQ-V9), and any other control that must
-    be reachable mid-play without leaving the game or performing precise
-    navigation. Overlay controls may share one combined panel; they must
-    not require opening a full settings activity to flip.
+  - **Overlay (always visible during assist):** on/off for sweep assist
+    (REQ-A10 — facility auto-sweep **and** long-list auto-scroll), voice
+    listening (REQ-V9), and any other control that must be reachable
+    mid-play without leaving the game or performing precise navigation.
+    Overlay controls may share one combined panel; they must not require
+    opening a full settings activity to flip.
   - **Settings screen (full config):** sequence enablement beyond the
     kill switches, recorded selections review/edit (REQ-A4), per-event
     auto-replay toggles (REQ-A8), voice phrase editing (REQ-V8/V11),
-    dwell duration (REQ-A9), confirmation-window timing (REQ-V12), TTS
-    preferences (REQ-T5), defaults/overrides, export/import of local
-    config (REQ-S1).
+    dwell / auto-scroll pace (REQ-A9/A16), confirmation-window timing
+    (REQ-V12), TTS preferences (REQ-T5), defaults/overrides, export/import
+    of local config (REQ-S1).
   - Rationale: zero-or-low-touch mid-play needs always-visible controls;
     bulk configuration does not belong on a floating strip that would
     obscure the game (REQ-QA2).
@@ -632,14 +633,61 @@ decision point recurs. That's a selection (replay), not a choice
     user who can just set "I need more time." Pause/skip-to-next during a
     sweep remains desirable (voice or overlay) but is a separate control
     detail, not a substitute for a stable default dwell.
-- **REQ-A10 — Auto-sweep gets a dedicated, always-visible overlay control,
-  not just a settings-screen toggle.** Given how central this feature is,
-  its on/off control is a persistent "sweep" slider/switch overlay
-  element, visible and actionable at any time — not buried in a menu.
-  This is REQ-SF1's kill-switch requirement made concrete for this
-  specific feature, and pushed a step further: beyond "trivially
-  reachable," it's *always visible*. Fits REQ-A7's overlay vs. settings
-  split.
+  - **Same overlay kill switch as list auto-scroll — see REQ-A10 / A16.**
+- **REQ-A16 — Auto-scroll long lists when the sweep toggle is on.** When
+  the always-visible sweep control (REQ-A10) is **enabled**, UMAssisted
+  automatically scrolls **long list UIs** for the user at a reading pace —
+  so they are not forced to perform repeated precise swipes to see the
+  full list. Canonical target: the **race selection list** (REQ-V16);
+  also applies to other long in-career lists in scope (e.g. shop browse
+  under REQ-A1, skills list once observed) when those screens are
+  recognized.
+  - **Same feature family as auto-sweep, not a second always-on behavior.**
+    Facility hover-sweep (REQ-A9) and list auto-scroll share the **one**
+    sweep slider/switch: on → both classes of "show me the rest without
+    me swiping" assist are armed where the current screen supports them;
+    off → neither runs. User does not manage two mid-play kill switches
+    for the same motor burden.
+  - **Pacing:** scroll in human-readable steps (page / chunk / row band —
+    exact step size is implementation detail; default should leave content
+    readable, not a blur). Dwell between steps reuses the same
+    comprehension-first idea as REQ-A9 (user-configurable; may share or
+    mirror A9's dwell setting for 1.0). Bound by REQ-A6 (never faster than
+    a fast human could scroll by hand for reading).
+  - **Finite pass, not an infinite scroll loop (REQ-A5).** Auto-scroll
+    proceeds through the list **once** (or until the end of available
+    content is reached), then **stops** and leaves the list where it
+    ended (or returns to a sensible rest position if the game requires
+    it — prefer stop-at-end). It must not bounce forever, re-loop without
+    a new user command, or keep scrolling while the user is trying to
+    pick. Turning the sweep toggle off mid-scroll **stops immediately**.
+  - **Does not select or commit list items.** Auto-scroll only changes
+    scroll offset / what's visible. Choosing a race, shop item, or skill
+    still requires an explicit user command (REQ-V15/V16 forms, etc.) or
+    a separate named sequence. Same "assist viewing, not deciding"
+    line as REQ-A9's hover (preview without confirm).
+  - **Coexists with manual/voice scroll.** User can still say next/
+    previous/scroll (REQ-V16) or turn the toggle off and swipe themselves.
+    If the user issues an explicit scroll/pick command mid auto-scroll,
+    auto-scroll **yields** (pause or cancel the pass) so it does not fight
+    their input (REQ-SF1).
+  - **Screen-gated.** Only runs when the matched screen is a known long-
+    list surface (race list, etc.). Does not scroll arbitrary game UI or
+    foreign overlays (REQ-SF3).
+- **REQ-A10 — Sweep assist gets a dedicated, always-visible overlay
+  control that arms both auto-sweep and list auto-scroll.** The on/off
+  control is a persistent "sweep" slider/switch overlay element, visible
+  and actionable at any time — not buried in a menu. When **on**, it
+  enables:
+  - **REQ-A9** training-facility auto-sweep on the training UI, and
+  - **REQ-A16** long-list auto-scroll on recognized list screens (races,
+    and other in-scope lists).
+  When **off**, both stop / stay disarmed. This is REQ-SF1's kill-switch
+  made concrete for the whole "show me content without repeated swipes"
+  family, and pushed a step further: beyond "trivially reachable," it's
+  *always visible*. Fits REQ-A7's overlay vs. settings split.
+  - Label/icon may stay "sweep" for brevity; behavior is the shared
+    assist, not training-only.
 - **REQ-A11 — Soft requirement: UMAssisted makes no decision automatically
   for the user, except under extreme constraints — and even then, only
   when the "automatic" action can be reconciled back to an explicit,
@@ -1341,7 +1389,10 @@ decision point recurs. That's a selection (replay), not a choice
     - **List readout (REQ-T / TTS):** read visible races (name ± grade /
       fans / date as available); **"next"** / **"previous"** (or "more")
       to move selection or scroll when the list is long.
-    - **Scroll without picking:** explicit scroll before committing.
+    - **Scroll without picking:** explicit scroll before committing;
+      **and** when the sweep toggle is on, **REQ-A16** auto-scrolls the
+      long race list at reading pace so the user need not swipe the whole
+      list by hand (still does not select or enter a race).
     - **Confirm enter race (stepwise):** after a row is selected without
       using the compound, enter via **"enter"**, **"race it"**,
       **"confirm race"** under REQ-V4.
