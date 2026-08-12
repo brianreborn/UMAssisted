@@ -1435,6 +1435,42 @@ decision point recurs. That's a selection (replay), not a choice
     vs goal badge vs "scheduled" labeling), filter tabs, begin-race button
     affordance, and full pre-race control set — needs screenshots; command
     depths and forms above are decided in principle.
+- **REQ-V17 — Aoharu Hai: select a training facility by spirit-burst type
+  when that indication is unambiguous.** In the **Aoharu Hai** career
+  scenario (Aoharu Cup in some materials), training facilities can show
+  **spirit burst** markers of distinct types/colors. Voice (and other
+  input under REQ-V7) must allow choosing the facility by that burst, not
+  only by stat name (Speed/Stamina/…).
+  - **Color / type forms (primary).** Utterances such as **"purple"**,
+    **"blue"**, and other burst colors/types the Global client actually
+    displays (exact set — OQ-42). If **exactly one** facility currently
+    shows that burst type, that facility is selected (same action family
+    as saying the facility's stat name). If **zero or two+** facilities
+    show that type → fall through, announce why ("multiple purple" /
+    "no blue") — no guessing.
+  - **Bare "burst" / "spirit burst" when unique.** If **exactly one**
+    facility on the current training screen has **any** spirit burst
+    (any color/type), allow **"burst"**, **"spirit burst"**, **"spirit"**
+    (defaults + user synonyms under REQ-V8/V11) to select that facility.
+    If two or more facilities show bursts (even different colors) → bare
+    "burst" does **not** select; user must disambiguate with color/type
+    or facility name.
+  - **Scenario- and screen-gated.** Only armed when the matched screen is
+    the in-career training UI **and** spirit-burst chrome is present
+    (prefer detecting the chrome; scenario id Aoharu Hai is supporting
+    context). Not offered in scenarios/UIs without this chrome.
+  - **Same commit rules as other facility picks.** Burst selection is the
+    same action family as "speed" / "stamina" (REQ-V7/V8). If the game
+    requires a separate confirm to start training, REQ-V4/V12 apply.
+  - **Composable with auto-sweep (REQ-A9).** Sweep still previews for
+    reading; burst phrases pick the target. TTS may announce burst when
+    sweeping ("Speed, purple spirit burst") once detection is reliable.
+  - **Detection is screen understanding, not strategy (REQ-M3/M6,
+    REQ-A11).** Map the user's spoken type to the unique matching
+    facility; do not pick a "best" burst on the user's behalf.
+  - **Open residual — OQ-42 (§9):** full inventory of spirit-burst
+    colors/types on Global Aoharu Hai, icon vs text cues, and which rows
+    can show them.
 
 ### 6.4 Audio Readout for Choices (Text-to-Speech)
 
