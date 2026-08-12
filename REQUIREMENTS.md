@@ -91,13 +91,23 @@ barrier, not the game's difficulty itself.
     scripts that compile the APK, corpora/assets bundled into the private
     binary, and the APK itself — none of those are published on GitHub or
     anywhere else. Open docs are not a precedent for open implementation.
+  - **Trigger is the start of building the application, not a later
+    milestone.** As soon as application work begins — scaffolding the
+    Android project, first `AccessibilityService` stub, build files,
+    anything that is *the app* rather than *docs about the app* — that
+    work is closed source and belongs only in the private implementation
+    repository. There is no public "early spike" or "just the skeleton"
+    phase for application code. Documentation work may continue in this
+    public repo indefinitely; application code never starts here, even
+    temporarily.
   - **Operational consequence, worth being explicit about now so it isn't
-    a future mistake**: once actual implementation code exists, it belongs
-    in a **separate, private repository** — never added into or exposed
-    through the current public documentation repo. There is no "private
-    branch of a public repo" that actually achieves this on GitHub; it has
-    to be a genuinely separate, private repository. Documentation updates
-    may continue here; implementation never lands here.
+    a future mistake**: the private implementation repository is created
+    **before or at** first application commit — not after a public
+    experiment. Nothing that builds the APK is added into or exposed
+    through this public documentation repo. There is no "private branch
+    of a public repo" that actually achieves this on GitHub; it has to be
+    a genuinely separate, private repository. Documentation updates may
+    continue here; implementation never lands here.
   - Consistent with, and likely a further extension of, the same
     trademark/ToS-exposure caution already noted under REQ-P1 — keeping
     both the implementation and the binary private meaningfully reduces
@@ -1617,9 +1627,11 @@ work goes further; **OPEN** = unresolved, not currently blocking; **DEFERRED**
 - **OQ-13 (REQ-P3) — RESOLVED.** Signed sideload APK release (like
   japanglify) or a purely personal/local build? Answer: **implementation
   and APK** are closed source / personal-private — never publicly released.
-  **Top-level documentation** in this public repo (requirements, review
-  map, doc tooling, license, and similar design/process docs) is open
-  source; that exception does not extend to the app.
+  Closed-source rule applies **as soon as application building begins**
+  (not after a public spike). **Top-level documentation** in this public
+  repo (requirements, review map, doc tooling, license, and similar
+  design/process docs) is open source; that exception does not extend to
+  the app.
 - **OQ-14 (REQ-PL4) — RESOLVED.** Minimum Android API level/version floor
   to target. Answer: **API 30 (Android 11)** exactly as the floor —
   required by `takeScreenshot()`; nothing current forces higher.
