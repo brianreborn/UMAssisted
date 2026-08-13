@@ -1,0 +1,1 @@
+team_trials race_finished win lose per_race_results next out_of_alpha_scope

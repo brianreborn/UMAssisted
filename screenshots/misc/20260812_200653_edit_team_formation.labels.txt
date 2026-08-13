@@ -1,0 +1,1 @@
+edit_team team_formation auto_select back confirm choose lobby out_of_alpha_scope
