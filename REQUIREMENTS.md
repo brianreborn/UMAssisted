@@ -742,6 +742,43 @@ decision point recurs. That's a selection (replay), not a choice
     sweep remains desirable (voice or overlay) but is a separate control
     detail, not a substitute for a stable default dwell.
   - **Same overlay kill switch as list auto-scroll — see REQ-A10 / A16.**
+  - **Superseded for 1.0 final by REQ-A18.** OQ-21's "fixed dwell, not
+    adaptive" resolution stands for 1.0 alpha and 1.0 beta; dynamic dwell
+    becomes a hard blocker at 1.0 final.
+- **REQ-A18 — Dynamic per-facility dwell time. Hard blocker for 1.0
+  final.** The sweep must vary how long it holds on each facility
+  according to how much there actually is to read there, rather than
+  applying one fixed duration to all five. This deliberately revisits
+  OQ-21, which deferred adaptive dwell on the grounds that a
+  user-settable fixed value was enough; that remains true for alpha and
+  beta, but is not an acceptable end state — a fixed dwell is
+  simultaneously too slow on a sparse facility and too fast on a dense
+  one, so the user pays for the worst case on every single facility,
+  every single turn. That cost lands hardest on exactly the user this
+  product exists for.
+  - **Drivers.** Dwell should scale with the amount and complexity of
+    what is displayed for that facility: number of stat lines and their
+    magnitudes, support cards present on the facility, failure
+    percentage, hints/skill icons, and any highlighted state (spirit
+    burst / rainbow) that warrants a longer look. The exact signal set is
+    an implementation detail; the requirement is that dwell is a function
+    of content, not a constant.
+  - **Bounded on both sides.** Never faster than the comprehension floor
+    REQ-A9 establishes, and never above REQ-A6's ceiling. Dynamic means
+    "varies within the human-paced band", not "optimizes for speed".
+  - **Scales the user's setting, does not replace it.** REQ-A9's
+    user-configurable dwell remains the baseline; the dynamic adjustment
+    is relative to whatever the user chose. A user who set a long dwell
+    because they read slowly must not have it shortened out from under
+    them.
+  - **Explainable, not opaque.** The rule must be inspectable and
+    deterministic enough that a user can predict it and a reviewer can
+    audit it (REQ-VAL). No learned model deciding how long someone is
+    allowed to look at their own screen.
+  - **Degrades safely.** If the content signals are unavailable or
+    low-confidence for a facility, fall back to the user's fixed dwell
+    rather than guessing — consistent with the "unmatched falls through
+    to the user" discipline elsewhere (REQ-M5/REQ-F4).
 - **REQ-A16 — Auto-scroll long lists when the sweep toggle is on.** When
   the always-visible sweep control (REQ-A10) is **enabled**, UMAssisted
   automatically scrolls **long list UIs** for the user at a reading pace —
