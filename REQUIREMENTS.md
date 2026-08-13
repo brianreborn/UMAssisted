@@ -843,6 +843,34 @@ decision point recurs. That's a selection (replay), not a choice
     user's career. Where the phrasing is genuinely ambiguous, the safe
     reading is the one that does not destroy career progress.
   - **Same bounded-sequence and abort rules as REQ-A19.**
+- **REQ-A21 — "Start auto run recording defaults": one-shot capture of
+  defaults without turning the setting on. Hard blocker for 1.0 alpha.**
+  A third form of REQ-A19's command that behaves as though the
+  "auto record defaults" option(s) were enabled, but only for that single
+  invocation. It is the counterpart to REQ-A19's "Defaults" clause:
+  that one *replays* stored defaults, this one *establishes* them.
+  - **One-shot, and genuinely one-shot.** The persistent setting is not
+    changed, not toggled on and off behind the scenes, and no state
+    survives the run beyond the defaults actually recorded. A user who
+    has deliberately left auto-recording off must find it still off
+    afterwards.
+  - **Records the selection that ends up being made at each decision
+    point encountered during the run**, storing it as the new default for
+    that decision. Well-defined whether the selection came from the user
+    live or from an existing default being replayed (in the latter case
+    it is simply idempotent), so the command composes predictably with
+    REQ-A19's "Defaults" clause rather than the two contradicting.
+  - **Overwrites prior defaults for the decisions it encounters, by
+    design.** This is the intended way to re-record after changing one's
+    mind. Because it overwrites, what was recorded must be inspectable
+    and clearable afterwards (REQ-A7 settings surface, REQ-S2 export) —
+    a user must be able to find out what the app now believes their
+    defaults are, and undo it.
+  - **Stays inside REQ-A11/REQ-A4.** Recording captures a choice the
+    user actually made, at the moment they made it. Nothing is evaluated,
+    ranked, or predicted, and invoking this command is itself the
+    explicit opt-in REQ-A8 requires for the decisions covered by this
+    run.
 - **REQ-A16 — Auto-scroll long lists when the sweep toggle is on.** When
   the always-visible sweep control (REQ-A10) is **enabled**, UMAssisted
   automatically scrolls **long list UIs** for the user at a reading pace —
