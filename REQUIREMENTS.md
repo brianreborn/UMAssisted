@@ -50,7 +50,12 @@ barrier, not the game's difficulty itself.
   from the menu) and stop the assist is sufficient.
 - Nothing on the main menu, pre-career flows (support card selection,
   "Continue Career" modal, starting a new career), lobby, or non-Aoharu
-  Hai content needs to be accessible or functional for 1.0 alpha.
+  Hai content needs to be accessible or functional for 1.0 alpha —
+  **except** the career start/finish macros required by REQ-A19/REQ-A20,
+  which are alpha blockers and necessarily begin from the home screen.
+  That is a deliberate, bounded exception to the "in-career only" line
+  above: it does not open general lobby/menu support for alpha, it
+  requires exactly the screens those two macros traverse.
 
 **Explicitly out of scope for 1.0:**
 - PC/Steam/DMM support (REQ-PL2 — longer-term goal, not scoped yet)
@@ -779,6 +784,65 @@ decision point recurs. That's a selection (replay), not a choice
     low-confidence for a facility, fall back to the user's fixed dwell
     rather than guessing — consistent with the "unmatched falls through
     to the user" discipline elsewhere (REQ-M5/REQ-F4).
+- **REQ-A19 — "Start auto run" macro, invocable from the home screen.
+  Hard blocker for 1.0 alpha.** A single named command that carries the
+  user from the home/lobby screen into a started career, collapsing the
+  long chain of taps the game requires to begin a run. This is the
+  motivating case for the whole product restated at the start of a
+  career: the tap volume to *begin* a run is itself a barrier, before any
+  training has happened.
+  - **Scope exception, deliberately narrow.** §2 restricts 1.0 alpha to
+    the in-career loop; this requirement and REQ-A20 are the stated
+    exception, because a start macro that cannot start from the home
+    screen is not a start macro. It licenses exactly the screens this
+    macro traverses — not general lobby or menu support.
+  - **One command, bounded sequence, not a loop (REQ-A1/REQ-A5).** The
+    macro is a named, discrete, user-invoked sequence with a defined
+    terminal state (career begun, or a decision point that requires the
+    user). It does not re-arm, does not repeat, and does not continue
+    into playing the career. Abortable at any point via the standing kill
+    switches (REQ-A7/REQ-A10/REQ-V9); aborting leaves the game wherever
+    it is rather than trying to unwind.
+  - **Without the "Defaults" clause, it stops at every real decision.**
+    Plain "start auto run" advances only the steps that carry no
+    choice — confirmations, "Next", informational panels — and falls
+    through to the user the moment an actual selection is required
+    (REQ-F4's no-choice/has-choice line, applied to the pre-career flow).
+  - **With "Defaults" appended, it proceeds through the whole start
+    flow.** "Start auto run, defaults" declares intent to move forward
+    without deliberating: advance the no-choice steps as above, and for
+    the choices the game does not itself retain between runs — the career
+    race schedule being the canonical case — reuse the user's last
+    chosen option rather than asking again.
+  - **"Defaults" is a declaration of intent, which is what makes it
+    reconcilable (REQ-A11/REQ-A4/REQ-A8).** UMAssisted is not deciding
+    anything: the user has said "move forward unthinkingly", and the
+    concrete values come from selections that user previously made
+    themselves. It never evaluates which option is *better*. Where no
+    prior selection exists for a given decision, the first occurrence
+    falls through to the user exactly as REQ-A8 requires — "defaults"
+    does not authorise inventing a choice that was never made.
+  - **Race schedule may delegate to its own subroutine.** Selecting the
+    career race schedule is permitted to invoke a separate named
+    sub-sequence rather than being inlined, so it can be reused and
+    tested independently.
+- **REQ-A20 — "Finish auto run" macro and its command synonyms. Hard
+  blocker for 1.0 alpha.** The counterpart to REQ-A19: a single named
+  command that takes the user out of a run and back to a stable state,
+  handling the confirmation chain the game imposes.
+  - **Accepts multiple phrasings, including the game's own wording.**
+    "finish", "stop", "complete", and the literal confirm text the
+    current dialog is actually showing must all be accepted for the
+    same intent. Matching the on-screen text matters: under load or
+    fatigue the word a user reaches for is usually the word in front of
+    them, and REQ-V8/REQ-V11's on-screen-text option picking already
+    establishes that as the pattern.
+  - **Distinct from the assist kill switch.** Finishing a run is a game
+    action; stopping UMAssisted is not. "Stop" spoken as a kill-switch
+    command (REQ-V13) must not be silently reinterpreted as ending the
+    user's career. Where the phrasing is genuinely ambiguous, the safe
+    reading is the one that does not destroy career progress.
+  - **Same bounded-sequence and abort rules as REQ-A19.**
 - **REQ-A16 — Auto-scroll long lists when the sweep toggle is on.** When
   the always-visible sweep control (REQ-A10) is **enabled**, UMAssisted
   automatically scrolls **long list UIs** for the user at a reading pace —
