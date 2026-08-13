@@ -2092,6 +2092,36 @@ decision point recurs. That's a selection (replay), not a choice
   - **See REQ-S3** for the requirement this session's own debugging
     surfaced: raw recognized-utterance content must never be logged
     outside a debug build.
+- **REQ-V19 — Explicit correction/cancel vocabulary. Hard blocker for 1.0
+  beta.** A user must be able to retract something they started saying —
+  "oops," "no wait," "cancel," and user-defined synonyms (REQ-V8/V11) —
+  and have it actually undo the in-progress state, not just be ignored or
+  misheard as a new command. This is the prerequisite this product was
+  missing when partial-results early-stop was first built (REQ-V18/OQ-43):
+  a partial-transcript match that stops listening the instant it looks
+  "unambiguous" has no way to hear a user talk past that word to correct
+  themselves, because the mic session is already closing.
+  - **Applies everywhere REQ-V12's arm/confirm pattern applies, not just
+    voice facility selection.** Any armed-but-not-confirmed state (a
+    paused/rewound sweep facility per REQ-A22, an armed event-option pick,
+    a pending consequential action under REQ-V4) must be cancelable by
+    this vocabulary — it un-arms back to the pre-armed state (e.g. REQ-A22
+    resumes the sweep) rather than treating the cancel word itself as a
+    new selection attempt.
+  - **Blocks REQ-V18's partial-results early-stop from being enabled by
+    default.** The early-stop plumbing (stop listening as soon as a
+    partial transcript matches a known phrase) is implemented but must
+    stay inert — the predicate wired in has no live trigger — until this
+    requirement exists, specifically because early-stopping on the first
+    matching word is exactly what would cut a user off mid-correction.
+    Once REQ-V19 ships, early-stop can be reconsidered together with
+    OQ-43's remaining open questions (self-correction timing, what counts
+    as "unambiguous" beyond REQ-V17's color-uniqueness case, interaction
+    with REQ-V12's confirm step) rather than shipped ahead of them.
+  - **Not itself a REQ-V4 consequential-action confirmation.** Canceling
+    an armed state is the safe direction (REQ-VAL2: fails toward not
+    acting), so it does not need its own confirm step the way arming or
+    confirming a consequential action does.
 
 ### 6.4 Audio Readout for Choices (Text-to-Speech)
 
@@ -2920,6 +2950,39 @@ unresolved, not currently blocking; **DEFERRED** = intentionally not needed yet.
   which colors/types exist, how they render (icon/color/text), and which
   training rows can show them. Selection rules in REQ-V17 (unambiguous
   color; bare "burst" only if unique) are decided.
+- **OQ-43 (REQ-V18, gated by REQ-V19) — OPEN. Rigorously define
+  "unambiguous partial match" for early-stopping voice recognition, before
+  the feature is ever enabled.** REQ-V18's partial-results early-stop
+  plumbing (stop listening as soon as a partial transcript already
+  resolves cleanly, rather than waiting out the full silence timeout) was
+  built this session but its trigger predicate is deliberately left inert
+  (no live match condition wired in) rather than shipped with the minimal,
+  permissive definition first drafted (any recognizer alternate in the
+  partial result matching a known phrase). That draft was correctly
+  identified as too eager before it ever went live — it stops listening
+  the instant it hears "Speed," with no way to hear a user correct
+  themselves ("Speed — no wait, Power"). REQ-V19 (correction/cancel
+  vocabulary) is now the explicit prerequisite; this OQ tracks the design
+  work needed once that exists:
+  - **Self-correction risk.** A user who says "Speed — no, wait, Power"
+    could have the session stopped after "Speed" alone, before they finish
+    correcting themselves. The current definition has no notion of "still
+    speaking" beyond the recognizer's own partial-result cadence.
+  - **What counts as "unambiguous" is underspecified beyond REQ-V17's
+    narrow color-uniqueness case.** REQ-V17 already defines unambiguous
+    for spirit-burst color ("exactly one facility shows this type"); a
+    general partial-match rule for arbitrary phrases doesn't yet have an
+    equivalent principle — is a single clean word ever enough, or should
+    it require some minimum confidence/stability across consecutive
+    partial updates first?
+  - **Interacts with REQ-V12's double-utterance confirm.** If the first
+    "arm" utterance can fire off a fast partial match, does the *second*
+    ("confirm") utterance get the same fast-path, and does stopping early
+    on it risk cutting off a user who's still speaking a synonym phrase
+    partway through?
+  - **Gated, not just deferred.** Unlike a typical "not blocking yet" OQ,
+    this one cannot be resolved in isolation — REQ-V19 must land first, and
+    the predicate stays inert in code until it does.
 
 ## 10. License
 
