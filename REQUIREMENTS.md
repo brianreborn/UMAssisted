@@ -212,6 +212,34 @@ barrier, not the game's difficulty itself.
   recognition min API 23; Vosk/heed-wakeword run on modern Android) forces
   anything above 30. Raise the floor later only if a future, justified
   dependency truly requires it — not preemptively.
+- **REQ-PL5 — Full support for split-screen / multi-window. Hard blocker
+  for 1.0 final.** UMAssisted must behave correctly when Umamusume does
+  not own the entire display: split-screen, freeform/pop-up windows, and
+  resizable-window states. This is a release blocker for 1.0 final, not a
+  best-effort nicety, because the failure mode is silent
+  mis-targeting rather than a visible error.
+  - **Never assume the game window is the display.** All geometry —
+    gesture coordinates, hover targets, scroll paths, overlay placement —
+    must be derived from the game window's actual bounds at the time of
+    use, not from display metrics and not from constants.
+  - **This is a live defect today, not a hypothetical.** The alpha's
+    sweep, list-scroll, and career-exit routines compute every tap as a
+    fraction of a hardcoded 1080x2400. On the development device the
+    accessibility layer reported Umamusume's window as
+    `Rect(86, 303 - 993, 2208)` on a 1080x2400 display — so those taps
+    already land at the wrong place whenever the game's window is inset
+    or resized. Fullscreen play happens to mask it.
+  - **Interacts directly with REQ-SF7.** In split-screen there is, by
+    definition, another app on screen; a coordinate computed against the
+    display can land in it. Bounds-checking every dispatch against the
+    game window is what makes split-screen safe as well as correct.
+  - **Overlay placement (REQ-A17, REQ-A10).** The overlay must stay
+    within/adjacent to the game's window rather than floating over the
+    other app's half, and must reflow when the split ratio changes.
+  - **Scope note:** correct *behavior* is required; matching every visual
+    nicety at every split ratio is not. If a state genuinely cannot be
+    supported, UMAssisted must detect it and refuse to act (REQ-SF3/SF6)
+    rather than act on stale geometry.
 
 ## 5. Core Mechanism
 
@@ -773,6 +801,49 @@ decision point recurs. That's a selection (replay), not a choice
     REQ-SF3 (so the overlay itself does not cause the service to refuse
     all game actions) must be present and working. Full cross-scenario
     testing remains a 1.0 final blocker per REQ-QA2.
+- **REQ-A17 — The overlay must minimize what it costs the user and the
+  screen-reading pipeline; it is designed under the assumption that it
+  sometimes cannot be excluded from captures.** Preferred solution is
+  structural exclusion — capture the game's window rather than the
+  composited display, so the overlay is invisible to OCR (see REQ-SF7's
+  `takeScreenshotOfWindow` precedent). That is not always available:
+  it requires API 34+, while REQ-PL4 sets the floor at API 30, and
+  future capture paths (root fallback under REQ-M2, any
+  MediaProjection-based path) may composite all windows. Where exclusion
+  is unavailable, the overlay's cost must already be small by design
+  rather than mitigated after the fact.
+  - **Occlusion is the primary cost, not aesthetics — and it is a
+    normal-operation cost, not just a development one.** Every pixel the
+    overlay covers is a pixel *the player* cannot see while playing, and
+    a pixel the *runtime* matcher cannot read on every ordinary capture
+    (REQ-M6) — not merely a nuisance during corpus collection. The
+    development-time symptom is simply the easiest to demonstrate: the
+    overlay covered the "Bugs" tab of the Notices screen, and a corpus
+    capture had to be taken with the service disabled to avoid baking
+    UMAssisted's own UI into the reference image. The same overlay
+    covering the same tab during real play hides real content from a
+    user whose whole reason for using this tool is that interacting with
+    the screen is costly for them. Treat corpus-time and play-time
+    occlusion as one requirement, not two.
+  - **Design constraints that follow.** Smallest footprint that keeps
+    the kill switches genuinely always-visible and hittable (REQ-A10,
+    REQ-A7) — the control must stay large enough to operate with limited
+    motor precision, which is the entire point of the product; shrinking
+    it past usability is a regression, not an optimization. Prefer
+    positioning over game chrome/background rather than interactive
+    content; prefer a collapsed/compact resting state that expands on
+    demand; avoid text that OCR will read as game content when the
+    overlay *is* composited in (icons and glyphs are cheaper than words
+    on this axis).
+  - **Fallback behavior when compositing is unavoidable.** When a
+    capture path cannot exclude the overlay, the pipeline should still
+    not be poisoned: known overlay strings/regions must be filtered or
+    masked before matching, rather than trusting them to be harmless.
+  - **Alpha bar (1.0 alpha)**: window-scoped capture where the platform
+    supports it, plus an overlay whose resting footprint is small enough
+    not to obscure decision-relevant game UI on the alpha-critical
+    screens (training hub, training sub-screen, event choices, race
+    list).
 - **REQ-A11 — Soft requirement: UMAssisted makes no decision automatically
   for the user, except under extreme constraints — and even then, only
   when the "automatic" action can be reconciled back to an explicit,
@@ -1932,6 +2003,48 @@ decision point recurs. That's a selection (replay), not a choice
   still change *assist* state; they must not fire game actions. Exact
   detection (AccessibilityService window events vs. usage APIs) is
   implementation detail; the product rule is no cross-app input injection.
+- **REQ-SF7 — Best-effort guarantee that a tap is never delivered to the
+  wrong app; prefer targeted accessibility APIs over raw screen
+  coordinates. Hard requirement for 1.0 alpha.** REQ-SF6 states the
+  product rule but defers detection as "implementation detail" and is not
+  alpha-binding; this makes it concrete and binding, because the failure
+  mode is not hypothetical — a coordinate dispatched at the moment
+  focus changes lands in whatever app is now on screen. That could be a
+  tap into a banking app, a messaging thread, or a system dialog. For a
+  tool whose whole premise is that it only ever does what the user
+  could do themselves in Umamusume (REQ-VAL2), a stray cross-app tap is
+  a serious failure, not a cosmetic one.
+  - **Check immediately before each dispatch, not once per command.**
+    Multi-step sequences (training sweep, career exit) span seconds and
+    several `postDelayed` steps; foreground state must be re-verified at
+    each step against the *live* window, not a flag cached when the
+    command started. A sequence that discovers it is no longer in the
+    game must abort, not continue.
+  - **Verify the target coordinates fall inside the game window's own
+    bounds**, not merely that the game is foreground — a foreground app
+    does not necessarily own every pixel (split-screen, floating
+    windows, system overlays, insets).
+  - **Prefer window- or node-targeted APIs to display-global ones
+    wherever the platform offers them.** Precedent: screen capture was
+    originally `takeScreenshot(displayId)`, which composites every
+    window and caused UMAssisted's own overlay to be OCR'd as if it were
+    game text; `takeScreenshotOfWindow(windowId)` (API 34+) targets the
+    game's window and structurally cannot see other windows. The same
+    "am I addressing the display or the thing I actually mean?" question
+    must be asked of every accessibility API used, gesture dispatch
+    included. Where the platform offers no targeted equivalent, say so
+    explicitly and apply the guards above.
+  - **Constraint, not an excuse:** the client is a single opaque
+    `unitySurfaceView` (REQ-M3), so node-level `ACTION_CLICK` is
+    unavailable for in-game UI and coordinate dispatch is currently
+    unavoidable. That makes the guards above load-bearing rather than
+    belt-and-braces.
+  - **Applies to development tooling too.** Scripted/agent-driven input
+    during development (e.g. `adb shell input tap`) must confirm the
+    intended app is foreground immediately before sending. This was
+    written after exactly that mistake: a scripted tap intended for the
+    UMAssisted overlay was delivered into an unrelated foreground app
+    because focus had changed and nothing re-checked it.
 
 ### 7.2 Security & Privacy
 
