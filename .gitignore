@@ -1,0 +1,5 @@
+# REQ-P3: implementation, build artifacts, and the APK are closed/private and must
+# never land in this public repo. This directory (and its take-snapshot.sh helper)
+# existed here previously — 547MB of source snapshots and built APKs across 14
+# commits — and was purged from history on 2026-08-12. Never re-add it.
+/private/
