@@ -725,14 +725,15 @@ decision point recurs. That's a selection (replay), not a choice
   Power/Guts/Wit) in turn, holding at each one long enough for the user to
   actually read the stat-preview panel — without the user having to
   manually swipe between facilities or tap-and-hold each one themselves.
-  - **Dwell time is paced for human reading comprehension, not just
-    human-possible tap speed — a distinct constraint layered on top of
-    REQ-A6, not a substitute for it.** REQ-A6 sets a ceiling ("never
-    faster than a fast human could physically do"); auto-sweep's whole
-    point is to actually be *read*, which is a slower, UX-driven pacing
-    decision than the bare motor-speed ceiling REQ-A6 defines. Both apply
-    simultaneously — REQ-A6 as the outer bound, this as the tighter,
-    comprehension-driven pace within it.
+  - **Dwell time is paced for visual/motor comfort, not a comprehension
+    deadline — a distinct constraint layered on top of REQ-A6, not a
+    substitute for it.** REQ-A6 sets a ceiling ("never faster than a fast
+    human could physically do"); the sweep's motion should still be
+    unhurried enough to track by eye. **Superseded in part by REQ-A22:**
+    selection resolves by facility identity, not by whatever the sweep
+    happens to be highlighting at the moment of the command, so there is
+    no window the user must catch a facility within — see REQ-A22 for the
+    corrected framing and its consequences for REQ-A18.
   - Still governed by REQ-A2's hover-safety discipline — the hover
     gesture and any tap/release stay mechanically distinct throughout the
     sweep, no accidental confirm on any facility along the way.
@@ -750,8 +751,15 @@ decision point recurs. That's a selection (replay), not a choice
   - **Superseded for 1.0 final by REQ-A18.** OQ-21's "fixed dwell, not
     adaptive" resolution stands for 1.0 alpha and 1.0 beta; dynamic dwell
     becomes a hard blocker at 1.0 final.
-- **REQ-A18 — Dynamic per-facility dwell time. Hard blocker for 1.0
-  final.** The sweep must vary how long it holds on each facility
+- **REQ-A18 — Dynamic per-facility dwell time. Superseded by REQ-A22;
+  no longer a blocker.** ~~Hard blocker for 1.0 final.~~ Written when
+  dwell was believed to be a comprehension deadline — the window in which
+  a user had to notice and act on a facility before the sweep moved past
+  it. REQ-A22 establishes that selection is never resolved by sweep
+  position, only by facility identity, so there is no deadline for dwell
+  to protect and no per-facility content-density signal worth varying it
+  against. Left in the doc for history; do not implement. The sweep must
+  vary how long it holds on each facility
   according to how much there actually is to read there, rather than
   applying one fixed duration to all five. This deliberately revisits
   OQ-21, which deferred adaptive dwell on the grounds that a
@@ -871,6 +879,107 @@ decision point recurs. That's a selection (replay), not a choice
     ranked, or predicted, and invoking this command is itself the
     explicit opt-in REQ-A8 requires for the decisions covered by this
     run.
+- **REQ-A22 — Selection never resolves by current sweep/scroll position;
+  only by target identity.** When a user names or selects a facility (or
+  list item), the app must match that command against the target's
+  identity (its name), never against "whatever the sweep/scroll happened
+  to be highlighting at the instant the command arrived." A user who
+  notices the facility they want, and speaks or selects it well after the
+  sweep has visually moved on — even several cycles later — must still
+  have it resolve correctly.
+  - **Why this is a hard rule, not a preference.** Resolving by position
+    turns the assist into a timing/reflex challenge: catch it before it's
+    gone. That is the wrong shape of interaction for an accessibility
+    assist and is only appropriate for a deliberately timing-based action
+    game, which this product is not. Confirmed as a settled design
+    principle, not a one-off judgment call for the sweep feature alone —
+    applies to any current or future selection surface (voice, overlay
+    taps, list picks).
+  - **Consequence: dwell/scroll pacing is a visual-comfort setting, not a
+    comprehension deadline.** REQ-A9's dwell and REQ-A16's scroll pacing
+    exist so the motion is pleasant and trackable by eye, not so the user
+    can "finish reading in time." There is no WCAG-style timed-content
+    floor to defend here, because nothing is lost when the pacing moves
+    on — see the amended REQ-A9 dwell bullet.
+  - **Consequence: REQ-A18's dynamic per-facility dwell is superseded,
+    not merely retimed.** REQ-A18 assumed the dwell window was a
+    deadline worth varying by content density. Once selection is
+    identity-based, there is no deadline to protect, so the added
+    complexity of content-aware dwell buys nothing. REQ-A18 is retained
+    in this document for history only; it is not to be implemented.
+  - **Consequence: sweep/scroll motion may be continuous rather than a
+    discrete dwell→slide→dwell state machine.** A single pacing knob
+    (e.g. a sweep *period*, sinusoidally eased so motion naturally slows
+    near each facility and speeds up between them) satisfies REQ-A9/A16's
+    "reads as a comfortable, trackable pace" intent without needing
+    separate dwell/slide/duration settings that could drift out of sync.
+    Implemented for REQ-A9/A16 pacing in `UserSettings.kt` as
+    `getSweepPeriodMs()` / `getListScrollPeriodMs()`.
+  - **Voice facility selection is REQ-V12's double-utterance pattern, with
+    the sweep itself as the "arm" step.** Speaking a facility's name the
+    first time pauses the sweep on that facility — rewinding to it if the
+    sweep has already moved past it, per this requirement's core rule that
+    there is no deadline to miss. Speaking the same name again (or a
+    REQ-V11 synonym) within REQ-V12's confirmation window is the commit
+    step. This is not a new confirmation mechanism; it is REQ-V12 applied
+    to a target whose on-screen highlight is animated rather than static,
+    so "arm" additionally means "stop the animation there," not just
+    "remember the intent."
+  - **REQ-A23 — Unlimited sweep duration, gated by a REQ-A24 continuation
+    signal, not a plain self-loop.** REQ-A5 is a hard requirement that bars
+    "run until X" semantics, including for voice/standing toggles — so an
+    unbounded sweep cannot simply run until the user says stop; that is the
+    exact shape REQ-A5 rules out, a kill switch existing notwithstanding.
+    This reconciles the two: **duration** (how many passes / how long the
+    whole run continues) is a separate axis from **period**
+    (`getSweepPeriodMs()`, the velocity of a single pass — untouched by
+    this). An "Unlimited" duration setting lets the sweep continue pass
+    after pass, but each continuation requires a fresh REQ-A24 continuation
+    signal within a rolling window. Silence for one window **auto-stops**
+    the sweep; it does not keep going by default. This makes "unlimited" a
+    *chain* of the user's own explicit signals rather than one command
+    running forever unattended, and fails toward stopping, not toward
+    continuing — directly satisfying REQ-VAL2's "no running unattended"
+    criterion instead of contradicting REQ-A5. Window default and
+    configurability follow REQ-V12's confirmation-window pattern. Bounded
+    pass counts (DECELERATING_PASSES's existing `getSweepPassCount()`)
+    remain available and unaffected — Unlimited is an additional option,
+    not a replacement.
+  - **REQ-A24 — Continuation signal: modality-agnostic, defined by user
+    agency, not by voice specifically.** What REQ-A23 (and any future
+    "keep this going" affordance) actually needs from the user is a
+    repeated, low-effort indication of *"yes, still me, still want this" —
+    not necessarily speech. Voice (a recognized facility name, or a
+    dedicated "continue" phrase, per REQ-V8/V11) is the first implemented
+    channel, but the requirement is defined at the level of intent: any
+    input the user *can* produce repeatedly and reliably counts as a valid
+    continuation signal, so a user for whom speech is not reliable is not
+    locked out of a feature that otherwise fits their motor profile.
+    - **Haptic/switch input is an equal, optional channel, not a
+      voice-only fallback.** A single-switch press, a held touch, or any
+      other REQ-A6-bounded low-precision input the user's existing
+      accessibility hardware already supports should be acceptable as a
+      continuation signal wherever voice is, once implemented — same
+      window semantics, same fail-toward-stopping default. Not scoped for
+      this alpha's first cut, but the abstraction (a signal source that
+      reports "still here" events into the same window-and-timeout logic)
+      should not be voice-shaped internally, so adding a second channel is
+      additive, not a rewrite.
+    - **Reworded framing, not just a new input type.** This is the same
+      shift REQ-A22 made for sweep selection: the mechanism should track
+      what the user is actually communicating ("I am still choosing to
+      continue, in whatever way I am able") rather than which specific
+      body part or device happens to be the channel today.
+  - **On confirmation-window expiry, resume sweeping — do not just sit
+    paused.** REQ-V12's default behavior for an expired arm is "cancelled,
+    not fired," which is correct here too (no facility gets selected), but
+    a paused sweep left frozen with no further user action would strand
+    the user rather than degrade gracefully. Instead, expiry un-pauses and
+    resumes the sweep motion from where it left off, exactly as if the
+    pause had not happened — the user gets another lap to try again rather
+    than a dead screen. Timeout duration reuses REQ-V12's confirmation-
+    window setting (user-configurable, REQ-A7); sensible default is that
+    same ~5s.
 - **REQ-A16 — Auto-scroll long lists when the sweep toggle is on.** When
   the always-visible sweep control (REQ-A10) is **enabled**, UMAssisted
   automatically scrolls **long list UIs** for the user at a reading pace —
@@ -887,10 +996,13 @@ decision point recurs. That's a selection (replay), not a choice
     for the same motor burden.
   - **Pacing:** scroll in human-readable steps (page / chunk / row band —
     exact step size is implementation detail; default should leave content
-    readable, not a blur). Dwell between steps reuses the same
-    comprehension-first idea as REQ-A9 (user-configurable; may share or
-    mirror A9's dwell setting for 1.0). Bound by REQ-A6 (never faster than
-    a fast human could scroll by hand for reading).
+    readable, not a blur). Pace between steps reuses the same
+    visual-comfort idea as REQ-A9's amended dwell framing (user-
+    configurable; may share or mirror A9's pacing setting for 1.0) —
+    per REQ-A22, this is not a comprehension deadline, since item
+    selection resolves by identity, not by scroll position at the moment
+    of the command. Bound by REQ-A6 (never faster than a fast human could
+    scroll by hand for reading).
   - **Finite pass, not an infinite scroll loop (REQ-A5).** Auto-scroll
     proceeds through the list **once** (or until the end of available
     content is reached), then **stops** and leaves the list where it
@@ -1314,6 +1426,17 @@ decision point recurs. That's a selection (replay), not a choice
   - **Known tradeoff, accepted**: continuous mic listening costs battery.
     Not treated as a blocker — it's a cost worth paying for REQ-V1.
     Quantitative battery/CPU envelope still open (OQ-37).
+  - **Implementation obligation: restart-on-timeout.** Android's on-device
+    `SpeechRecognizer` session is not itself a standing listener — it ends
+    after each utterance/silence timeout (`ERROR_NO_MATCH`,
+    `ERROR_SPEECH_TIMEOUT`, or a plain `onEndOfSpeech`/`onResults`) and
+    must be explicitly restarted. "Always-listening" is only true in
+    practice if every one of those endings immediately re-arms a fresh
+    recognition session while `voiceEnabled` is on; any gap where the app
+    fails to restart it is a silent, invisible loss of the whole feature,
+    not a graceful degradation. Restart on error must not itself become a
+    tight retry loop (REQ-A5) — back off briefly on repeated hard errors
+    (e.g. `ERROR_AUDIO`, `ERROR_CLIENT`) rather than spinning.
 - **REQ-V6 — Always-listening raises the bar on REQ-V3, and adds a new
   non-interference obligation.**
   - There's no "armed window" to rely on — the mic is *always* live, so
@@ -1509,19 +1632,29 @@ decision point recurs. That's a selection (replay), not a choice
     REQ-SF3 must be present and working. Full cross-scenario testing
     remains a 1.0 final blocker per REQ-QA2.
 - **REQ-V10 — On-device speech recognition engine for voice commands:
-  Vosk.** Resolves OQ-10 for the general command-recognition need (REQ-V2).
-  Chosen specifically because it has zero ties to Google's infrastructure
-  at all — unlike Android's native `SpeechRecognizer`
-  (`EXTRA_PREFER_OFFLINE` is a *preference*, not a guarantee; by default
-  Android can silently fall back to network-based recognition) or ML
-  Kit's newer GenAI Speech Recognition API (whose "Advanced" mode is
-  Pixel-10-specific, and whose "Basic" mode's Play-Services coupling
-  hasn't been verified the way REQ-M4/OQ-19 verified the OCR engine's).
-  Vosk ships an official Android AAR, supports 20+ languages, streams
-  transcription, and runs entirely self-contained (~50MB per language
-  model, no Google account or Play Services dependency of any kind) —
-  this eliminates the hidden-fallback-path ambiguity outright rather than
-  needing to verify it away, the way REQ-M4 had to.
+  Vosk, or Android's `createOnDeviceSpeechRecognizer()` where that API is
+  available.** Resolves OQ-10 for the general command-recognition need
+  (REQ-V2). The original concern — Android's *default* `SpeechRecognizer`
+  path (`SpeechRecognizer.createSpeechRecognizer()` +
+  `EXTRA_PREFER_OFFLINE`, a *preference*, not a guarantee) can silently
+  bind a recognizer that assumes network fallback is available — is real
+  and confirmed empirically (see REQ-V18): that path recorded genuine
+  microphone audio but consistently returned zero-length/empty
+  transcription results on a device with no `INTERNET` permission,
+  exactly the hidden-fallback failure mode this requirement exists to
+  avoid. **`SpeechRecognizer.createOnDeviceSpeechRecognizer()` (API 31+)
+  is a distinct, narrower API** — it explicitly binds a local-only
+  recognizer rather than hinting a preference to a general one, confirmed
+  on-device to actually transcribe speech where the default path did not.
+  That satisfies this requirement's underlying guarantee (no
+  network-recognition path an app with no `INTERNET` permission could
+  ever exercise) on API 31+ without Vosk's model-bundling weight or
+  accuracy tradeoff. **Vosk remains the fallback for API < 31**, where
+  `createOnDeviceSpeechRecognizer()` doesn't exist and the ambiguous
+  default path is the only built-in option. ML Kit's newer GenAI Speech
+  Recognition API remains rejected: its "Advanced" mode is
+  Pixel-10-specific, and its "Basic" mode's Play-Services coupling hasn't
+  been verified the way REQ-M4/OQ-19 verified the OCR engine's.
   - **Known tradeoff, accepted**: Vosk's accuracy is generally lower than
     cloud-based alternatives (and likely lower than Google's own on-device
     models) on standard benchmarks. Same category of tradeoff as REQ-V5's
@@ -1915,6 +2048,50 @@ decision point recurs. That's a selection (replay), not a choice
   - **Open residual — OQ-42 (§9):** full inventory of spirit-burst
     colors/types on Global Aoharu Hai, icon vs text cues, and which rows
     can show them.
+- **REQ-V18 — On-device recognizer implementation findings (confirmed
+  empirically), feeding into REQ-V5/REQ-V10's requirements above.** Real
+  on-device testing surfaced platform behavior worth recording as
+  requirements, not just implementation notes, since they constrain how
+  every future voice feature must be built:
+  - **The platform's own silence/session timeout, not app-level restart
+    delay, governs how often the mic cycles.** `EXTRA_SPEECH_INPUT_
+    COMPLETE_SILENCE_LENGTH_MILLIS` / `..._POSSIBLY_COMPLETE_..._MILLIS`
+    are honored inconsistently across on-device engines — confirmed one
+    engine ignored them entirely and held to its own fixed ~5-6s internal
+    floor regardless of the value sent. These extras must still be sent
+    (harmless, and effective on engines that honor them) and the value
+    must be user-configurable (not a hardcoded guess), but a product
+    cannot assume they raise the floor on every device.
+  - **The audible start/end chime on each session is not from
+    `SpeechRecognizer` itself — it's the OEM recognition service's own UX
+    cue, on a stream separate from game audio (confirmed: `STREAM_SYSTEM`,
+    distinct from typical game `STREAM_MUSIC` usage).** Muting that stream
+    for the armed duration silences it without touching game playback.
+    This must be an opt-in setting, default off (REQ-A7 settings surface)
+    — muting a whole system stream is a side effect the user should choose
+    (some may want the chime as a "mic is live" landmark), not one imposed
+    on them by the voice feature being on.
+  - **`SpeechRecognizer.createSpeechRecognizer()`'s generic/default path
+    can silently fail to transcribe under REQ-S1.** Confirmed on-device:
+    it opened the mic and recorded genuine audio (verified via the
+    platform's own recording-activity log) but consistently returned a
+    zero-length hypothesis for real speech — consistent with a recognizer
+    that assumes network fallback is available and has none to use. See
+    REQ-V10's amendment: `createOnDeviceSpeechRecognizer()` (API 31+) does
+    not have this failure mode and is now the preferred path where
+    available.
+  - **Recreating the native recognizer instance on every restart, and
+    zero-delay restarts on the ordinary no-speech-detected path, together
+    produce audible rapid mic on/off cycling** (each recreation reopens
+    the audio-focus/binder session). One recognizer instance must be
+    reused for the armed duration (only destroyed when voice is disarmed),
+    and every restart — including the ordinary happy path — needs a
+    minimum delay, not just hard-error backoff. REQ-A5's "no spinning
+    retry loop" already covers the hard-error case; this extends the same
+    principle to the routine case.
+  - **See REQ-S3** for the requirement this session's own debugging
+    surfaced: raw recognized-utterance content must never be logged
+    outside a debug build.
 
 ### 6.4 Audio Readout for Choices (Text-to-Speech)
 
@@ -2196,6 +2373,34 @@ decision point recurs. That's a selection (replay), not a choice
   local file the user can move between their own devices by hand — never
   via network sync (REQ-S1). Exact file format, encryption-at-rest
   expectations, and which secrets (if any) are excluded are not decided.
+- **REQ-S3 — No logging of raw user input content (voice transcripts,
+  OCR'd screen text, recorded selections) unless a debug build/flag is
+  explicitly enabled. Off in any build a user would actually run.**
+  REQ-S1 keeps this data from ever leaving the device over the network,
+  but `Log.i`/`Log.d` calls are still a leak surface on-device — `adb
+  logcat`, bug-report tools, or another app with log-reading permissions
+  (pre-Android-4.1-style, or a rooted/ADB-debuggable device) can read
+  anything written there. What a user says to their voice assist, and
+  what the assist reads off their screen, is exactly the category of
+  content this product should not be casually writing to a system-wide
+  log by default.
+  - **Applies to every raw-content log line, not just voice.** Recognized
+    voice utterances/candidates (REQ-V), OCR'd screen text (REQ-M),
+    recorded decision values (REQ-A4) — any log statement whose payload
+    is *what the user said, saw, or chose*, rather than *what the code
+    did*, falls under this. Logging that an utterance was recognized, that
+    OCR ran, or that a decision was recorded is fine; logging the
+    utterance/OCR/decision *content* is not, outside a debug build.
+  - **Gate on a build-time flag (e.g. `BuildConfig.DEBUG`), not a runtime
+    user setting.** A runtime toggle is still an in-app setting an
+    inexperienced or coerced user could have flipped on unknowingly;
+    build-time keeps it structurally absent from anything actually
+    distributed to a user, the same category of guarantee REQ-S1 makes
+    for network access.
+  - **Retroactive note:** a diagnostic `Log.i` of raw recognized voice
+    candidates was added during REQ-V18's on-device debugging session and
+    must be gated (or removed) under this requirement before it ships —
+    tracked as a cleanup item, not left as a silent exception.
 
 ## 8. Process & Governance
 
