@@ -14,11 +14,9 @@ REMOTE="/sdcard/uma_cap_${TS}.png"
 adb shell screencap -p "$REMOTE"
 adb pull "$REMOTE" "$OUT" >/dev/null
 adb shell rm -f "$REMOTE" 2>/dev/null || true
-# also dump uiautomator (passive) next to it
-DUMP="${DIR}/${TS}_${LABEL}.uixml"
-adb shell uiautomator dump /sdcard/uma_ui.xml 2>/dev/null || true
-adb pull /sdcard/uma_ui.xml "$DUMP" 2>/dev/null || true
-adb shell rm -f /sdcard/uma_ui.xml 2>/dev/null || true
+# No uiautomator dump: confirmed the client is one opaque unitySurfaceView, so every
+# .uixml ever captured was an empty FrameLayout/LinearLayout shell with zero game
+# content — not worth the extra file.
 echo "saved $OUT"
 # quick package check
 adb shell dumpsys window 2>/dev/null | grep -E 'mCurrentFocus|mFocusedApp' | head -3

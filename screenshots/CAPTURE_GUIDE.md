@@ -3,9 +3,10 @@
 **Goal**: Capture as much of the full in-career flow as possible for 1.0 alpha completeness + OQ-22 / beta prep.
 
 **Rules (non-negotiable)**
-- Passive only (screencap + uiautomator). Never inject.
+- Passive only (`adb screencap`). Never inject.
 - One capture at a time. Navigate in game yourself, then run ONE command.
-- After every snap (or small batch): create `.labels.txt` + append row to `SESSION_NOTES.md`.
+- After every snap (or small batch): create `.labels.txt` + append a row to the session
+  notes log (now tracked in the private implementation repo, not here — see below).
 - Use the correct subdir (shop/, infirmary/, recreation/, training/, races/, hub/, events/, misc/).
 - Scenario context: always Aoharu Hai / Unity Cup unless noted.
 
@@ -69,15 +70,17 @@ Example:
 
 ## Post-capture hygiene (do immediately)
 
-1. Create the `.labels.txt` next to the new png/uixml.
+1. Create the `.labels.txt` next to the new png.
    Example content (one line, space-separated tags):
    ```
    shop_list low_energy unity_cup aoharu_hai support_icons
    ```
 
-2. Append to `screenshots/SESSION_NOTES.md` (use the existing table format).
+2. Append a row to the session notes log in the private implementation repo (use the
+   existing table format). `SESSION_NOTES.md` is no longer tracked in this public repo
+   as of 2026-08-12 — it's development-process journal, not design documentation.
 
-3. Keep total counts balanced (png == labels == uixml).
+3. Keep total counts balanced (png == labels).
 
 ---
 

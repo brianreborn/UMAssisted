@@ -28,7 +28,6 @@ fi
 DIR=$(dirname "$PNG")
 BASE=$(basename "$PNG" .png)
 LABELFILE="${DIR}/${BASE}.labels.txt"
-UIXML="${DIR}/${BASE}.uixml"
 
 # Create labels file (one line)
 printf "%s\n" "$LABELS" > "$LABELFILE"
