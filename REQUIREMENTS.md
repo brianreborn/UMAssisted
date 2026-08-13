@@ -73,7 +73,13 @@ barrier, not the game's difficulty itself.
   career (e.g. via Save & Exit or Give Up) and stop the assist cleanly.
 - **1.0 beta** — feature-complete for 1.0 scope. Full voice control of
   everything inside a career becomes a hard blocker (REQ-V7); UI-element
-  coverage verification is underway (REQ-QA1).
+  coverage verification is underway (REQ-QA1). **Full support for PAL and
+  group cards in Aoharu Hai is a hard requirement before 1.0 beta**:
+  recognition and control of group training sessions, pal support card
+  events/choices, team spirit / spirit burst interactions involving pals,
+  and any pal-specific UI or decision points must be covered (voice +
+  automation sequences + corpus labeling). This is Aoharu-Hai-specific and
+  in addition to the general OQ-22 inventory.
 - **1.0 final** — the actual 1.0 release. UI overlay tested against every
   scenario is a hard blocker (REQ-QA2). Human/manual requirements
   validation (REQ-VAL1/REQ-VAL3) is a hard blocker. For the initial 1.0
@@ -845,20 +851,20 @@ decision point recurs. That's a selection (replay), not a choice
   ID revived silently. ID **REQ-A13** is retired; do not reuse for an
   unrelated feature.
 - **REQ-A14 — Semantic event-option commands "gamble" and "safe", for
-  choices whose outcomes differ in branching structure.** At recognized
-  event decision points (REQ-A4 / REQ-M3), the user may select an option by
-  **outcome shape**, not only by option text, index, or a fully custom
-  phrase (REQ-V8):
-  - **"gamble"** — the accurate user-facing term for the option that has
-    **multiple possible outcomes** (branched / random / multi-result in
-    the event data). That is the canonical name in defaults, TTS, and docs
-    — not softer stand-ins like "risk" or "rng" as the primary label
-    (users may still register personal synonyms under REQ-V11 if they
-    want; the shipped vocabulary and internal concept name stay
-    **gamble**).
-  - **"safe"** — select the option that has **exactly one** non-branched
-    outcome — the single **non-gamble** option when the event is
-    structured that way.
+  choices whose outcomes differ in branching structure (plus pure-gamble
+  identical-effects events).** At recognized event decision points
+  (REQ-A4 / REQ-M3), the user may select an option by **outcome shape**,
+  not only by option text, index, or a fully custom phrase (REQ-V8).
+  Two main layouts are recognized:
+  - **Classic gamble/safe layout**: one or more options have multiple
+    possible outcomes (branched), while others have a single fixed
+    outcome.
+  - **Pure-gamble / all-identical-effects layout**: the Effects / Choices
+    dialog (or offline corpus) shows that **every option on the event
+    produces identical outcomes** — the visible choice text is cosmetic;
+    any option has exactly the same effect as any other. In this layout
+    the choice is a pure gamble in the colloquial sense (picking "first"
+    is equivalent to any other).
   - These are **user-originated selections by labeled role**, not
     UMAssisted judging which outcome is "better." The app maps the spoken
     (or otherwise commanded) role onto the option the offline corpus has
@@ -874,21 +880,47 @@ decision point recurs. That's a selection (replay), not a choice
     Tag names match the user-facing terms. Labels are fixed offline like
     no-choice flags — never inferred live from "which button looks
     riskier."
-  - **When the command is valid:**
-    - **"gamble"** fires only if **exactly one** option on the current
-      matched event is tagged `gamble`. That option is selected.
-    - **"safe"** fires only if **exactly one** option is tagged `safe`
-      **and** at least one other option is tagged `gamble` (the classic
-      "one fixed vs one branched" layout). That safe option is selected.
+  - **Pure-gamble / all-identical labeling.** In addition to (or instead
+    of) per-option `gamble`/`safe` tags, an event may be labeled (offline
+    or via live Effects/Choices inspection) as having **all options
+    produce identical outcomes**. In this case the choice text is
+    cosmetic; picking any option has the same effect as any other
+    according to the Effects dialog. Such events are called "pure gamble"
+    for command purposes (distinct from the classic "one branched vs one
+    fixed" gamble/safe layout).
+  - **When the command is valid (by layout):**
+    - **Classic branched gamble/safe layout** (one or more options have
+      multiple possible outcomes; others have a single fixed outcome):
+      - **"gamble"** fires only if **exactly one** option on the current
+        matched event is tagged `gamble`. That option is selected.
+      - **"safe"** fires only if **exactly one** option is tagged `safe`
+        **and** at least one other option is tagged `gamble`. That safe
+        option is selected.
+    - **Pure-gamble / all-identical-effects layout** (Effects / Choices
+      dialog or offline label shows every option produces identical
+      outcomes — choice text is cosmetic; any option has the same effect
+      as any other):
+      - **"gamble"**, **"anything"**, and **"whatever"** (and their
+        user-defined synonyms under REQ-V11) are valid.
+      - The command selects the **first** option (top-most in the
+        presented list / Effects order).
+      - Detection prefers the live Effects/Choices readout (via
+        REQ-A15a automation) when offline tags are insufficient; the
+        corpus may also pre-mark the event as all-identical.
+      - "safe" does not apply (no distinguished non-gamble option exists).
   - **When the command is not valid — fall through, don't guess:**
-    - zero or multiple `gamble` options → "gamble" does not select;
+    - zero or multiple `gamble` options **and** the options are *not*
+      all-identical in effects → "gamble" does not select;
     - layout doesn't match the safe rule above → "safe" does not select;
+    - "gamble"/"anything"/"whatever" requested on a screen whose options
+      are *not* all identical (per Effects) and which has no single
+      classic `gamble` tag → do not select;
     - all options `unclassified`, or the event isn't a choice screen →
       neither command selects.
     Surface a clear failure (TTS and/or overlay: e.g. "no single gamble
-    option") and leave the decision to an explicit option pick (text,
-    index, or custom phrase). Same fallback discipline as unmatched
-    corpus (REQ-M3).
+    option" or "options are not identical") and leave the decision to an
+    explicit option pick (text, index, or custom phrase). Same fallback
+    discipline as unmatched corpus (REQ-M3).
   - **Phrases are user-definable (REQ-V8/V11) with defaults (REQ-V14).**
     Shipped English defaults are exactly **"gamble"** and **"safe"** —
     those words are the accurate terms for the roles. Additional personal
@@ -969,7 +1001,9 @@ decision point recurs. That's a selection (replay), not a choice
     - dismissing the panel when done if needed to return to the choice
       screen,
     when that sequence is needed for TTS readout, for resolving "take the
-    energy," or when the user explicitly asks to show effects.
+    energy," when the user explicitly asks to show effects, or when the
+    optional timed auto-open (REQ-A15b) is enabled for career choice
+    screens.
     That automation **does not** select an option by itself. Selecting
     still requires a user command (including "take the energy") or a
     stored REQ-A4/A8 replay. Fits REQ-A1 (named sequence: "open event
@@ -984,6 +1018,45 @@ decision point recurs. That's a selection (replay), not a choice
     option N" only **after** the user has a path to request it — do not
     auto-steer. Optional one-line on request: "take the energy would pick
     option 2."
+  - **Optional timed auto-open of the Effects dialog (REQ-A15b).**
+    The user may enable a setting (scoped to in-career runs) that
+    automatically performs the "open event effects" named sequence
+    (REQ-A15a) after a user-configurable delay whenever a recognized
+    has-choice option selection screen appears. This is an ergonomic
+    convenience, not a decision.
+
+    Rules:
+    - **Delay is user-configurable.** Wall-clock time (e.g. 2–8 s range).
+      A sensible starting default lives in the OQ-33 calibration bucket.
+      The timer exists so the user can read the on-screen choice text
+      before the dialog appears.
+    - **Strictly optional and off by default.** The setting is exposed in
+      the control surface / settings and is always subject to the global
+      kill switches (REQ-A7 / REQ-A10 / REQ-V9). It can be changed at any
+      time without leaving the game.
+    - **Information only.** The automation opens the Effects / Choices
+      panel (or equivalent) using the same accessibility sequence as an
+      explicit "show effects" request. It never selects an option. The
+      user must still speak or tap a choice ("first", "gamble", "take the
+      energy", on-screen text, etc.) or rely on a previously recorded
+      precedent (REQ-A4 / REQ-A8).
+    - **Scope.** Only on recognized choice/option-selection screens while
+      inside a supported career (Aoharu Hai for 1.0 alpha/beta). Does not
+      fire on non-choice screens or outside career flows.
+    - **Cancellable.** Any user input (touch, voice command, or explicit
+      dismissal of the panel) before the timer fires cancels the pending
+      auto-open for that screen.
+    - **Failure is non-blocking.** If the open cannot be performed (wrong
+      UI state, foreign overlay, etc.) UMAssisted falls through silently
+      or with a brief non-intrusive notice; the user can still choose by
+      any other means.
+    - **Safety and scope discipline.** Reuses the exact named sequence and
+      constraints already defined for explicit Effects automation
+      (REQ-A1, REQ-A5, REQ-A11, REQ-SF3). No autonomous selection occurs.
+
+    This is recorded as **REQ-A15b** for traceability. It is a convenience
+    layer on top of REQ-A15a; it does not change what information is
+    obtained or how selections are ultimately made.
   - **Open residual — OQ-40 (§9):** exact Global-client control labels and
     layout for Effects / Choices across event types; whether energy is
     always a numeric field in `master.mdb` or sometimes only on the
@@ -1428,9 +1501,15 @@ decision point recurs. That's a selection (replay), not a choice
      rephrase (do not guess). Partial phrases may match when unique
      ("the energy one" only if a single option is uniquely identifiable
      that way — prefer matching against full option text first).
-  3. **Semantic role forms (additional, not exclusive):** "gamble" /
-     "safe" per REQ-A14 when tags allow; **"take the energy"** per
-     REQ-A15 when a unique energy-best option exists.
+  3. **Semantic role forms (additional, not exclusive):**
+     - "gamble" / "safe" per REQ-A14 when the classic branched vs fixed
+       layout applies and tags allow.
+     - "gamble", "anything", "whatever" (and synonyms) per REQ-A14 when
+       the event has **all identical effects** (pure gamble / cosmetic
+       choice per the Effects dialog) — any option is equivalent, so the
+       command picks the first (top-most) option.
+     - **"take the energy"** per REQ-A15 when a unique energy-best
+       option exists.
   4. **User-defined custom phrases (additional):** any REQ-V8/V11 phrase
      mapped to a specific option identity for that event or globally to
      "option N" — same as other actions.
@@ -2299,6 +2378,11 @@ unresolved, not currently blocking; **DEFERRED** = intentionally not needed yet.
   the beta hard gate. Still need screenshots for: Shop purchase, Skills,
   Races (largest gap), Recreation, Infirmary, hamburger contents,
   **grand concert / grand live** (post-race concert performance stages).
+  **Additionally, full support for PAL and group cards in Aoharu Hai is
+  required before 1.0 beta** (group training sessions, pal support card
+  events/choices, team spirit / spirit burst interactions involving pals,
+  pal-specific UI or decision points). This is Aoharu-Hai-specific and is
+  a beta hard gate in addition to the general OQ-22 residual inventory.
 - **OQ-23 (REQ-V8) — RESOLVED by REQ-V14.** Default/fallback
   vocalizations? Answer: **defaults-plus-override** — ship English
   defaults; setup not required before voice works.
@@ -2337,8 +2421,8 @@ unresolved, not currently blocking; **DEFERRED** = intentionally not needed yet.
   Shared bucket for numeric defaults that are architecturally decided but
   not yet tuned: REQ-A12 thresholds (OQ-29), REQ-M6 confidence/crops
   (OQ-31), REQ-A9 dwell (~1.5s start), REQ-V12 window (~5s start),
-  REQ-V11 warn-at-8. Not blocking architecture; blocks shipping confidence
-  for those features.
+  REQ-V11 warn-at-8, and the optional Effects auto-open delay (REQ-A15b).
+  Not blocking architecture; blocks shipping confidence for those features.
 - **OQ-34 (REQ-S2) — OPEN.** Local config export/import format and scope
   (which settings, recorded selections, voice phrases travel together)?
   Mentioned under REQ-A4/REQ-S1 but not specified. Needed before multi-
@@ -2353,11 +2437,15 @@ unresolved, not currently blocking; **DEFERRED** = intentionally not needed yet.
 - **OQ-37 (performance) — OPEN.** Battery / CPU budgets for always-
   listening wake-word (REQ-V5) + periodic screenshot/OCR (REQ-M3/M4).
   Tradeoff accepted in principle; no quantitative envelope yet.
-- **OQ-38 (REQ-A14) — OPEN.** Offline tagging edge cases for gamble/safe:
-  three-or-more-option events, two multi-outcome options, or
-  single-outcome options that are still undesirable. Command validity
-  rules in REQ-A14 are decided; how aggressively human labeling marks
-  exotic layouts is not.
+- **OQ-38 (REQ-A14) — OPEN (partial).** Offline tagging edge cases for
+  gamble/safe and pure-gamble identical-effects events: three-or-more
+  options where some but not all are identical, dual distinct gamble
+  branches that are not equivalent, or a single-outcome option that is
+  still undesirable ("safe" ≠ "good"). The pure-gamble / all-identical
+  case and the commands "gamble"/"anything"/"whatever" are now explicitly
+  specified in REQ-A14; remaining cataloging and labeling policy for
+  exotic mixed layouts is open. Command validity rules for the core cases
+  are decided.
 - **OQ-39 (REQ-V15) — OPEN.** For on-screen-text option selection: how
   much of a long option string must be spoken for a unique fuzzy match,
   and whether live OCR of the option region is a secondary signal when
