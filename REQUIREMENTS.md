@@ -139,23 +139,31 @@ barrier, not the game's difficulty itself.
     (same body as the root `LICENSE` file).
     - **Pre-implementation artifacts are explicitly public.** Passive
       capture tooling (`tools/capture_screen.sh`, `tools/new_snap.sh`,
-      and similar) and the entire development reference corpus under
-      `screenshots/` (`.png` captures, `.uixml` dumps, `.labels.txt`
-      files, `SESSION_NOTES.md`, `CAPTURE_GUIDE.md`, and related guides)
-      are open source and belong in this public repository. These are
-      collected via passive `adb screencap` + `uiautomator` before any
-      application code exists; they support requirements work, corpus
-      labeling (REQ-F4), and design. Because implementation has not
-      started, there is no closed-source boundary in effect for them.
+      and similar) and the labeled corpus under `screenshots/`
+      (`.png` captures, `.labels.txt` files, `CAPTURE_GUIDE.md`, and
+      related guides) are open source and belong in this public
+      repository. These are collected via passive `adb screencap`; they
+      support requirements work, corpus labeling (REQ-F4), and design.
+      (Earlier captures also carried a `.uixml` uiautomator dump per
+      screenshot; dropped as of 2026-08-12 — the entire client renders
+      through one opaque `unitySurfaceView`, so every dump ever produced
+      was an empty node-tree shell with zero game content.)
+      `SESSION_NOTES.md` and raw session transcripts (`session*.txt`)
+      are **not** part of this public exception — see below.
   - **What stays closed / private:** application source code, build
-    scripts that compile the APK, and the final bundled runtime corpora
+    scripts that compile the APK, the final bundled runtime corpora
     / assets that ship inside the private APK (REQ-M5 event-text layer
     extracted from `master.mdb`, plus any refined/generic-UI templates
-    that are actually packaged for the running app). These are never
-    published. Pre-implementation development-time reference captures,
-    labels, and passive capture tooling remain open (see above). The
-    existence of open reference material here is not a precedent for
-    open implementation once application work begins.
+    that are actually packaged for the running app), raw session
+    transcripts (`session*.txt`), and `screenshots/SESSION_NOTES.md`.
+    These are never published here. The transcripts and session-notes
+    log are development-process journal, not design documentation, and
+    moved to the private implementation repository once application work
+    began (2026-08-12) rather than staying public indefinitely; the
+    labeled `.png`/`.labels.txt` corpus and `CAPTURE_GUIDE.md` are
+    unaffected and remain open (see above). The existence of open
+    reference material here is not a precedent for open implementation
+    once application work begins.
   - **Trigger is the start of building the application, not a later
     milestone.** As soon as application work begins — scaffolding the
     Android project, first `AccessibilityService` stub, build files,
