@@ -225,6 +225,37 @@ def parse(text: str) -> tuple[list[dict], list[dict], list[dict]]:
     # Drop edges to unknown ids (except keep OQ/REQ that exist)
     edges = [e for e in edges if e["from"] in nodes and e["to"] in nodes]
 
+    # Deduplicate redundant edges between the same pair of nodes (prefer specific edges over generic about/see)
+    edge_priority = {
+        "resolves": 5,
+        "extends": 4,
+        "pairs": 4,
+        "xref": 3,
+        "per": 2,
+        "see": 2,
+        "about": 1,
+    }
+    pair_edges: dict[frozenset, list[dict]] = {}
+    for e in edges:
+        pair = frozenset({e["from"], e["to"]})
+        pair_edges.setdefault(pair, []).append(e)
+
+    clean_edges: list[dict] = []
+    for pair, elist in pair_edges.items():
+        if len(elist) == 1:
+            clean_edges.append(elist[0])
+        else:
+            max_prio = max(edge_priority.get(e["kind"], 0) for e in elist)
+            best_edges = [e for e in elist if edge_priority.get(e["kind"], 0) == max_prio]
+            seen = set()
+            for e in best_edges:
+                key = (e["from"], e["to"], e["kind"])
+                if key not in seen:
+                    seen.add(key)
+                    clean_edges.append(e)
+
+    edges = clean_edges
+
     # Sections list for tree (only those with nodes, plus parents)
     return sections, edges, list(nodes.values())
 

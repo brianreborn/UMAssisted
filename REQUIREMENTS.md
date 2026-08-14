@@ -245,6 +245,11 @@ barrier, not the game's difficulty itself.
     nicety at every split ratio is not. If a state genuinely cannot be
     supported, UMAssisted must detect it and refuse to act (REQ-SF3/SF6)
     rather than act on stale geometry.
+  - **Extended by REQ-M9.** Window-fraction normalization (this
+    requirement) handles the *display vs. window* axis; REQ-M9 covers the
+    separate risk that the game's own layout isn't one continuous scale
+    across window sizes, so a fraction captured on one device/aspect
+    ratio can still be wrong on another even once correctly window-bound.
 
 ## 5. Core Mechanism
 
@@ -438,6 +443,20 @@ barrier, not the game's difficulty itself.
     tuning on the target device(s), not numbers picked a priori. Same
     shape as OQ-29 (thresholds after the rule). Architecture is decided;
     calibration is not.
+  - **Third signal: scrollbar geometry, for the specific questions OCR is
+    a poor fit for.** Several in-scope screens render a visible scrollbar
+    thumb (observed directly, e.g. the Borrow Card friend list) whose
+    position and size cheaply encode facts OCR would otherwise have to
+    infer indirectly from content: *is this region scrollable at all*
+    (REQ-M9's fixed-vs-scrollable distinction — a tap-map entry is only
+    screen-fixed when it's confirmed to sit outside any scrollbar-bearing
+    region) and *has scrolling reached the end* (REQ-A16's "proceeds
+    through the list once... then stops" needs exactly this, and doing it
+    by scrollbar-thumb-at-bottom is far cheaper and more direct than
+    OCR'ing list content to guess whether more remains). Not a substitute
+    for REQ-M6's text/visual matching — an additional signal for
+    scroll-state questions specifically, consulted where relevant by
+    REQ-M9 and REQ-A16.
 - **REQ-M7 — Corpus currency is a maintainer-driven offline re-extract,
   never an in-app update check.** Resolves OQ-3 (and pairs with REQ-QA4 /
   REQ-QA5 for the trigger). When the Global client gains new events or
@@ -456,6 +475,107 @@ barrier, not the game's difficulty itself.
   - **Cadence:** at minimum whenever REQ-QA4's new-scenario trigger fires;
     also whenever the maintainer notices material event/string changes
     mid-scenario. Not on a fixed calendar tick.
+- **REQ-M8 — Recording a user's choice (REQ-A4/REQ-A21) requires the raw
+  touch coordinate, not just the accessibility node tree, whenever options
+  are visually distinct but structurally identical.** The game renders
+  through a single opaque Unity `SurfaceView` (confirmed empirically: a
+  `uiautomator` dump of a live support-card/friend-borrow screen returns
+  one undifferentiated `SurfaceView` node covering the whole game area,
+  with no child nodes for the individual cards). Several real decision
+  screens present multiple options that are indistinguishable at the
+  accessibility-tree/OCR level — e.g. REQ-A19's support-formation "Borrow
+  Card" list, where three different friends each offer the identical SSR
+  card at the identical level, differing only by on-screen position and
+  a friend name/avatar. REQ-M6's OCR/visual matching can identify *that*
+  a Borrow Card screen is showing, but not *which row* the user picked.
+  - **Resolution: correlate the user's actual touch-down coordinate
+    against the screen capture region for the option that coordinate
+    falls within**, at the moment of recording, rather than inferring the
+    choice from post-tap screen state alone (post-tap state, e.g. "which
+    friend's card is now socketed," is necessary confirmation but cannot
+    disambiguate *why* — two different friends offering the same card
+    produce the same post-tap state up to the avatar/name, which may
+    itself require a second OCR pass to read back).
+  - **Validated during development, not yet wired into the shipped
+    service.** This session confirmed the technique end-to-end outside
+    the app: `adb shell getevent -lt` on the touchscreen input device
+    (`goodix_ts0`), correlated against `adb exec-out screencap` captures
+    taken immediately before/after, correctly identified which of three
+    visually-identical friend rows a real tap landed on (by mapping the
+    raw `ABS_MT_POSITION_X/Y` event, which reports in full 1080×2400
+    screen-pixel space with no scaling needed on this device, against the
+    known screen region for each row). That path requires `adb shell`
+    access to `/dev/input`, which an installed app does not have.
+  - **Open — the on-device (no-root, no-adb) equivalent is unresolved
+    (new OQ, §9).** `AccessibilityService` does not receive raw touch
+    coordinates for touches it did not itself inject, except in specific
+    modes (e.g. touch-exploration gesture recognition), which are not
+    obviously compatible with normal pass-through gameplay. Until this is
+    resolved, REQ-A21 recording for any indistinguishable-options screen
+    must fall through to the user rather than guess (same discipline as
+    REQ-M3/REQ-F4) — recording is only safe for decisions REQ-M6 can
+    already resolve to a specific option by text/visual match alone.
+- **REQ-M9 — Fixed tap coordinates (window-fraction or otherwise) must be
+  captured and maintained per layout bucket, not assumed to hold across
+  all screen sizes/aspect ratios from a single dev-device capture.**
+  REQ-PL5 already established that gesture coordinates must be a fraction
+  of the game window, not the display, and flagged that hardcoded
+  1080×2400 fractions are a live defect on window inset/resize. This
+  requirement extends that: window-fraction normalization alone assumes
+  Umamusume's UI *reflows continuously* with window size, but mobile UIs
+  commonly use discrete layout variants (different anchor points, added/
+  removed chrome, repositioned elements) at different aspect-ratio or
+  screen-size breakpoints rather than one continuous scale. If that's true
+  here, a fractional coordinate captured on one device's layout bucket can
+  still mis-target on a device in a different bucket, even after correct
+  window-bounds normalization — this session's own tap-debugging (the
+  "Next"/"Back" button row) is a concrete instance of a coordinate map
+  being wrong for reasons beyond simple mis-scaling.
+  - **Resolution: maintain a small set of empirically-captured "tap-maps"
+    — named UI element → window-fraction coordinate — keyed by a layout
+    bucket (e.g. aspect-ratio range, or explicit device-class), rather
+    than one universal map.** Same maintainer-driven, offline-capture,
+    rebuild-and-reinstall cadence as REQ-M7's OCR corpus, applied to tap
+    targets instead of text: a maintainer captures/verifies coordinates
+    per bucket, bundles them, no in-app live discovery or network fetch
+    (REQ-S1).
+  - **A tap-map entry is only ever screen/window-fraction coordinates for
+    elements outside any scrollable region.** Page-level chrome (Next/
+    Back/confirm buttons, dialog Close buttons) is fixed relative to the
+    screen regardless of how much content sits above it in a given
+    dialog instance, and belongs in the tap-map as such. Anything living
+    inside an actual scrollable box (a friend list, a trainee grid) does
+    not — its position depends on scroll offset, so it must be resolved
+    at dispatch time (by matched text/identity, REQ-M6, or by scrolling
+    to a known state first) rather than captured as a static coordinate.
+  - **Calibration technique: the game's own tap-feedback effect is a
+    ground-truth signal for where a dispatched tap actually landed.**
+    Umamusume renders a visible particle effect (horseshoe charms) at the
+    exact point of contact on every tap. A screenshot taken immediately
+    after a dispatched gesture — before the effect fades — shows exactly
+    where it registered, with no extra instrumentation needed. This is
+    the practical method for a maintainer to verify a captured tap-map
+    coordinate is correct, and a cheaper alternative to REQ-M8's
+    touch-event-log approach for this specific purpose (confirming where
+    *our own* dispatched tap landed, as opposed to REQ-M8's problem of
+    observing where a *user's* tap landed).
+  - **Runtime selection must be confidence-gated, same discipline as
+    REQ-M6.** Pick the tap-map bucket from the live game window's
+    dimensions/aspect ratio; if it doesn't clearly match a known bucket,
+    refuse to dispatch that gesture and fall through to the user (REQ-SF3/
+    SF6/REQ-PL5's "detect and refuse" scope note) rather than dispatch
+    against the nearest guess.
+  - **Scope note — text-anchored taps are lower risk.** Controls reachable
+    via REQ-M6's OCR/text match (tap the text itself, or a fixed offset
+    from found text) are far less exposed to this problem than pure
+    fixed-fraction taps on chrome with no stable text (arrows, generic
+    Next/Back, grid slots) — this requirement is about the latter
+    category specifically.
+  - **Open — how many buckets actually exist is an empirical survey, not
+    an architectural decision (new OQ, §9).** Not blocking alpha scope
+    (single dev-device capture is an acceptable starting bucket-of-one),
+    but blocks shipping confidence for any device beyond the one(s)
+    actually captured on.
 
 ## 6. Functional Requirements
 
@@ -879,6 +999,13 @@ decision point recurs. That's a selection (replay), not a choice
     ranked, or predicted, and invoking this command is itself the
     explicit opt-in REQ-A8 requires for the decisions covered by this
     run.
+  - **Gated by REQ-M8 for indistinguishable-options screens.** Recording
+    which specific option the user picked requires knowing *where* they
+    tapped, not just the resulting state, whenever multiple options are
+    visually distinct but structurally identical (e.g. REQ-A19's Borrow
+    Card list — several friends offering the same card). REQ-M8 is open on
+    how to observe that on-device; until resolved, this command falls
+    through to the user for those decisions rather than recording a guess.
 - **REQ-A22 — Selection never resolves by current sweep/scroll position;
   only by target identity.** When a user names or selects a facility (or
   list item), the app must match that command against the target's
@@ -980,6 +1107,53 @@ decision point recurs. That's a selection (replay), not a choice
     than a dead screen. Timeout duration reuses REQ-V12's confirmation-
     window setting (user-configurable, REQ-A7); sensible default is that
     same ~5s.
+- **REQ-A25 — Shake-to-give-up: a sustained physical shake gesture as an
+  alternate, high-friction trigger for REQ-A20's Give-Up path. Hard
+  blocker for 1.0 final.** Motivating case: some users in this product's
+  target population have more reliable gross motor control (a whole-
+  device/whole-arm shake) than the fine motor precision needed to
+  navigate Menu → choose exit kind → confirm through several precise taps
+  — especially once they've already decided to abandon a run, which is
+  exactly when frustration/fatigue makes fine motor control worst. Shake
+  is an alternate command *channel* for the same destructive action REQ-
+  A20 already defines, not a new game-navigation path — once triggered it
+  dispatches REQ-A20's existing Give-Up steps.
+  - **Must be sustained, not a single jolt — same discipline as REQ-A20's
+    `NEVER_TAP`/destructive-action treatment.** A drop, a pocket bump, or
+    walking vibration must not end a career. Threshold (duration and
+    intensity) needs empirical tuning (OQ-33 class), not a number picked
+    a priori.
+  - **Arm-then-confirm, mirroring REQ-V12's pattern.** The sustained-shake
+    threshold arms the Give-Up path (parallel to speaking the phrase);
+    still requires the same confirmation step REQ-A20 already requires
+    for the exit-kind and "are you sure" screens. Shake does not skip
+    REQ-A20's confirmation chain, it only substitutes for reaching it.
+  - **Distinct from the kill switch, same as REQ-A20 requires of voice.**
+    A shake must not be confusable with "stop UMAssisted" — it only ever
+    triggers the in-game Give-Up flow, never silences the assist itself.
+  - **Sensor use stays inside REQ-S1's minimal-permission stance.**
+    Standard accelerometer via `SensorManager` needs no special Android
+    permission (unlike the audio-capture idea in OQ-48), consistent with
+    the app's existing no-INTERNET, minimal-permission posture.
+- **REQ-A26 — "Super skip": a named command that repeatedly activates the
+  game's own Skip control until it reaches its maximum speed level.**
+  Umamusume's in-career UI has a cycling Skip control (observed states:
+  "Skip Off" → increasing skip levels) that a human would otherwise tap
+  repeatedly by hand to reach max speed for event/dialogue skipping.
+  "Super skip" collapses that into one command: assume the control's
+  current state (do not assume it starts at Off — REQ-A2's "read before
+  acting" discipline applies), then tap it the number of times needed to
+  reach its maximum level, then stop — a bounded, terminal sequence
+  (REQ-A5), not a loop that keeps tapping indefinitely.
+  - **Bounded by reading the control's actual state, not a fixed tap
+    count.** The number of taps to reach max depends on where the control
+    currently sits; determine this from the control's own displayed state
+    (OCR'd label/level) each step, the same "confirm effect after
+    dispatch" discipline REQ-SF7 requires generally, rather than assuming
+    a fixed number of presses always reaches max from any starting point.
+  - **Same family as REQ-A19/A20/A21's named, bounded, explicit-command
+    macros** — not a standing "always skip" mode; each invocation is a
+    fresh, explicit user command per REQ-A1/REQ-A5.
 - **REQ-A16 — Auto-scroll long lists when the sweep toggle is on.** When
   the always-visible sweep control (REQ-A10) is **enabled**, UMAssisted
   automatically scrolls **long list UIs** for the user at a reading pace —
@@ -1010,6 +1184,9 @@ decision point recurs. That's a selection (replay), not a choice
     it — prefer stop-at-end). It must not bounce forever, re-loop without
     a new user command, or keep scrolling while the user is trying to
     pick. Turning the sweep toggle off mid-scroll **stops immediately**.
+    Detecting "reached the end" should prefer REQ-M6's scrollbar-geometry
+    signal (thumb at the bottom of its track) over inferring it from list
+    content, where a scrollbar is present.
   - **Does not select or commit list items.** Auto-scroll only changes
     scroll offset / what's visible. Choosing a race, shop item, or skill
     still requires an explicit user command (REQ-V15/V16 forms, etc.) or
@@ -2297,6 +2474,25 @@ decision point recurs. That's a selection (replay), not a choice
     the service to refuse all game actions whenever the overlays are
     shown. Full cross-scenario robustness of the overlay remains a
     1.0 final blocker per REQ-QA2.
+  - **Resolved — OQ-47: `isInUma` does correctly catch the pulled-down-
+    notification-shade case.** Verified empirically by temporarily
+    instrumenting `updateForegroundState` and expanding the shade
+    (`adb shell cmd statusbar expand-notifications`) while logging every
+    call: `rootInActiveWindow?.packageName` flipped to `com.android.
+    systemui` (`isInUma` → `false`, own overlay hidden) for the entire
+    duration the shade was expanded, and correctly flipped back to
+    `com.cygames.umamusume` (`isInUma` → `true`) on collapse. No second
+    signal needed for this case — `rootInActiveWindow` alone is sufficient.
+    The earlier concern was based on a *different* API (`dumpsys window`'s
+    `mCurrentFocus`, used only for manual `adb` testing, not by the
+    shipped service) staying pinned to the game activity during the same
+    scenario — that API's behavior does not carry over to
+    `rootInActiveWindow`, so it was not informative about the actual
+    production check. The live incidents this session where a manual
+    `adb shell input tap` landed on shade/foreground content instead of
+    the game were a gap in that ad hoc dev-testing method (raw taps
+    bypass `isInUma`/REQ-SF7 entirely), not evidence of a gap in the
+    shipped service's own guard.
 - **REQ-SF4 — Coexist safely with other concurrently-running accessibility
   services.** Android supports multiple simultaneous `AccessibilityService`
   instances, and this population is likely to actually use that — someone
@@ -2360,6 +2556,19 @@ decision point recurs. That's a selection (replay), not a choice
     bounds**, not merely that the game is foreground — a foreground app
     does not necessarily own every pixel (split-screen, floating
     windows, system overlays, insets).
+  - **Confirm effect after dispatch, not just safety before it — screen-
+    content diffing is the primary signal.** Checking foreground/bounds
+    before a tap (the bullets above) guards against dispatching into the
+    wrong place; it does not confirm the dispatched gesture actually did
+    anything once it landed. Capture the screen (REQ-M3's existing
+    mechanism) immediately after each dispatch and confirm it changed from
+    the pre-dispatch capture in the expected way (new screen matched by
+    REQ-M6, or the specific region tapped no longer showing the same
+    content) before treating a step as complete. No new permission or
+    capability needed — this reuses the screenshot/OCR pipeline already
+    required by REQ-M3/M4/M6. A dispatch that produces no expected screen
+    change is treated the same as an unmatched screen: stop and fall
+    through (REQ-M3/REQ-A4/REQ-F4), not retried blindly.
   - **Prefer window- or node-targeted APIs to display-global ones
     wherever the platform offers them.** Precedent: screen capture was
     originally `takeScreenshot(displayId)`, which composites every
@@ -2431,6 +2640,14 @@ decision point recurs. That's a selection (replay), not a choice
     candidates was added during REQ-V18's on-device debugging session and
     must be gated (or removed) under this requirement before it ships —
     tracked as a cleanup item, not left as a silent exception.
+- **REQ-S4 — Strict PII & personal information log protection.** No personal
+  information or PII (personally identifiable information) — including user
+  identifiers, trainer IDs, raw speech transcripts, device names, or OCR text
+  containing personal content — shall be emitted to system logs (`logcat`) except
+  when debug mode (`BuildConfig.DEBUG`) is explicitly enabled. All release and
+  production build log statements must sanitize, mask, or omit personal data
+  payloads.
+
 
 ## 8. Process & Governance
 
@@ -3017,6 +3234,79 @@ unresolved, not currently blocking; **DEFERRED** = intentionally not needed yet.
   - **Gated, not just deferred.** Unlike a typical "not blocking yet" OQ,
     this one cannot be resolved in isolation — REQ-V19 must land first, and
     the predicate stays inert in code until it does.
+- **OQ-44 (REQ-V8/FacilityVocabulary) — OPEN.** How should punctuation and
+  filler artifacts from the on-device speech-to-text service be interpreted
+  when matching a spoken phrase against the vocabulary (facility names,
+  heartbeat phrases, future REQ-V8 user-defined phrases)? Current matching
+  (`FacilityVocabulary.matchFacility`) requires the *entire* normalized
+  (trimmed + lowercased) utterance to exactly equal a registered phrase —
+  no punctuation stripping, no tokenization, no substring/fuzzy matching.
+  Real on-device recognizer output can include trailing punctuation
+  ("stamina."), filler words ("um, stamina"), or multi-word run-ons when
+  the user pauses less than the configured silence timeout apart between
+  words ("speed... power..." landing as one utterance) — any of which
+  currently fails to match even though the intended word is clearly
+  present. Open questions to resolve before changing the matching logic:
+  - **How permissive should this be?** Stripping trailing punctuation
+    seems safe; tokenizing a multi-word utterance and matching any token
+    raises the same self-correction concern as REQ-V19/OQ-43 (a user
+    mid-utterance correcting themselves — "speed, no wait, power" —
+    could match on the wrong token if any-token-matches is the rule).
+  - **Interacts with REQ-V19.** If REQ-V19's correction/cancel vocabulary
+    lands first, does that reduce the risk of permissive multi-token
+    matching enough to justify it, or are these independent concerns?
+  - **Not to be resolved unilaterally in code.** A prior attempt this
+    session to loosen matching to a word-by-word scan was reverted at the
+    user's explicit direction ("revert the last change to behavior that
+    was not done with my input") — any fix here needs the same explicit
+    sign-off before implementation, not just a code-review finding acted
+    on directly.
+- **OQ-45 (REQ-M8) — OPEN.** What is the no-root, no-adb, on-device
+  mechanism (if any) for an installed `AccessibilityService` to observe
+  the raw coordinate of a touch the *user* performed, for screens where
+  multiple options are visually distinct but structurally identical to
+  both the accessibility tree and OCR (REQ-M8)? The technique that
+  validated the *need* for this — `adb shell getevent` on the touchscreen
+  input device, correlated against `screencap` captures — requires shell
+  access an installed app does not have. Candidates to evaluate: whether
+  touch-exploration / gesture-recognition modes expose raw coordinates
+  without breaking normal (non-exploration) pass-through gameplay input;
+  whether any documented `AccessibilityService` API surfaces `MotionEvent`
+  coordinates for touches it did not inject. Until resolved, REQ-M8
+  requires falling through to the user for any indistinguishable-options
+  screen rather than guessing.
+- **OQ-46 (REQ-M9) — OPEN, empirical survey.** How many distinct layout
+  buckets does Umamusume's UI actually have across the device/aspect-ratio
+  range UMAssisted needs to support, and what's the right bucketing key
+  (aspect-ratio bands? explicit device-model list? something else)? Needs
+  captures across multiple real or emulated screen sizes to answer —
+  currently only one dev-device's coordinates are known-good. Also needs a
+  concrete confidence rule for "this window doesn't match any known
+  bucket" (mirrors OQ-31's confidence-threshold shape, but for geometry
+  matching rather than OCR/visual score).
+- **OQ-47 (REQ-SF3) — RESOLVED.** Does `rootInActiveWindow` (the sole
+  signal behind `isInUma`/`updateForegroundState`) actually change when
+  the notification shade is pulled down over Umamusume? **Yes**, verified
+  by temporary instrumentation + `adb shell cmd statusbar expand-
+  notifications`: it correctly reports `com.android.systemui` (and
+  `isInUma` correctly flips to `false`) for the full duration the shade is
+  expanded, and correctly reverts on collapse. No implementation change
+  needed. See REQ-SF3 for the full writeup, including why the earlier
+  `dumpsys window`-based suspicion didn't transfer to this API.
+- **OQ-48 (dispatch-confirmation) — OPEN, deferred by choice.** Should
+  UMAssisted ever monitor game *audio output* as an additional signal that
+  a dispatched action had an effect? Considered alongside REQ-SF7's
+  screen-diff confirmation (adopted) and REQ-A25's accelerometer use
+  (adopted, but for a different purpose — sensing the user's own shake,
+  not confirming a dispatched action). Audio was set aside rather than
+  adopted: Android has no lightweight "listen to what's playing" API —
+  it would need `MediaProjection`-based `AudioPlaybackCapture` (API 29+),
+  which surfaces a user-facing screen-capture consent prompt and sits
+  awkwardly against REQ-S1's minimal-permission stance — and even
+  captured, a generic UI chime confirms *that* something fired, not
+  *which* action or whether it was the right one, which is a much weaker
+  signal than the screen-diff REQ-SF7 already requires. Revisit only if
+  screen-diffing proves insufficient somewhere audio would clearly help.
 
 ## 10. License
 
