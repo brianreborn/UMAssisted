@@ -2506,32 +2506,54 @@ decision point recurs. That's a selection (replay), not a choice
 
 - **REQ-DEV1 — Agents working on this project — Claude or any other —
   don't act as a bot against the live game either, including during
-  development and testing.** The assistant only *requests* that the user
-  perform an operation on the live client; it does not inject input into
-  the live game itself. REQ-A4/REQ-VAL's whole premise is that UMAssisted
-  never acts without the user having originated the action — that chain
-  has to hold during development, not just in the shipped product. An AI
-  agent autonomously tapping someone's live game account, even for
-  exploratory testing, is bot behavior by definition, regardless of what
-  rules the shipped code itself follows. Applies specifically to
-  **injecting input that acts on the game** (taps, gestures, text input);
-  it does not apply to passive observation (screenshots, `uiautomator
-  dump`, logcat) or environment setup (launching/foregrounding the app),
-  neither of which makes a choice on the user's behalf.
-- **REQ-DEV2 — Hard requirement, not a guideline.** Any spike or test that
-  would require simulating input against the live client stops and asks
-  the user to perform that input by hand instead of proceeding with
-  automated injection.
+  development and testing.** By default, the assistant *requests* that the
+  user perform an operation on the live client rather than injecting input
+  itself. REQ-A4/REQ-VAL's whole premise is that UMAssisted never acts
+  without the user having originated the action — that chain has to hold
+  during development, not just in the shipped product. An AI agent
+  autonomously tapping someone's live game account, on its own initiative,
+  is bot behavior by definition, regardless of what rules the shipped code
+  itself follows. Applies specifically to **injecting input that acts on
+  the game** (taps, gestures, text input); it does not apply to passive
+  observation (screenshots, `uiautomator dump`, logcat) or environment
+  setup (launching/foregrounding the app), neither of which makes a choice
+  on the user's behalf.
+  - **Amended: explicit, per-instance, real-time user authorization is a
+    valid override, and is the established practice during testing, not
+    an edge case.** When the user directly instructs the agent to perform
+    one specific, concrete action right now ("open the career yourself,"
+    not "test whatever needs testing" or any standing/blanket grant), the
+    agent may execute that exact input directly rather than relaying it
+    back as a request for the user to tap themselves. This still satisfies
+    REQ-A4's chain-of-origination principle — the human originated this
+    specific action, in this specific moment, by their own explicit
+    instruction; the agent is the mechanical hand executing it, not the
+    decision-maker choosing it. What makes this categorically different
+    from bot behavior: the instruction is specific (a named action, not a
+    goal the agent decides how to pursue), per-instance (covers this one
+    action, not "keep doing this" — REQ-A5's no-standing-loop principle
+    still applies to the agent's own conduct same as it applies to shipped
+    code), and REQ-DEV3's "user physically present and watching" condition
+    still holds. Absent that explicit real-time instruction, the default
+    in the rest of this requirement stands.
+- **REQ-DEV2 — Hard requirement, not a guideline, for the *default* case.**
+  Any spike or test that would require simulating input against the live
+  client stops and asks the user to perform that input by hand instead of
+  proceeding with automated injection — unless REQ-DEV1's amendment
+  applies (the user explicitly instructed that specific action, in the
+  moment).
   - **Practical effect on OQ-1's spike**: testing whether the game
-    detects/blocks synthetic gestures can't be done by having an agent
-    inject taps via `adb shell input tap` and watch what happens — that's
-    exactly the autonomous input-injection this requirement rules out,
-    even though it would have produced a real answer. The real test either
-    needs the user to trigger the comparison tap by hand while the agent
-    only observes (logcat/screenshots), or waits until actual UMAssisted
+    detects/blocks synthetic gestures without a specific real-time user
+    instruction to do so can't be done by having an agent inject taps via
+    `adb shell input tap` on its own initiative and watch what happens —
+    that's exactly the autonomous input-injection this requirement rules
+    out by default, even though it would have produced a real answer. The
+    real test either needs the user to trigger the comparison tap by hand
+    while the agent only observes (logcat/screenshots), needs the user to
+    explicitly instruct the agent to perform that specific tap right now
+    (REQ-DEV1's amendment), or waits until actual UMAssisted
     `AccessibilityService` code exists and dispatches its own gesture at
-    the user's explicit per-instance command (consistent with REQ-A5) —
-    not ad hoc shell injection during exploratory testing.
+    the user's explicit per-instance command (consistent with REQ-A5).
 - **REQ-DEV3 — Any test/spike `AccessibilityService` code must be
   structurally constrained, not just intended to behave.** We can't prove
   the code is bug-free, so the ethical claim can't rest on correctness —
@@ -2564,6 +2586,18 @@ decision point recurs. That's a selection (replay), not a choice
   - None of this proves the code is correct. It proves that even if it
     isn't, the blast radius is bounded to one button, caught by a human
     watching in real time, against a target that doesn't matter.
+- **REQ-DEV4 — Do Not Disturb must be on during any live voice-input
+  testing session, on the device under test.** An incoming call,
+  notification sound, or banner during a live test is a real interference
+  risk in both directions: a notification tone can be picked up by the mic
+  as (or alongside) real speech and produce a false facility match or
+  false continuation signal (REQ-V3's false-activation concern, made
+  concrete for the testing setting specifically); a banner/overlay can
+  visually cover the game UI at the exact moment a gesture is dispatched,
+  or itself receive an accidental tap. Cheap to satisfy, easy to forget —
+  worth stating explicitly as a pre-test checklist item rather than
+  assuming it's obviously covered by REQ-DEV3's general "small, staged,
+  watched" discipline.
 
 ### 8.3 Coverage Verification & Release Gates
 
