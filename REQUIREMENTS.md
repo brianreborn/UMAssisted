@@ -13,10 +13,16 @@ rendered site at
 shows source only). Regenerate after doc edits with
 `python3.12 tools/gen_requirements_map.py`.
 
-Accessibility software to reduce physical strain for players with limited
-mobility playing Umamusume Pretty Derby. Decisions get added as they're
-made; open questions get resolved into requirements as they're answered
-(see §9's REQ-OQ1 for why that pattern is load-bearing, not incidental);
+UMAssisted is a voice control and mobility assistance tool (MAT) for
+Umamusume Pretty Derby, built for universal accessibility. It cuts down
+the large number of taps and clicks the game's training loop normally
+requires, so players with limited mobility can play just as easily as
+anyone else. The name is a pun on "unassisted": "Uma" (the game's own
+"Horse Girl" prefix) stands in for "Un", so "UMAssisted" reads as
+"un-assisted" while naming the game it assists with (REQ-P1). Decisions
+get added as they're made; open
+questions get resolved into requirements as they're answered (see §9's
+REQ-OQ1 for why that pattern is load-bearing, not incidental);
 underspecified holes get written down as new open work (REQ-OQ3).
 
 ## 1. Problem Statement
@@ -52,10 +58,12 @@ barrier, not the game's difficulty itself.
   "Continue Career" modal, starting a new career), lobby, or non-Aoharu
   Hai content needs to be accessible or functional for 1.0 alpha —
   **except** the career start/finish macros required by REQ-A19/REQ-A20,
-  which are alpha blockers and necessarily begin from the home screen.
-  That is a deliberate, bounded exception to the "in-career only" line
-  above: it does not open general lobby/menu support for alpha, it
-  requires exactly the screens those two macros traverse.
+  which are alpha blockers and necessarily begin from the title
+  screens (REQ-A19's resume-from-title-screen clause), not only from
+  the home/lobby CAREER button. That is a deliberate, bounded exception
+  to the "in-career only" line above: it does not open general
+  lobby/menu support for alpha, it requires exactly the screens those
+  two macros traverse.
 
 **Explicitly out of scope for 1.0:**
 - PC/Steam/DMM support (REQ-PL2 — longer-term goal, not scoped yet)
@@ -112,6 +120,32 @@ barrier, not the game's difficulty itself.
 ## 3. Product
 
 - **REQ-P1 — Product name is UMAssisted.**
+  - **The name is a pun on "unassisted."** "Uma" — the Umamusume ("Horse
+    Girl") franchise prefix the game itself uses throughout its branding —
+    replaces the "Un" of "Unassisted," so the whole word reads/sounds like
+    "un-assisted" while spelling out the game's own name inside it. Where
+    an ordinary word would render as "Umassisted" (only the leading U
+    capitalized), the product name adds one extra capital, the M —
+    "UMassisted" — capitalizing "UM" as its own unit so the embedded "Uma"
+    reference is legible at a glance rather than reading as a plain
+    misspelling of "unassisted." The established rendering used throughout
+    this codebase (`app_name`, class names, log tags, on-screen strings —
+    e.g. `UMAssistedAccessibilityService`, the "UMAssisted" log tag) also
+    capitalizes the following A, giving **UMAssisted**: "UM" (Uma) +
+    "Assisted" as two visually distinct capitalized units. Any
+    logo/wordmark treatment should preserve that — UM and Assisted read as
+    two capitalized pieces, not normalized to title case, all-lowercase,
+    or a single capital.
+  - **The pun carries real product meaning, not just wordplay.** "Un-
+    assisted" describes the *user's decisions*, not the presence of the
+    tool: the user remains unassisted in every judgment call — what to
+    train, when to rest, which race to enter — and UMAssisted never makes
+    that call for them (REQ-A11/REQ-VAL2). What the name says the tool
+    supplies is physical execution of a decision the user already made,
+    at their explicit request, not decision-making itself. This is the
+    same distinction REQ-A11/REQ-VAL2 state formally; the name is meant
+    to be a correct one-word summary of that boundary, not a coincidence
+    to explain away.
   - Not for Play Store distribution — same trademark-exposure reasoning as
     naming a fan tool after the branded game (see conversation). Sideload
     mechanism only, similar to japanglify's approach.
@@ -191,6 +225,29 @@ barrier, not the game's difficulty itself.
     both the implementation and the binary private meaningfully reduces
     exposure surface beyond just avoiding the Play Store specifically.
     Publishing the design docs does not publish the assistive client.
+- **REQ-P4 — Prior-art automation tools cited in this document (e.g.
+  UmatoMusume, Umaplay, Uma-Event-Helper under REQ-M5/M6) are referenced
+  for inspiration and comparison only — never as a source of copied code,
+  copied design text, or reused assets.** Citing what another tool does
+  (its general approach — OCR-then-fuzzy-match, for instance) is how this
+  document explains *why* a design choice is reasonable; it is not
+  license to port, transcribe, or adapt any of those projects' actual
+  implementation, data, or written material. Where this document lacks
+  visibility into a cited tool's license or source (as REQ-M5 already
+  notes for some of them), the safe assumption is that nothing from it
+  may be reused, full stop — inspiration draws on the *idea*, described
+  in this project's own words, never on the other project's text or code.
+- **REQ-P5 — Vocabulary used in this document and in the product's own
+  user-facing text should aim to be plain and accessible to most English
+  speakers, not needlessly technical or jargon-heavy.** Applies to
+  in-app strings, voice-command phrasing, and this document's own prose
+  alike — prefer the word a broad audience would recognize over a more
+  precise-sounding but less common one (this session's own "voice
+  control" over "voice navigation" swap is the kind of call this
+  requirement is about). Does not override precision where precision is
+  the point (a REQ-ID, a technical constraint, a specific API name) —
+  this is about avoiding *unnecessary* jargon, not simplifying away
+  meaning that actually needs to survive.
 
 ## 4. Platform & Environment
 
@@ -576,6 +633,133 @@ barrier, not the game's difficulty itself.
     (single dev-device capture is an acceptable starting bucket-of-one),
     but blocks shipping confidence for any device beyond the one(s)
     actually captured on.
+- **REQ-M10 — The screenshot downscale factor used for live in-app OCR
+  and the downscale factor used by the debug capture tooling
+  (`tools/capture_screen.sh`'s `ffmpeg -vf scale=iw/2:ih/2`) must stay
+  the same, not drift into two independently-tuned values.** Both take a
+  raw screenshot and shrink it before further use — one for a human
+  reviewing the corpus, one for ML Kit's recognizer — and there is no
+  reason those two purposes should end up trusting different amounts of
+  lost detail from the same source image.
+  - **Whichever changes, change both.** If empirical tuning (REQ-M6's
+    OQ-31 calibration work, or OCR-timing work) moves the live-OCR
+    factor, `tools/capture_screen.sh` moves with it, and vice versa —
+    a maintainer changing one without the other is the failure mode
+    this requirement exists to prevent.
+  - **Currently 50% linear scale (quarter area) on both sides**: the
+    debug script's `iw/2:ih/2`, and `OCR_MAX_DIMENSION_PX = 1200` in
+    `UMAssistedAccessibilityService.kt` (50% of this device's 2400px
+    capture height). Record the actual current value in whichever of
+    the two places is easier to find when this requirement is next
+    revisited, so "currently 50%" doesn't silently go stale.
+- **REQ-M11 — Confirmed on-device: Umamusume exposes zero
+  `AccessibilityNodeInfo` content. Every "tap this identified UI
+  element" mechanism must derive its coordinates from OCR text bounding
+  boxes or REQ-M9's fixed tap-maps — never from an accessibility-tree
+  node search.** The client renders as a single opaque Unity
+  `SurfaceView`; walking `rootInActiveWindow`'s node tree for clickable/
+  focusable nodes matching some text always returns nothing, because
+  there is no node tree inside the game's own content to find — this
+  isn't a tuning problem, the data the search depends on does not exist.
+  (`dev-logs/session3.txt`'s own notes already recorded the related fact
+  that every `uiautomator dump` came back an empty shell — this
+  generalizes that finding to `AccessibilityNodeInfo` search specifically,
+  and states its consequence for tap dispatch explicitly.)
+  - **What this invalidates.** Both `findAndTapText` (used by every
+    `MacroAction.TapText` step in the REQ-A19/A20/A21 macro interpreter)
+    and the older `tryReplayLastDecision` (REQ-A4's alpha decision-replay
+    skeleton) were originally built on accessibility-node search. Both
+    silently found nothing and failed every dispatch, with no error
+    surfaced — a macro step would correctly *match* the right screen via
+    OCR and then simply never tap anything. `findAndTapText` has been
+    rebuilt on OCR bounding boxes (see below); `tryReplayLastDecision`
+    has not yet and carries the same defect until it is.
+  - **The fix: tap the OCR bounding box, not a node.** ML Kit's `Text`
+    result already carries a `boundingBox` per `TextBlock`/`Line`, in the
+    OCR input bitmap's own pixel space. Converting that back to a real
+    screen point requires the window bounds and the OCR downscale factor
+    (REQ-M10) captured at the *same moment* as the OCR request that
+    found the text — not re-queried later, since the window can move/
+    resize between capture and tap. `screenX = winBounds.left +
+    box.centerX / scaleFactor` (same for Y).
+  - **Two independent tap mechanisms remain, deliberately.** REQ-M9's
+    fixed window-fraction tap-maps (for chrome with no stable text: bare
+    arrows, generic icon buttons) and this OCR-bounding-box approach
+    (for anything with recognizable text) are not redundant with each
+    other — REQ-M9's own scope note already drew this line ("text-
+    anchored taps are lower risk... this requirement is about [fixed-
+    fraction taps on chrome with no stable text]"). This requirement
+    makes explicit that the text-anchored side is bounding-box-based,
+    not node-based, closing the gap REQ-M9 assumed without stating.
+  - **Confidence/safety carries over unchanged.** `AutoRunMacros.NEVER_TAP`
+    is checked against the matched line/block text before any tap
+    dispatches, same as before; `dispatchGuarded`'s REQ-SF7 checks (live
+    foreground re-verify, in-window bounds check) apply to the converted
+    point exactly as they would to any other coordinate.
+  - **Established precedent: match the actual button, never incidental
+    helper/hint text that happens to contain the word.** Observed
+    on-device: a bare "Training" voice command matched and tapped OCR
+    text — but a plain substring search hit the word "training" inside
+    an unrelated hint sentence ("...be sure to keep on top of her
+    training.") before ever reaching the real "Training" button label,
+    because that sentence's OCR block sat earlier in reading order. The
+    dispatch reported success (a tap really did fire) while landing on
+    inert descriptive text — silently wrong, not merely imprecise.
+    `findAndTapText` now tries an **exact line match first** (trimmed,
+    case-insensitive — a real button label is normally its own whole
+    line) and only falls back to substring-in-line, then substring-in-
+    block, if no exact line exists. Any future OCR-text-matching tap
+    mechanism (voice, macro `TapText`, decision replay) must follow the
+    same precedence — prefer the match least likely to be a word
+    incidentally embedded in prose over the match most likely to be a
+    standalone label — rather than accepting the first substring hit in
+    whatever order OCR happened to return blocks.
+  - **`pauseSweepAt`/`confirmFacilitySelection` (REQ-A22/V12's voice
+    arm/confirm taps) migrated to this same OCR-text lookup, off
+    `facilityWindowPositions()`'s fixed window-fraction coordinates.**
+    On-device root cause, finally confirmed: the fixed fraction
+    (`y=0.82` of the window) had been calibrated against the wrong
+    screen — the hub's Infirmary/Recreation/Races row — because the
+    actual training facility-selection sub-screen (reached only by
+    tapping "Training" first) had never actually been captured. The
+    fraction was never validated against real geometry, just assumed.
+    Each tap now does a fresh `captureAndAnalyzeScreen` immediately
+    before calling `findAndTapText` with the facility's own name
+    (`FacilityVocabulary.facilityNames[index]`) as the search text.
+  - **Known follow-up gap, not yet migrated: the sweep's own hover
+    animation (REQ-A9) still uses `facilityWindowPositions()`'s fixed
+    fraction.** Continuous hover motion across all five facilities in
+    one pass is not a discrete "tap this text" action, so it can't be
+    purely OCR-text-anchored the way a single tap can — it still needs
+    real fixed geometry to animate against, and that geometry is still
+    the old, now-confirmed-miscalibrated `y=0.82` value. This needs its
+    own recalibration against the actual training sub-screen (ideally
+    the same on-device capture-and-measure approach, not another
+    eyeballed guess) before the sweep's hover targets can be trusted.
+- **REQ-M12 — Cheap, explicit "is the screen steady" check, separate from
+  (and cheaper than) a full OCR pass.** Every macro tick currently pays a
+  full `captureAndAnalyzeScreen` + ML Kit OCR round-trip just to find out
+  whether anything changed since the last tick — wasted cost on ticks
+  spent waiting out an animation, a scroll settle, or a screen that's
+  simply still the same one. A steady-state check answers a strictly
+  cheaper question first ("has *anything* changed") before paying for
+  the expensive one ("what does the text say now").
+  - **Cheap means no OCR, no ML Kit.** A raw pixel-level comparison (e.g.
+    a low-resolution downsample or a coarse per-region average/hash of
+    the captured bitmap, diffed against the previous tick's) is the
+    right order of magnitude — actual technique is an implementation
+    choice, but it must not itself invoke text recognition.
+  - **Steady, not identical.** Some legitimate in-progress states have
+    continuous low-level motion (a shimmer/sparkle effect, a subtly
+    animated background) that should still read as "steady" for this
+    purpose — the check needs a tolerance band, not exact-bitmap
+    equality, or it would never settle on screens like that.
+  - **Where this plugs in.** `macroTick`'s retry/settle timing
+    (`MACRO_STEP_SETTLE_MS`, `MACRO_RETRY_DELAYS_MS`) currently waits a
+    fixed delay and then always re-OCRs; this lets a tick skip the OCR
+    call entirely (and re-poll cheaply instead) when the screen hasn't
+    settled yet, only paying for OCR once the cheap check says it's
+    worth it.
 
 ## 6. Functional Requirements
 
@@ -813,7 +997,9 @@ decision point recurs. That's a selection (replay), not a choice
     listening (REQ-V9), and any other control that must be reachable
     mid-play without leaving the game or performing precise navigation.
     Overlay controls may share one combined panel; they must not require
-    opening a full settings activity to flip.
+    opening a full settings activity to flip. **A second, separate overlay
+    panel lists currently valid voice phrases — see REQ-V20.** It is not
+    a kill switch and must not be crammed onto the icon strip.
   - **Settings screen (full config):** sequence enablement beyond the
     kill switches, recorded selections review/edit (REQ-A4), per-event
     auto-replay toggles (REQ-A8), voice phrase editing (REQ-V8/V11),
@@ -912,18 +1098,82 @@ decision point recurs. That's a selection (replay), not a choice
     low-confidence for a facility, fall back to the user's fixed dwell
     rather than guessing — consistent with the "unmatched falls through
     to the user" discipline elsewhere (REQ-M5/REQ-F4).
-- **REQ-A19 — "Start auto run" macro, invocable from the home screen.
-  Hard blocker for 1.0 alpha.** A single named command that carries the
-  user from the home/lobby screen into a started career, collapsing the
-  long chain of taps the game requires to begin a run. This is the
-  motivating case for the whole product restated at the start of a
-  career: the tap volume to *begin* a run is itself a barrier, before any
-  training has happened.
+- **REQ-A19 — "Start auto run" / "resume career" macro, invocable from
+  the title screens. Hard blocker for 1.0 alpha.** A single named
+  command that carries the user from a cold start — the title / TAP TO
+  START splash, not only the home/lobby CAREER button — into a started
+  (or resumed) career, collapsing the long chain of taps the game
+  requires to begin a run. This is the motivating case for the whole
+  product restated at the start of a career: the tap volume to *begin*
+  a run is itself a barrier, before any training has happened.
   - **Scope exception, deliberately narrow.** §2 restricts 1.0 alpha to
     the in-career loop; this requirement and REQ-A20 are the stated
-    exception, because a start macro that cannot start from the home
-    screen is not a start macro. It licenses exactly the screens this
-    macro traverses — not general lobby or menu support.
+    exception, because a start/resume macro that cannot start from the
+    title screens is not a start macro. It licenses exactly the screens
+    this macro traverses — not general lobby or menu support.
+  - **Resume-from-title-screen is a hard clause, not a later nicety.**
+    "resume career" / "continue career" (and the existing "start auto
+    run" / "start career" family, which on an in-progress save is the
+    same resume path) must succeed when issued on the very first
+    screens the game shows after launch: the branded title / TAP TO
+    START splash (captured as `misc/20260812_090416_snap05`), then
+    every subsequent *no-choice* interstitial that actually sits
+    between that splash and the in-career hub on the resume-an-
+    existing-run path (loading, connecting, news/announcement
+    dismissals that are Close/Next/OK-only, the home/lobby CAREER
+    button, the Continue Career modal's Resume — never Cancel or
+    Delete Data). Terminal state is the in-career training hub, same
+    as the rest of this requirement. A command that only works once
+    the user has already tapped through the title sequence by hand
+    fails the motivating case: those opening taps *are* the barrier.
+  - **Does not license the new-career path.** Trainee select, support
+    deck, and race-schedule setup remain out of this clause (and out
+    of 1.0 alpha) until those screens are in the corpus. Resume of an
+    already-in-progress Aoharu Hai / Unity Cup run is the required
+    path.
+    - **Fixed a real violation of this clause.** The macro carried a
+      trailing "generic no-choice advance" fallback step (`matches`
+      any of "next"/"ok"/"confirm", tap "Next") meant to catch stray
+      no-choice interstitials. On-device on a fresh save (no Continue
+      Career modal, i.e. genuinely the unlicensed new-career path) it
+      instead blindly tapped through the trainee-select, legacy, and
+      support-card-selection screens it has no matcher for — none of
+      those are Next/OK/Confirm-only screens, they're real decision
+      points the macro guessed through — and landed mid-way into an
+      unrelated independent-training toggle. Removed the fallback
+      entirely: an unrecognized screen now exhausts
+      `MACRO_RETRY_DELAYS_MS` and stops (`UNRECOGNISED_SCREEN`, falls
+      through to the user) rather than guessing. Stopping cleanly at
+      the scope boundary is correct per this clause; a generic catch-
+      all that taps first and asks never is not. See OQ-49 — a real
+      screen classifier is what actually closes this gap long-term.
+    - **Day-boundary screens (Date Changed, blank loading, Login Bonus,
+      Notices) apply here too, not just to REQ-A20's finish macro.** A
+      calendar-day rollover can interpose these between *any* macro's
+      steps — first captured live via REQ-A20's finish flow, but nothing
+      about them is finish-specific; "start auto run" issued on a fresh
+      day after the Continue Career modal's Resume can hit the exact
+      same sequence. Implemented as a shared step list
+      (`AutoRunMacros.dayBoundarySteps`) spliced into both `startCareer`
+      and `finishCareer` rather than duplicated.
+    - **Code review caught that the removal also broke a screen this
+      clause explicitly licenses.** The removed fallback was the only
+      step that could dismiss the "news/announcement dismissals that
+      are Close/Next/OK-only" interstitial this clause names above —
+      with no replacement, an announcement popup on launch now stalls
+      the macro with `UNRECOGNISED_SCREEN` on a screen it's supposed to
+      get past. Fixed with a narrower, purpose-built step instead of
+      reinstating the old blanket fallback: it only matches when actual
+      announcement/notice vocabulary ("notice"/"announcement"/"news")
+      is present alongside dismissal-shaped text, so it can't fire on
+      the unlicensed decision screens that caused the original bug (none
+      of those mention notice/announcement/news). Introduced
+      `MacroAction.TapAnyText(candidates)` for this — the exact button
+      wording ("Close" vs "OK" vs "Next") isn't known without a live
+      capture, so it tries each candidate in turn and taps whichever is
+      actually found. **Not yet observed/captured on-device** — the
+      matcher is a best effort pending a real capture of this screen
+      (OQ-49), same caveat as every other un-captured screen in this doc.
   - **One command, bounded sequence, not a loop (REQ-A1/REQ-A5).** The
     macro is a named, discrete, user-invoked sequence with a defined
     terminal state (career begun, or a decision point that requires the
@@ -971,6 +1221,19 @@ decision point recurs. That's a selection (replay), not a choice
     user's career. Where the phrasing is genuinely ambiguous, the safe
     reading is the one that does not destroy career progress.
   - **Same bounded-sequence and abort rules as REQ-A19.**
+  - **Gap found on-device: only covers exiting a still-in-progress run,
+    not wrapping up a career that's already naturally completed.** The
+    shipped `finishCareer` macro's only entry step requires the
+    training-hub screen with a "turns left"/goal counter, then opens
+    Menu → Save & Exit/Give Up — that's the *abandon a run early* flow.
+    "Complete auto run" spoken while the career had already finished on
+    its own (results/ceremony screens, back to lobby) matched nothing
+    and the macro correctly gave up rather than guess-tapping an
+    uncaptured screen — but that leaves the actually-completed case
+    entirely unhandled, which a command named "complete" is arguably
+    more about than the abandon-early case is. Needs its own screen
+    captures (OQ-49/OQ-50 pattern) of what a natural career completion
+    actually shows before a matcher can be written — not yet done.
 - **REQ-A21 — "Start auto run recording defaults": one-shot capture of
   defaults without turning the setting on. Hard blocker for 1.0 alpha.**
   A third form of REQ-A19's command that behaves as though the
@@ -1006,6 +1269,224 @@ decision point recurs. That's a selection (replay), not a choice
     Card list — several friends offering the same card). REQ-M8 is open on
     how to observe that on-device; until resolved, this command falls
     through to the user for those decisions rather than recording a guess.
+- **REQ-A27 — "Finish auto run" completes pending skill purchases before
+  leaving the career. Hard requirement for 1.0 beta, not required for
+  1.0 alpha.** A trainee can finish a career holding unspent skill
+  points; those points do nothing once the run ends, so REQ-A20's finish
+  macro must give the user the chance to spend them first rather than
+  silently walking past the Skills screen to the exit confirmation.
+  - **"Quickly" clause: an explicit fast variant skips this entirely.**
+    "Quickly complete career" / "quickly finish career" — or the same
+    words with "quickly" trailing instead of leading ("complete career
+    quickly" / "finish career quickly") — and the equivalent "auto run"
+    phrasing, bypasses both the skill-purchase
+    detour this requirement adds *and* whatever unspent-points warning
+    the game itself shows on exit — the user is stating in the command
+    itself that they don't want to be stopped for it, which is a
+    different, still-fully-informed instance of "the user decided,
+    UMAssisted only executes" (REQ-A11), not UMAssisted deciding for
+    them. Bare "complete/finish career" (no "quickly") keeps this
+    requirement's normal behavior.
+    - **Partially implemented, live (2026-08).** The Complete Career hub
+      screen shows unspent skill points ("Skill Pts") alongside the
+      "Complete Career" button itself — not a separate screen, confirmed
+      via live capture. `finishCareer`'s checkpoint step now reads that
+      count from OCR text and, when nonzero and not "quickly," stops the
+      macro there (falls through to the user, not a retry/failure) rather
+      than tapping past it; "quickly" (leading or trailing, recognized in
+      `FacilityVocabulary.matchingMacroPhrase`) or a zero count proceeds
+      straight to tapping "Complete Career." **Still open:** an actual
+      spend-the-points flow (opening Skills, making purchases) — this
+      only stops the macro at the right place, it doesn't do the
+      spending for the user, which would be a real decision (REQ-A11)
+      unless replaying a previously recorded choice per REQ-A8/A21.
+      "Quickly" bypassing "whatever unspent-points warning the game
+      itself shows on exit" (beyond this checkpoint) is still unverified
+      — not yet observed whether the game has its own separate warning
+      dialog on top of this.
+- **REQ-A33 — "Start auto run" via the Trainer Aptitude Test event entry
+  point, not only the normal title-screen/CAREER-button path. Hard
+  requirement for 1.0 beta, not required for 1.0 alpha.** Observed live
+  (2026-08): the Home screen can carry an active "Trainer Aptitude Test"
+  (or similarly-named) event banner offering its own route into starting
+  a career, separate from the ordinary CAREER button REQ-A19 already
+  covers. Distinct entry point, same underlying "begin a run" intent —
+  REQ-A19's start macro should recognize and use it when present, rather
+  than only ever going through the plain CAREER button. **Not yet
+  captured or implemented** — needs a live walkthrough of that event's
+  own screens (its own confirmation/setup steps, if any, may differ from
+  the plain start path) before a matcher can be written, same discipline
+  as every other screen in this document (OQ-49). Scope note: this is
+  about *reaching* the start of a career through an alternate event
+  door, not a new kind of career or scoring — REQ-A19's existing terminal
+  state (career begun / decision point) still applies once inside.
+- **REQ-A35 — An "always" clause in a spoken command sets a new stored
+  default/precedent for that option, not a one-shot override. Hard
+  requirement for 1.0 beta, not required for 1.0 alpha.** Distinct from
+  REQ-A21's "recording defaults" macro mode (which records whatever gets
+  picked during a run) and REQ-A27's "quickly" modifier (a one-shot
+  skip): "always [do X]" spoken at a decision point is the user
+  explicitly asking that choice to become the standing default for that
+  decision going forward, the same way a manually-set REQ-A8 default
+  works, without needing to invoke a separate "recording defaults" mode
+  first. Still governed by REQ-A11/REQ-A4 — the user is the one stating
+  the precedent, UMAssisted only stores and replays it, never infers one
+  on its own. Not yet implemented; not yet scoped which decisions this
+  applies to or how it interacts with REQ-A21's existing recording mode
+  (composes with it, or is a separate mechanism — open).
+- **REQ-A36 — Ability to run Team Trials automatically. Hard requirement
+  for 1.0 beta, not required for 1.0 alpha.** A named automation target
+  distinct from the Aoharu Hai in-career loop this document's 1.0 alpha
+  scope (§2) is built around. Not yet captured or implemented — needs
+  its own live screen walkthrough (entry point, race selection, results)
+  before a macro can be written, same OQ-49 discipline as everything
+  else in this document. Scope relative to REQ-A1's "automate specific
+  interaction sequences, not full gameplay": this automates the
+  navigation/tap sequence to run trials the user has already decided to
+  run, not the strategic decision of when/whether to run them.
+- **REQ-A37 — "Run all my dailies quickly": use established defaults
+  (REQ-A8/A21/A35) to run every available race until RP (Race
+  Points/tickets — REQ-A38 tracks the exact resource name and mechanic)
+  is exhausted. 1.0 final, not required for alpha or beta.** Composes
+  REQ-A36 (run a trial) with REQ-A35/A21's default-replay mechanism into
+  a single bounded command — "quickly" here follows REQ-A27's established
+  meaning (skip confirmation-shaped stops, proceed on stored defaults)
+  rather than introducing a third meaning for the word. Still a bounded
+  sequence per REQ-A1/REQ-A5, not a standing loop: it stops once RP is
+  exhausted (a hard, checkable terminal condition — analogous to
+  REQ-A23's "duration is a separate axis from period, and something has
+  to end it" reasoning), not "run forever until told to stop." Depends
+  on REQ-A36 and REQ-A38 existing first; placed at 1.0 final because it
+  composes two things neither built until beta at the earliest.
+- **REQ-A38 — Track TP and RP (exact terms/mechanics TBD). 1.0 final,
+  not required for alpha or beta.** Flagged now, to be fleshed out
+  later — not yet scoped which screens expose these values, whether
+  they need their own OCR matchers, or what "tracking" means concretely
+  (display only, vs. gating REQ-A37's stop condition on a read value).
+  REQ-A37 depends on this existing in some form first.
+  - **Why beta, not alpha.** The Skills purchase screen is one of the
+    unresolved-coverage items under REQ-V7/OQ-22 (§ "Not yet observed on
+    this client" list, and the residual inventory called out near
+    REQ-A20) — its structure (long scrollable list, purchase
+    confirmation flow) is not yet in the corpus. 1.0 alpha's scope is the
+    narrower Aoharu Hai in-career loop (§2); this depends on coverage
+    that alpha explicitly defers, so it cannot be alpha-scoped honestly.
+  - **Sequencing, not a separate command.** This is a clause of REQ-A20's
+    existing finish-run macro, not a new named command: on "finish auto
+    run" (or its synonyms), the macro detects whether unspent skill
+    points remain and, if so, routes through the Skills screen before
+    the exit-confirmation chain REQ-A20 already defines.
+  - **Never invents which skills to buy.** Which skill(s) to purchase is
+    a real decision (REQ-A4/REQ-A8/REQ-A11's "UMAssisted never decides
+    which option is better" discipline) — this requirement is about
+    *reaching* the purchase opportunity reliably, not about
+    auto-selecting skills. Purchases follow REQ-A19/A21's existing
+    stored-default replay/record mechanism (a "which skills" default,
+    keyed the same way as any other macro Decision) when the user has
+    opted into Defaults/Recording-defaults; otherwise it falls through
+    to the user with points still unspent, same as any other
+    unresolved Decision.
+  - **Does not spend points the user did not authorize spending.** If
+    the finish command is given in plain STEP_ONLY mode (no Defaults/
+    Recording clause) and no stored skill-purchase default exists, the
+    macro stops at the Skills screen exactly as any other undecided
+    Decision would (REQ-A19's "falls through to the user" rule), rather
+    than guessing a purchase or skipping the screen and losing the
+    points silently. Silently losing the points is exactly the failure
+    this requirement exists to prevent, so silently spending them
+    unasked is not an acceptable trade for it.
+  - **Bounded, not a detour into general Skills browsing.** Scope is
+    "reach Skills, let a purchase happen if one is going to, then
+    continue the exit sequence" — not a standing skills-shopping mode.
+    Same bounded-sequence/no-loop discipline as the rest of REQ-A19–A21
+    (REQ-A1/REQ-A5).
+- **REQ-A28 — Every macro (REQ-A19–A21, REQ-A27) must explicitly recognize
+  loading screens and other content-varying interstitials as a distinct
+  "wait, don't give up" case, never as either an unrecognised-screen
+  failure or a tap target.** Observed on-device: the game's loading
+  screens pair a stable "Now Loading..." (or equivalent) signal with tip
+  copy that rotates through many, effectively un-enumerable variants
+  ("Tazuna's Advice" pairs with different text each time) — some with an
+  actionable button ("OKAY!"), some with none at all. A macro step
+  catalog that only matches specific tip *content* runs out of coverage
+  the first time it meets a variant nobody captured, and — before this
+  requirement — that meant giving up on the whole run after a short
+  retry budget while the game was still genuinely, correctly loading.
+  - **The general fix is matching the interstitial *class*, not its
+    content.** A step keyed on the stable "still loading" signal alone
+    (ignoring whatever tip text happens to be showing) that performs no
+    tap and simply re-checks the screen shortly after is sufficient —
+    no per-variant enumeration needed, and correctly distinguishes "this
+    is a known, expected wait" from REQ-M6/OQ-49's fallback-to-user rule
+    for screens that are genuinely unrecognised.
+  - **Bounded the same way as everything else (REQ-A5/REQ-A1).** A
+    screen that never leaves the loading state must still not stall a
+    macro forever — it consumes the macro's own step/duration ceiling
+    like any other step, just without competing against the shorter
+    retry-then-give-up budget that genuinely unrecognised screens use.
+  - **Not limited to the specific loading screen observed so far.**
+    Any other interstitial with the same shape — content that varies
+    per-occurrence but carries one stable "this is expected, wait it
+    out" signal — is in scope for this requirement, not just the
+    title-splash-to-home loading sequence it was first found in.
+  - **"Still loading vs. completed" is a cheaper question than full-screen
+    recognition and should be checked as one.** Telling a loading screen
+    apart from whatever comes after it does not need the same amount of
+    screen, or the same OCR effort, that identifying a destination screen
+    does — a small region (wherever the stable "still loading" signal
+    lives) is enough to answer *is this still the loading screen*, versus
+    the full-frame capture+recognize REQ-M6/REQ-M10 already do for actual
+    screen matching. Worth a lighter-weight check specifically for this
+    yes/no question once REQ-M10's crop/region tooling exists to support
+    it, rather than paying full OCR cost on every wait-tick just to learn
+    the answer is still "yes, still loading."
+- **REQ-A30 — Detect a completely hung game (rare) and offer to restart
+  it, rather than sitting silently stuck. Hard requirement for 1.0
+  alpha.** Distinct from REQ-A28's loading/interstitial handling: a
+  loading screen is expected and self-resolving (REQ-A28's `Wait`
+  action just waits it out). A genuine hang is different — the game
+  process is foreground but no longer progressing at all, no matter how
+  long UMAssisted waits or how many macro/sweep ticks pass. Observed
+  directly this session (the client appeared to lock up entirely mid-
+  session). Rare, but silent when it happens: nothing currently tells
+  the user "this isn't loading anymore, it's stuck."
+  - **Detection signal: sustained unrecognized-and-unchanging screen
+    state, well past what REQ-A28's loading tolerance already allows.**
+    A macro run's own `EXHAUSTED`/`UNRECOGNISED_SCREEN` outcomes are one
+    input; a longer-window signal (the live screen — via REQ-M6/OQ-49's
+    classifier or its interim equivalent — not changing at all across
+    repeated checks, well beyond any observed loading-screen duration)
+    is the general case, since a hang can happen outside an active
+    macro run too (mid-sweep, or with nothing running at all).
+  - **Informed by, but not equivalent to, Android's own ANR (App Not
+    Responding) detection — because ANR doesn't reliably catch the
+    hangs actually observed here.** Android's stock hang detection
+    (main-thread-blocked-on-input-dispatch, ~5s window, plus assorted
+    OS-level watchdogs) is a reasonable reference point for what
+    "unresponsive" means, but the hangs seen with this game are
+    suspected to stem from something lower-level and transient —
+    possibly battery/voltage-related glitches (a voltage sag or spike
+    causing something like a stray bit-flip) rather than an ordinary
+    main-thread deadlock ANR is built to catch. A screen-not-changing
+    signal, independent of whatever Android's own ANR machinery does or
+    doesn't fire, is the more reliable detector for this specific
+    failure mode — REQ-A30 should not assume "no ANR fired" means "not
+    hung."
+  - **User-facing response: ask, don't act unilaterally.** An overlay-
+    based dialog or a regular system dialog surfaces the "this looks
+    stuck — restart the game?" question and waits for the user's
+    explicit yes/no — consistent with REQ-A11/REQ-VAL2's standing rule
+    that UMAssisted never takes a consequential action (force-stopping
+    and relaunching the game is consequential — unsaved-state risk)
+    without the user's explicit say-so, even when the automated
+    diagnosis is very likely correct.
+  - **Conservative thresholds, false-positive-averse.** A slow-but-
+    genuinely-progressing screen (large asset load, poor network) must
+    not trigger this — the detection window needs to sit comfortably
+    beyond any legitimate loading duration observed in the corpus. Exact
+    threshold is an implementation/tuning detail, not decided here; the
+    requirement is that one exists and errs toward not bothering the
+    user over a merely-slow screen.
 - **REQ-A22 — Selection never resolves by current sweep/scroll position;
   only by target identity.** When a user names or selects a facility (or
   list item), the app must match that command against the target's
@@ -1052,6 +1533,129 @@ decision point recurs. That's a selection (replay), not a choice
     to a target whose on-screen highlight is animated rather than static,
     so "arm" additionally means "stop the animation there," not just
     "remember the intent."
+  - **REQ-A29 — The overlay's collapsed handle (the small dot that is the
+    at-a-glance status indicator, REQ-A17) shows a distinct state when a
+    facility selection is armed and awaiting confirm, not just a binary
+    "something is on."** Currently the handle only distinguishes armed
+    (🟢, `sweepEnabled || voiceEnabled`) from idle (⚪) — it cannot
+    currently tell the user "sweep and/or voice are on, AND there is a
+    pending half-made selection waiting on you to confirm or cancel it"
+    versus "on, nothing pending." That distinction matters specifically
+    because it is a state the user must act on (confirm, cancel, or let
+    REQ-V12's grace window lapse) — the collapsed handle is the one
+    thing guaranteed visible without expanding the overlay, so it is the
+    only place this can be surfaced without costing more screen.
+    - **Signal source: REQ-A22's own armed-selection state**
+      (`VoiceFacilitySelection.currentlyArmed()` — whatever tracks "a
+      facility was named once, waiting on the repeat/cancel/timeout" per
+      REQ-V12), not a new piece of state invented for the indicator.
+    - **A third visual state, not a replacement for the existing two.**
+      Idle (nothing armed), armed-idle (sweep/voice on, nothing pending),
+      and armed-pending (a selection is waiting on the user) are three
+      distinct states the handle must communicate — color and/or glyph,
+      consistent with REQ-A17's icon-over-words preference so it stays
+      meaningful if ever OCR'd/composited in.
+    - **Time-bounded, same as the underlying grace window.** The
+      indicator reverts to plain armed-idle the moment the pending
+      selection resolves — confirmed, cancelled, or REQ-V12's window
+      lapses — never a stale "still pending" state after the fact.
+  - **REQ-A31 — The overlay's collapsed handle becomes a live audio-level
+    visualizer (an oscilloscope-style panning trace) instead of a static
+    armed/idle glyph, sourced from `onRmsChanged` (currently a no-op).**
+    Motivated by REQ-A29's own observation taken further: the always-
+    visible handle "displays very little useful info" as a static dot —
+    a live trace lets the user see at a glance whether their voice is
+    actually registering, without a separate calibration screen (no such
+    screen is feasible anyway: the on-device recognizer's VAD/sensitivity
+    is not exposed by any public Android API, so a live level readout is
+    the practical substitute for "tunable threshold").
+    - **Must indicate which stretches of the trace correspond to an
+      actively-listening STT session, not just raw signal level.**
+      Session boundaries (`onReadyForSpeech`/session-ends/restarts,
+      already logged verbatim per this session's own "name the event,
+      don't interpret it" correction) are real gaps the user should be
+      able to see — a flat trace during a restart gap means "not
+      listening right now," not "silence while listening." Distinguish
+      visually (e.g. a shaded/colored band under the active-session
+      portion of the trace) rather than a continuous line that looks the
+      same whether armed or not.
+    - **Hard performance ceiling — this must not be noticeable.** It
+      replaces something that was previously free (a static glyph swap
+      on state change only). Concretely: no per-frame allocation (a
+      small fixed-size ring buffer of recent RMS samples, reused in
+      place, not a growing list); redraw throttled to a modest fixed
+      rate decoupled from however often `onRmsChanged` actually fires
+      (that callback's real-world frequency is not something to trust or
+      match 1:1); `onDraw` work bounded and simple (line/point drawing
+      over a small fixed canvas — this sits inside REQ-A17's already-
+      tiny cell footprint, not a new panel). If it cannot be kept cheap
+      within these bounds, it does not ship rather than shipping at a
+      noticeable cost — REQ-A17's "minimize what the overlay costs the
+      user" is not suspended for this feature.
+    - **Same minimal footprint as today's handle (REQ-A17).** This
+      replaces the existing cell in place; it is not license to grow the
+      overlay's resting size or occlusion footprint.
+    - **Resolved — the trace covers a configurable time window, not a
+      fixed sample count.** A fixed-count ring buffer pans at whatever
+      rate `onRmsChanged` happens to fire, which this same requirement's
+      own text already warns is not a rate to trust — the same buffer
+      could span very different real durations moment to moment. Each
+      sample carries its own timestamp; `onDraw` plots by time-offset
+      within `windowMs` (default **10s**, configurable, bounded
+      **[1s, 60s]**) and walks newest-to-oldest only until a sample
+      falls outside the window, so cost tracks window content, not
+      buffer capacity. The backing array is a fixed capacity (Kotlin/
+      Android has no allocation-free growable ring buffer) sized
+      generously past what the max window could need at a assumed
+      sample rate far above `onRmsChanged`'s real one — capacity is a
+      structural safety margin only; what's actually retained/shown is
+      decided purely by timestamp, never by slot count. The fixed-
+      capacity/no-per-frame-allocation performance ceiling above still
+      holds.
+    - **Resolved — a second, background layer: a short-window mirrored
+      waveform (classic audio-editor look), amplitude only.** Reuses
+      the exact same `onRmsChanged` data as the primary trace — no
+      second signal, no raw-PCM access — just windowed much shorter
+      (fixed ~1.5s) and rendered as mirrored vertical bars instead of a
+      line, so it reads as "what's happening right now" distinct from
+      the slow-panning long-window trace drawn on top of it. A parallel
+      "tone" channel (zero-crossing-rate from raw PCM via
+      `onBufferReceived`) was built and deliberately cut: it answered no
+      real diagnostic question, was uncalibrated, and risked looking
+      meaningful when it wasn't — see REQ-A31's own non-negotiable that
+      this display conveys information, not decoration.
+    - **Resolved — command-result "charm" markers.** At the moment a
+      voice utterance resolves (`onVoiceUtterances`'s return), a small
+      marker drops on the trace: green for anything genuinely accepted
+      and dispatched, red for heard-but-unmatched or heard-but-ignored-
+      by-state (not in Uma, voice off). Never fired for "nothing heard
+      at all" — that case produces no utterance callback in the first
+      place, so it shows only as a gray gap on the primary RMS layer
+      (REQ-A31's active/inactive shading). Together the two failure
+      modes this requirement exists to make obvious — "I said something
+      and it didn't work" vs. "the mic never heard me" — are visually
+      distinct without reading logs, directly answering the standing
+      question of why a spoken command silently did nothing.
+    - **Resolved — the overlay handle's own background gets a third
+      "warming up" color (orange), distinct from armed (teal/green) and
+      idle (dark gray).** Confirmed on-device across repeated tests: the
+      recognizer genuinely takes several seconds after being armed before
+      `onRmsChanged` starts firing at all — not a wiring regression (both
+      the platform-unreliability and tonal-correlation hypotheses this
+      requirement's history investigated were red herrings; this is
+      simple startup latency). Voice-armed-but-zero-samples-received-yet
+      now paints the handle orange; the first `onRmsChanged` callback of
+      the session flips it back to the normal armed color. Sweep-armed
+      is unaffected by this state (it doesn't depend on the recognizer),
+      so the collapsed handle only shows orange when voice is the sole
+      reason anything is armed. **Code review caught that the first pass
+      only applied this to the collapsed handle** — with the overlay
+      expanded, the per-cell voice indicator kept showing solid green
+      through the same warming window, contradicting the handle right
+      next to it. Fixed: the expanded voice cell now applies the same
+      warming color too, gated on voice's own state only (not sweep's,
+      since the cell represents voice alone rather than the handle's
+      "is anything armed" aggregate).
   - **REQ-A23 — Unlimited sweep duration, gated by a REQ-A24 continuation
     signal, not a plain self-loop.** REQ-A5 is a hard requirement that bars
     "run until X" semantics, including for voice/standing toggles — so an
@@ -1154,6 +1758,23 @@ decision point recurs. That's a selection (replay), not a choice
   - **Same family as REQ-A19/A20/A21's named, bounded, explicit-command
     macros** — not a standing "always skip" mode; each invocation is a
     fresh, explicit user command per REQ-A1/REQ-A5.
+- **REQ-A32 — Voice commands to start and toggle the training sweep
+  (REQ-A9/A10), closing the gap where the sweep could only be armed by
+  touch.** Before this, a voice heartbeat (REQ-A23/A24) could *continue*
+  an already-armed sweep, but nothing voice-driven could arm it in the
+  first place — a user with no reliable touch access had no way to start
+  a sweep at all. Two distinct commands, not one, matching the existing
+  touch-side distinction between the 🧹 arm toggle and the ▶ run-once
+  control:
+  - **"sweep"** arms the sweep if not already armed, and immediately
+    runs one pass — the single-command equivalent of tapping 🧹 then ▶.
+  - **"auto sweep"** toggles the armed/disarmed *mode* only (same effect
+    as tapping 🧹 alone) without running a pass itself.
+  - **"sweep" must not falsely match inside "auto sweep."** Phrase
+    matching checks the longer, more specific phrase first (same
+    longest-match-first pattern already used for the REQ-A19 command
+    family) so "auto sweep" resolves to the toggle, not to the plain
+    start command it happens to contain as a substring.
 - **REQ-A16 — Auto-scroll long lists when the sweep toggle is on.** When
   the always-visible sweep control (REQ-A10) is **enabled**, UMAssisted
   automatically scrolls **long list UIs** for the user at a reading pace —
@@ -1740,7 +2361,8 @@ decision point recurs. That's a selection (replay), not a choice
       checklist either. Remaining beta-blocking inventory is still the
       unobserved in-career flows (Shop purchase, Skills, Races,
       Recreation, Infirmary, hamburger contents) — those still need
-      dedicated screenshots (OQ-22 residual).
+      dedicated screenshots (OQ-22 residual). Skills specifically also
+      gates REQ-A27 (finish-run completes pending skill purchases).
 - **REQ-V8 — User-definable vocalizations per action, not a fixed command
   grammar.** The user must be able to define their own spoken phrase for
   selecting each training facility — and, per REQ-V7, presumably other
@@ -1757,6 +2379,11 @@ decision point recurs. That's a selection (replay), not a choice
     think of Wit training as the energy-oriented facility; the synonym is
     required in defaults (REQ-V14), not merely optional. User may remove
     or extend it like any other phrase (REQ-V11).
+  - **Shipped synonyms — "wiz" and "wisdom" also mean Wit.** Default
+    alternates for **Wit** alongside "wit" / "wits" / "energy". "Wiz"
+    is the common spoken shortening; "wisdom" is the natural long form
+    of the same facility. Required in defaults (REQ-V14), user-overridable
+    (REQ-V11).
   - **Shipped synonym — "date" means Recreation.** **"date"** is a default
     alternate phrase for the hub **Recreation** action (same as
     "recreation"). Natural player language for that outing; required in
@@ -1771,7 +2398,7 @@ decision point recurs. That's a selection (replay), not a choice
   single defined phrase per action — they can register a *set* of phrases
   that all trigger the same selection (e.g. "speed," "select speed," and
   "speed training" could all map to the same training facility; **"wit"**
-  and **"energy"** both map to Wit per REQ-V8). Any phrase in the set
+  **"energy"**, **"wiz"**, and **"wisdom"** all map to Wit per REQ-V8). Any phrase in the set
   fires the same action; there's no requirement to remember or use one
   exact, canonical phrase every time.
   - Same underlying reasoning as REQ-V8, extended: accessibility software
@@ -1897,10 +2524,19 @@ decision point recurs. That's a selection (replay), not a choice
     deliberate confirm state from a prior recognized command.
   - **An explicit confirm/cancel vocabulary remains valid alongside
     repetition.** REQ-V12 adds a confirmation *path*, it doesn't remove
-    others. A user who prefers "yes"/"confirm"/"cancel" (or phrases of
+    others. A user who prefers "yes"/"confirm"/"ok"/"go" (or phrases of
     their own under REQ-V8) can still use those; repetition (including
     synonym-as-repetition) is required to work, not required to be the
     only option.
+  - **Same-utterance confirm is valid.** A single hypothesis that names
+    exactly one facility and then a confirm word — **"stamina, ok"**,
+    **"stamina, go"**, **"Stamina, confirm"** — or that names the same
+    facility twice — **"stam stam"** — is the compressed form of
+    arm-then-confirm and must commit that facility (subject to the
+    REQ-V19 grace/cancel window). Bare "ok"/"go"/"confirm" with no
+    facility named only confirms if that facility is already armed;
+    they must not start a training on their own. "go" is a confirm
+    word here, not a sweep heartbeat.
   - **Doesn't touch REQ-A11.** Both utterances are still the user's own
     originated commands for one specific, already-defined action —
     nothing is being decided on their behalf.
@@ -1968,9 +2604,9 @@ decision point recurs. That's a selection (replay), not a choice
   - First-run may *offer* customization; it must not *block* on it.
   - **Event-option selection defaults — see REQ-V15** (ordinal forms and
     matching spoken option text are first-class, not an afterthought).
-  - **Facility / hub defaults include "energy" → Wit and "date" →
-    Recreation** (REQ-V8), in addition to the obvious stat names for
-    Speed/Stamina/Power/Guts/Wit and "recreation."
+  - **Facility / hub defaults include "energy" / "wiz" / "wisdom" → Wit
+    and "date" → Recreation** (REQ-V8), in addition to the obvious stat
+    names for Speed/Stamina/Power/Guts/Wit and "recreation."
   - **Training sub-screen / hub Quick button defaults** (quick training mode):
     "quick" (bare word acts as toggle), "toggle quick", "enable quick",
     "disable quick". These directly act on the Quick button (bottom row on
@@ -1986,6 +2622,13 @@ decision point recurs. That's a selection (replay), not a choice
     "turbo off" (plus user-defined variants under REQ-V8/V11). "turbo"
     sets Skip to maximum ("skip on") and enables Quick at the same time.
     "disable turbo" / "turbo off" turns Turbo mode off.
+  - **Career resume defaults (REQ-A19 resume-from-title-screen):**
+    "resume career", "continue career". These invoke the same resume-
+    an-in-progress-run sequence as "start auto run" / "start career"
+    when a save exists. Bare "resume" remains the sweep-continuation
+    heartbeat (REQ-A23/A24), not this command — the two-word form is
+    required so the career action cannot be triggered by the
+    single-word heartbeat.
 - **REQ-V15 — When selecting an event option, accept multiple utterance
   forms; two are main forms.** At a recognized choice screen (REQ-A4 /
   REQ-M3), any of the following must be able to name the option — the user
@@ -2257,6 +2900,20 @@ decision point recurs. That's a selection (replay), not a choice
     REQ-V10's amendment: `createOnDeviceSpeechRecognizer()` (API 31+) does
     not have this failure mode and is now the preferred path where
     available.
+  - **`RecognizerIntent.LANGUAGE_MODEL_WEB_SEARCH` is not a network
+    path and does not violate REQ-S1/REQ-V2.** The constant's name is
+    misleading: it selects the platform *language-model style* tuned
+    for short command/query utterances (as opposed to
+    `LANGUAGE_MODEL_FREE_FORM` dictation), not "send this audio to a
+    web search service." Network vs on-device is decided by *which
+    recognizer is created* — `createOnDeviceSpeechRecognizer()` binds
+    the local engine (SODA on this Pixel); `createSpeechRecognizer()`
+    plus `EXTRA_PREFER_OFFLINE` is only a hint and is the path REQ-V10
+    already rejected. Using `LANGUAGE_MODEL_WEB_SEARCH` *with* the
+    on-device recognizer is the confirmed-working command-style extra
+    set (and is what the empty-hypothesis / `FREE_FORM` regression
+    was reverted to). The debug log must not be readable as "we
+    called a web API."
   - **Recreating the native recognizer instance on every restart, and
     zero-delay restarts on the ordinary no-speech-detected path, together
     produce audible rapid mic on/off cycling** (each recreation reopens
@@ -2271,9 +2928,13 @@ decision point recurs. That's a selection (replay), not a choice
     outside a debug build.
 - **REQ-V19 — Explicit correction/cancel vocabulary. Hard blocker for 1.0
   beta.** A user must be able to retract something they started saying —
-  "oops," "no wait," "cancel," and user-defined synonyms (REQ-V8/V11) —
-  and have it actually undo the in-progress state, not just be ignored or
-  misheard as a new command. This is the prerequisite this product was
+  **"cancel," "oops," "escape," "abort," "no wait,"** and user-defined
+  synonyms (REQ-V8/V11) — and have it actually undo the in-progress
+  state, not just be ignored or misheard as a new command. **A tap
+  anywhere on the screen also cancels** a voice request that is armed
+  or still in its pre-dispatch grace window (about to process). The tap
+  is consumed as cancel, not forwarded as a game input, and is distinct
+  from UMAssisted's own injected gestures (those must not self-cancel). This is the prerequisite this product was
   missing when partial-results early-stop was first built (REQ-V18/OQ-43):
   a partial-transcript match that stops listening the instant it looks
   "unambiguous" has no way to hear a user talk past that word to correct
@@ -2299,8 +2960,274 @@ decision point recurs. That's a selection (replay), not a choice
     an armed state is the safe direction (REQ-VAL2: fails toward not
     acting), so it does not need its own confirm step the way arming or
     confirming a consequential action does.
-
-### 6.4 Audio Readout for Choices (Text-to-Speech)
+  - **Two distinct vocabularies, not one, once a spoken "tap the game's
+    own Cancel button" feature exists — they must not share phrase
+    lists.** This requirement's cancel words ("cancel," "oops," "escape,"
+    "abort," "no wait") retract *UMAssisted's own* pending/armed voice
+    action — they have no game-input effect and correctly no-op when
+    nothing is pending. That is a different intent from a user wanting
+    to *tap the literal Cancel button inside a game dialog* (e.g. the
+    Continue Career modal's own Cancel, sitting one row from Delete
+    Data — see `AutoRunMacros.NEVER_TAP`). Saying "cancel" with a real
+    dialog open and nothing UMAssisted-side pending currently just
+    no-ops silently rather than tapping that dialog's Cancel — expected
+    given today's scope, but the two concepts must stay on separate
+    phrase lists so implementing one never accidentally reroutes into
+    the other. A spoken "tap this dialog's Cancel button" feature, if
+    built, belongs with REQ-V23's OCR-bounding-box `HubButton` family
+    (screen-scoped, taps real on-screen text), not REQ-V19's retract
+    vocabulary — REQ-V19 stays UMAssisted-state-only.
+- **REQ-V20 — A second overlay panel shows the voice phrases that are
+  valid right now.** Distinct from REQ-A7/A10/V9's icon kill-switch
+  strip. Always-listening voice (REQ-V5) has no on-screen grammar; a
+  user with limited mobility should not have to remember every synonym
+  or guess whether "resume" is a heartbeat or "resume career" is a
+  macro. This panel is the live cheat-sheet: it lists the phrases the
+  matcher would accept *in the current assist state*, and updates as
+  that state changes.
+  - **Second panel, not a second kill switch.** The existing overlay
+    remains the small, icon-only control cluster (REQ-A17). The phrase
+    panel is a separate surface: more room for words, collapsible to a
+    compact handle so it does not sit fully expanded over game UI for
+    the whole session. Opening or dismissing it must be possible from
+    the overlay cluster (and by voice once REQ-V13-style commands exist
+    for it) without opening the settings activity.
+  - **Current and valid, not the entire dictionary.** Show only phrases
+    that would resolve unambiguously *and* could fire now — e.g. hide
+    facility names when not in Uma; hide sweep heartbeats when sweep is
+    off; when a facility is armed for confirm (REQ-V12), surface the
+    confirm-repeat and the cancel vocabulary (REQ-V19: cancel / oops /
+    escape / abort / tap) as the live set. Do not dump every REQ-V14
+    default including unwired ones (training, turbo, …) as if they
+    worked. A phrase that would be recognized but then ignored
+    (`!isInUma`, `!sweepEnabled` for heartbeats) is not "valid now."
+  - **Grouped by what they do, not a flat dump.** Facilities, cancel,
+    heartbeats, and macros as separate groups, each showing the
+    shipped default phrases (and user synonyms under REQ-V8/V11 once
+    those exist). Pending/armed state should be named on the panel
+    (e.g. "Stamina — say again to confirm, or cancel / tap").
+  - **Occlusion and OCR (REQ-A17 / REQ-QA2).** Because this panel is
+    words by design, it must default to collapsed, sit on chrome rather
+    than decision-critical game targets, and remain filterable as known
+    overlay text if a capture path composites it in. It must never be
+    required to stay fully expanded for the kill switches to work.
+  - **Alpha bar (1.0 alpha):** the second panel exists, collapses,
+    and lists the implemented corpus correctly gated by current state
+    (in-Uma, sweep, armed confirm, pending grace). Full phrase-editor
+    integration and every-scenario placement testing remain 1.0 beta /
+    REQ-QA2.
+  - **Sticky last-chosen state, not a blank flash between screens.**
+    When the game transitions to a new screen and the panel hasn't yet
+    settled on what's valid there (a beat of OCR/state re-evaluation),
+    it keeps showing the previous screen's valid-command set rather than
+    going blank or showing nothing — an empty panel reads as "no
+    commands work" when the real answer is "still figuring out what
+    changed." Only replaces its contents once the new screen's state has
+    actually settled (REQ-M12's cheap steady-state check is the natural
+    trigger for "now re-evaluate," once that exists).
+  - **Companion display: the currently-detected screen/state itself**,
+    not just the phrase list it implies — surfaced directly rather than
+    making the user infer it from which phrases happen to be listed.
+    Motivated directly by live confusion this session: without this, a
+    macro correctly giving up because it doesn't recognize the current
+    screen (REQ-A19/A20's UNRECOGNISED_SCREEN) is indistinguishable from
+    a real bug without reading the debug log. Until OQ-49's real screen
+    classifier exists, this is the raw signal actually available — last
+    captured OCR text (or a short excerpt/summary of it) plus which
+    macro step, if any, matched — labeled honestly as raw OCR text, not
+    a classified screen name, so it doesn't overstate what's actually
+    known.
+- **REQ-V21 — The 👁 overlay control (REQ-A17) becomes a toggle: continuous
+  background screen classification, so a voice command consults an
+  already-current scene classification instead of triggering its own
+  fresh OCR capture.** Currently one-shot (a single tap fires exactly one
+  read-only `captureAndAnalyzeScreen` and reports the result). Toggled
+  continuous classification is a genuinely different category of
+  behavior — a standing background loop — and needs its own lifecycle
+  rules rather than a silent repurposing of the existing button; drafted
+  here before implementation per the project's standing practice of
+  writing the requirement down as the decision is made, not after.
+  - **Still read-only, still off by default (REQ-DEV1/2/3, REQ-A10).**
+    Classification never dispatches a gesture by itself — it only
+    updates the cached "what screen is this" state that voice matching
+    (and, once OQ-49's real classifier exists, macro step matching) can
+    consult. Toggling it on is exactly as explicit a user action as any
+    other kill switch; it does not arm or imply any input-dispatching
+    behavior on its own.
+  - **Must pause outside Umamusume and while backgrounded.** Same
+    REQ-SF6/SF3 discipline as every other capture/dispatch path: the
+    polling loop is gated on `isInUma`, stops the instant foreground
+    changes, and must not keep capturing (or OCR'ing) screens belonging
+    to some other app just because the toggle was left on.
+  - **Polling cadence is a tunable, not a hardcoded loop.** Exact
+    interval is an implementation/tuning detail (bounded by OCR's actual
+    `recognize` cost, REQ-M10's timing work — polling faster than a
+    capture can complete just queues up redundant work), but the
+    requirement is that it's a deliberate, inspectable setting, not an
+    arbitrary constant buried in code.
+  - **Battery/CPU cost must be visible to the user, not hidden.**
+    Continuous OCR is real, ongoing work — the overlay must show when
+    classification is actively running (distinct from merely "armed"),
+    the same way REQ-V20's phrase panel shows current *valid* state
+    rather than the full static dictionary. A user should never be
+    surprised their battery drained because a background scan was left
+    on from a prior session.
+  - **Consumed by voice matching first; macro step matching once OQ-49
+    lands.** The immediate purpose is REQ-V-side: a voice command
+    resolves against the current cached classification instead of
+    waiting on a fresh capture it would otherwise have to trigger
+    itself. The macro interpreter (REQ-A19–A21) is free to keep doing
+    its own per-tick captures for now — wiring it to the same cache is
+    an optimization to revisit once OQ-49's real classifier exists,
+    not a requirement of this toggle itself.
+  - **Open — exact cadence, and whether the cache has a staleness
+    window voice should refuse to trust, are empirical questions for
+    implementation, not decided here.**
+- **REQ-V22 — At the training hub (main in-career home screen), a
+  "$facility Training" command (e.g. "Speed Training", "Stamina
+  Training") opens that facility's training sub-screen directly.**
+  Distinct from REQ-A9/REQ-A22's sweep-and-select flow: the sweep hovers
+  each facility for preview and resolves a bare facility name (REQ-V8's
+  synonyms included) as arm-then-confirm against whatever the sweep is
+  doing. "$facility Training" is a direct, one-utterance jump straight
+  into that facility's training sub-screen, bypassing the sweep/arm
+  step entirely — for a user who already knows which facility they want
+  and does not need the preview sweep to decide.
+  - **"$facility" reuses REQ-V8's existing facility vocabulary** (Speed/
+    Stamina/Power/Guts/Wit and their configured synonyms) — this is not
+    a second, parallel vocabulary to maintain. Only the trailing
+    "Training" keyword is new.
+  - **Scoped to the training hub screen specifically.** The command only
+    resolves there (screen recognition per REQ-M6/OQ-49, or the interim
+    `CorpusMatcher` equivalent) — saying "speed training" elsewhere (the
+    Scout screen, a race screen) must not be interpreted as this
+    command, same discipline as REQ-V16/V17's screen-scoped selection
+    forms.
+  - **One utterance, no separate confirm.** Unlike REQ-V12's double-
+    utterance pattern for consequential actions, opening a training
+    sub-screen to look at it is not itself consequential (no stat spend,
+    no run-affecting choice happens just by opening it) — REQ-V4's
+    single-utterance-for-inconsequential-actions rule applies. Whatever
+    choice or commitment exists *inside* the training sub-screen remains
+    subject to its own applicable requirements once that screen is
+    reached; this command's scope is strictly "get me there."
+  - **Resolved — dispatch reuses the sweep's own arm/confirm taps.**
+    "$facility Training" fires the same two taps `pauseSweepAt` +
+    `confirmFacilitySelection` already use (the sweep's own preview-then-
+    commit positions), back-to-back with a short gap instead of waiting
+    on a second utterance — this command is the single-utterance
+    equivalent of speaking a facility name twice, not a new gesture
+    pattern or a new tap target.
+- **REQ-V23 — Bare "facilities" and bare "Training" (no facility name
+  attached) are shorthand for navigating to the training hub screen
+  itself — the screen the sweep runs on — not for selecting or entering
+  any specific facility's training.** Distinct from REQ-V22: REQ-V22
+  requires a facility name ("Speed Training") and jumps directly into
+  that facility's sub-screen; this is the bare word alone, and means
+  "take me to the hub," useful from wherever else in the career flow
+  the user currently is (a sub-screen, a modal) to get back to the
+  screen where facility selection/sweep is even possible.
+  - **Narrow case implemented; general navigation still open.** Both
+    bare words resolve to the same `HubButton("Training")` target as the
+    already-shipped bare-"training" narrow case (REQ-M11): tap the
+    literal "Training" text if it's actually visible on the current
+    screen right now. There is no on-screen "Facilities" label to tap,
+    so "facilities" reuses the "Training" target — same destination,
+    same reasoning as the "same word, different meaning" note below.
+    On-device testing caught that "facilities" had been left out of the
+    bare-word check entirely (only "training" was wired) — fixed.
+  - **General navigation from an arbitrary current screen — still open.**
+    Getting back to the hub from an arbitrary current screen isn't a
+    single fixed tap the way REQ-V22's facility-index tap is; it depends
+    on what screen the user is currently on (a "Back" control, closing a
+    modal, etc.), which needs REQ-M6/OQ-49's real screen recognition (or
+    at least a small catalog of "how do I get from screen X back to the
+    hub" mappings) to resolve correctly rather than guessed.
+  - **Same word, different meaning depending on presence of a facility
+    name — this is deliberate, not overloaded ambiguity.** "Training"
+    alone answers "where do I want to be" (navigation); "Speed Training"
+    answers "which facility, get me all the way in" (REQ-V22, one step
+    further). The shared word is intentional shorthand for the same
+    underlying place (the hub, where the sweep lives), not a naming
+    collision to resolve.
+  - **No REQ-V4 tap-to-cancel grace window.** `HubButton` never commits
+    anything to the career — it navigates to a screen already confirmed
+    (by the same OCR pass that found the label) to actually be showing
+    that text, nothing more. That's REQ-V4's inconsequential-action case,
+    not the consequential case the grace window exists to protect
+    against, so it fires immediately rather than sitting through the
+    same pending-and-cancelable window a real career-affecting command
+    (a macro, a facility confirm) waits through.
+- **REQ-V24 — Known common short-word STT collisions get remediated as
+  synonyms, not treated as something to train the ASR out of.** A short
+  vocabulary word can be this engine's *consistent* mishearing of a
+  different word — confirmed on-device: every alternate hypothesis for
+  "wit wit" came back as some form of "wait" ("Wait wait," "Wait what,"
+  "Wait wait wait"), never "wit" itself, across a real double-utterance
+  attempt. Since REQ-V8's synonym mechanism already exists for exactly
+  this shape of problem (multiple spoken forms mapping to one facility),
+  a consistently-misheard word is added there — first instance: "wait" as
+  a Wit synonym (`FacilityVocabulary.kt`). This is a standing remediation
+  pattern, not a one-off fix: any future short word found to reliably
+  collide with another word on this engine gets the same treatment.
+  - **Code layout must visually mark a collision-driven synonym as
+    distinct from an ordinary spelling/wording variant.** A future
+    maintainer reading the synonym set needs to be able to tell "this is
+    a real alternate way to say the word" (`"stam"`, `"wisdom"`) apart
+    from "this is here because the recognizer mishears the real word as
+    this" — the latter is not obvious from the word alone (nothing about
+    "wait" looks like a Wit synonym without context) and must carry its
+    own comment explaining the specific collision observed, set apart
+    from the rest of the synonym list rather than blended in
+    alphabetically or by insertion order.
+- **REQ-V25 — The mic's restart schedule must never grow a silent gap
+  longer the more silence it has already seen.** Confirmed on-device,
+  repeatedly: utterances ("Stamina?", a facility confirm mid-arm) with
+  **zero** STT partials logged at all — not misheard, never heard,
+  because the recognizer simply wasn't armed at that instant. Root
+  cause: the empty-result restart delay grew with each consecutive
+  silent session (`2000ms shl consecutiveEmptyEnds`, capped at 10s) —
+  exactly backwards, since a user is not less likely to speak next
+  because the last few cycles were quiet. Fixed to a flat delay
+  (`EMPTY_RESTART_DELAY_MS`) regardless of streak length. The general
+  principle: silence must never be read as license to leave the mic
+  unarmed *longer* — REQ-V1's whole premise (a user who may not have
+  reliable alternative input) means a missed window is not a retry
+  inconvenience, it can be the only attempt they get to make right then.
+  - **`MIN_CYCLE_MS`'s anti-flap floor is a separate, intentionally
+    retained mechanism, not addressed by this requirement.** It exists
+    to prevent restarting a session pathologically soon after the last
+    one *started* (a previously-diagnosed real bug, distinct from this
+    one) and is bounded independently of how much silence preceded it.
+    If gaps traceable to `MIN_CYCLE_MS` itself are ever found to cause
+    the same missed-utterance failure mode, that is a distinct follow-up
+    to investigate on its own terms, not folded into this fix.
+  - **REQ-A31's audio-level trace is the diagnostic surface for this
+    class of bug going forward.** The active/inactive shading (session
+    armed vs. restart gap) exists specifically so a gap like this one is
+    visible at a glance on the overlay itself — a flat, dim stretch of
+    trace right when the user knows they spoke is the visible signature
+    of exactly this failure mode, without needing to reconstruct it from
+    logcat/debug-log timestamps after the fact the way this instance had
+    to be diagnosed.
+- **REQ-V26 — Every overlay menu item gets a voice command, except the
+  voice-enable toggle itself. Hard requirement for 1.0 beta, not
+  required for 1.0 alpha.** "Sweep," "auto sweep," and stop-listening
+  already have voice equivalents (REQ-A32, REQ-V13); this generalizes
+  the pattern to the rest of the overlay cluster — the read/OCR-only
+  trigger (🔍) and the single-pass run trigger (▶) currently have no
+  spoken equivalent and must get one. The voice-enable toggle itself
+  (🎤) is the one deliberate exception: it cannot have a voice command
+  that turns *voice on* while voice is off (that's exactly REQ-V13's
+  asymmetric-availability problem, already solved there for the
+  on/off pair as a whole) — this requirement is about the *other*
+  overlay controls reachable once voice is already on, not a new
+  attempt at the off-to-on case REQ-V13 already covers. REQ-V20's
+  panel toggle is a UI convenience, not a game action, and is exempt
+  by the same reasoning REQ-V20 itself gives for its own "no REQ-V4
+  grace window" HubButton-style commands — inconsequential controls
+  don't need a spoken path with the same urgency as ones a mobility-
+  limited user has no other way to reach.
 
 - **REQ-T1 — Read choice text aloud at decision points.** Users with
   limited vision/reading ability shouldn't have to read the screen to know
@@ -2815,6 +3742,33 @@ decision point recurs. That's a selection (replay), not a choice
   worth stating explicitly as a pre-test checklist item rather than
   assuming it's obviously covered by REQ-DEV3's general "small, staged,
   watched" discipline.
+- **REQ-DEV5 — Verify a background process's identity before trusting it,
+  on both the agent's own machine and the DUT.** Applies to any
+  diagnostic process an agent starts and later relies on (a log tail, a
+  monitor, an `adb shell` session) — never assume a remembered PID is
+  still the same process (PID reuse is real) or that an unfamiliar
+  process is foreign (it may be a forgotten one of the agent's own).
+  - **`ps` is a view over `/proc`, not a second, independent source.**
+    `ps` formats the same data `/proc/<pid>/stat`, `/proc/<pid>/cmdline`,
+    and `/proc/<pid>/status` already expose — reading `/proc` directly is
+    not an independent cross-check *of* `ps`, it's how to get fields a
+    default `ps` invocation doesn't surface (full untruncated `cmdline`,
+    exact `PPid`, `State`), or to re-confirm a specific PID cheaply
+    without a full listing. Treating "checked with `ps`" and "checked
+    `/proc`" as two separate confirmations is a category error.
+  - **Pull one full, unfiltered listing per check, local and DUT.** One
+    `ps aux` locally, one `ps -A -o PID,PPID,STAT,STIME,CMD` via a single
+    `adb shell` call on the DUT — excluding nothing, so the full tree and
+    every column needed to reconstruct parentage is available from that
+    one round-trip, rather than chaining multiple pre-filtered greps
+    across multiple round-trips.
+  - **Background work must use the harness's actual backgrounding
+    mechanism**, not a bare trailing `&` inside a single tool
+    invocation — the latter does not reliably survive past that call.
+  - **Clean up after a debugging session.** Orphaned local `adb`/`logcat`
+    processes and orphaned DUT-side shell processes left running are a
+    real, observed failure mode (not hypothetical) — kill them
+    explicitly once the session segment that needed them is done.
 
 ### 8.3 Coverage Verification & Release Gates
 
@@ -3307,6 +4261,268 @@ unresolved, not currently blocking; **DEFERRED** = intentionally not needed yet.
   *which* action or whether it was the right one, which is a much weaker
   signal than the screen-diff REQ-SF7 already requires. Revisit only if
   screen-diffing proves insufficient somewhere audio would clearly help.
+- **OQ-49 (REQ-M6) — OPEN, hard requirement for 1.0 beta.** The real
+  screen detector/classifier design REQ-M6 already specifies — OCR'd
+  text fuzzy-matched against REQ-M5's event/generic-UI corpus, a
+  resolution-normalized visual signal as fallback, an explicit
+  confidence gate, scrollbar geometry for scroll-state questions — is
+  not implemented. `CorpusMatcher.kt` (the class every screen-recognition
+  call in `UMAssistedAccessibilityService.kt` actually goes through) is,
+  by its own doc comment, "an extremely simple alpha corpus matcher": a
+  small hardcoded substring-to-boolean list seeded by hand from
+  SESSION_NOTES.md patterns, with an explicit "in a real build this
+  would [do REQ-M6's actual design]" note. The macro interpreter built
+  for REQ-A19/A20/A21 depends on this same shallow matching for every
+  `MacroStep.matches` check, so its reliability ceiling is
+  `CorpusMatcher`'s ceiling, not REQ-M6's.
+  - **Why alpha shipped without it.** REQ-M6's confidence-gated
+    corpus/visual design needs the offline event/generic-UI corpus
+    (REQ-M5/REQ-M7) built out with real labeled data before there is
+    anything to match against — the hand-seeded substring list was a
+    reasonable stand-in to get a working alpha build end-to-end sooner.
+    That tradeoff is now paid off; beta is where it needs replacing with
+    the real thing rather than continuing to accrete more hand-seeded
+    substrings.
+  - **Scope: build the real classifier, not patch around the stub's
+    gaps one at a time.** The title-splash matcher patched into
+    `AutoRunMacros.startCareer` this session (keying off plain OCR-
+    reliable text like "Trainer ID" because the stylized logo art OCR'd
+    inconsistently) is exactly the kind of one-off workaround REQ-M6's
+    fuzzy-match-against-a-bounded-corpus design exists to make
+    unnecessary — every hand-written matcher added to work around
+    `CorpusMatcher`'s limitations is more that has to be reconciled or
+    discarded once REQ-M6 is actually built.
+- **OQ-50 (REQ-M9) — OPEN, targeted for 1.0 beta.** Should tap-map calibration (REQ-M9's
+  horseshoe-charm ground-truth technique) capture a rapid burst of
+  screenshots immediately after a dispatched tap/swipe/drag, rather than
+  one screenshot after a fixed delay, specifically to catch the charm
+  particle effect at or near the actual point of contact? A single
+  delayed capture risks missing the effect's peak/most-legible frame
+  (the charms fly off and fade — timing not yet characterized) or
+  catching it mid-flight, off the true contact point. A burst would need
+  its own capture cadence answered (how many frames, what spacing) —
+  same shape of question as REQ-M10's OCR-downscale timing work, but for
+  capture *frequency* around a single dispatched action rather than
+  steady-state polling. Not yet spiked; no data on how long the effect
+  is visible or how much its apparent origin drifts from the true
+  contact point across a delay.
+  - **Paired sub-question: crop to a small region around the input
+    event's ending position (the up/release point of a tap, swipe, or
+    drag — real or synthetic), not a full-screen capture.** Same
+    "cheaper question, cheaper check" logic as REQ-A28's loading-screen
+    note — confirming *where the charm effect landed relative to the
+    intended target* only needs the pixels near that one point, not the
+    whole screen. Full-frame capture+OCR is the wrong cost for a
+    yes/this-landed-here-or-not check, same as it's the wrong cost for a
+    still-loading check. Whether this crops the same screenshot the
+    burst-timing question above would already be taking, or is a
+    genuinely separate lighter-weight capture path, is part of what's
+    open here.
+- **OQ-51 (REQ-M6/REQ-M10) — OPEN.** Should the screen-recognition
+  pipeline automatically request/convert to a lower-entropy (grayscale /
+  black-and-white) version of the capture before OCR, and does color
+  actually add any fidelity to text recognition on this game's UI, or
+  does it only cost processing time for no benefit? REQ-M10 already
+  established that downscaling resolution measurably helps `recognize`
+  time (REQ-M9/M10 timing work); this is the same question applied to
+  color depth instead of pixel count. Not yet spiked — no data on
+  whether ML Kit's recognizer is materially faster on a grayscale input,
+  or whether any of Umamusume's UI relies on color to distinguish
+  otherwise-identical text/icons (e.g. a colored state indicator) in a
+  way stripping color would break. Answering this empirically (same
+  method as REQ-M10's timing instrumentation) before committing to it is
+  the point — this is a question to investigate, not a decision.
+- **OQ-52 (REQ-P3/§10) — OPEN.** Could "Light-ware" (nee Beer-ware —
+  Poul-Henning Kamp's original, adapted) fit the closed-source private
+  implementation — not as a change to REQ-P3's current "personal/
+  private, never publicly released" resolution, but as a licensing
+  *shape* worth having ready if that ever changes? The core Beerware
+  idea — a short, permissive license whose only "payment" clause is an
+  informal, optional one — would be reworded here from its original "buy
+  me a beer" framing to a plain, humble request for monetary
+  contributions ("Light-ware": keep the lights on, rather than buy a
+  beer), stated as an invitation rather than an obligation: the software
+  carries no price and no payment requirement, and a maintainer who'd
+  like to make a living from work people find valuable can say so
+  plainly without turning that request into a license *condition*.
+  Wording this carefully matters — it must read as asking, not
+  demanding, and must not imply that declining to pay affects anyone's
+  rights under the license.
+  - **Dual-license shape under consideration: 4-clause BSD (already
+    used for this document/top-level docs per §10) plus Light-ware,
+    together rather than either alone.** BSD's formal terms cover the
+    legal shape; the Light-ware clause adds the donation invitation
+    without changing what the BSD terms actually grant. Exact
+    interaction between the two (does the Light-ware clause apply only
+    to the closed parts, or could it also ride alongside the existing
+    public-docs BSD license) is unresolved.
+  - **Does not itself authorize public distribution.** Whatever license
+    text is eventually chosen governs terms *if* the implementation is
+    ever shared beyond personal use — it does not change REQ-P3's
+    current resolution that the implementation and built APK are not
+    published. This OQ is about having the right words ready, not about
+    deciding to publish.
+  - **Attribution to the Beer-ware original is a concrete requirement
+    of Light-ware itself, not just background for this OQ.** Any actual
+    Light-ware license text must name Poul-Henning Kamp and the original
+    Beerware license explicitly (the standard "derived from the Beerware
+    license, originally by Poul-Henning Kamp" framing is the model to
+    follow) and should link to or reproduce the original terms it
+    adapts from, the same way this document's own §10 license is
+    reproduced in full rather than merely referenced. A "nee Beer-ware"
+    aside is not sufficient credit on its own if this ever becomes real
+    license text rather than an OQ discussion.
+  - **Historical footnote.** The original Beerware license is a
+    long-standing piece of software-licensing folklore, written by
+    Poul-Henning Kamp (a FreeBSD developer, among other things the
+    author of `md5crypt` and `varnish`) — best known from its terse
+    canonical wording ("As long as you retain this notice you can do
+    whatever you want with this stuff. If we meet some day, and you
+    think this stuff is worth it, you can buy me a beer in return."),
+    which has circulated for decades embedded directly in source-file
+    comment headers rather than as a standalone document. No specific
+    URL is cited here deliberately — this document does not assert a
+    canonical source link it hasn't verified; whoever eventually drafts
+    real Light-ware license text should locate and cite an authoritative
+    copy of the original wording directly, rather than relying on this
+    secondhand description.
+  - **Reframe around basic necessities; keep only as much of the
+    original wording as is needed to show the lineage.** The part of
+    Beerware worth keeping is its spirit — permissive terms, an
+    informal and entirely optional gesture of thanks, no obligation —
+    not a beverage-swapped retelling of its specific mechanics. This is
+    not "Beerware but coffee instead of beer": the primary framing
+    should center on basic necessities (rent, groceries, keeping the
+    lights on — matching the Light-ware name itself), stated plainly as
+    a monetary-contribution invitation. No in-person-meeting condition
+    either ("if we meet some day") — it should work for anyone, met or
+    unmet. Enough of Beerware's actual phrasing should survive
+    recognizably (a light echo of its cadence/structure) to make the
+    "derived from" credit legible at a glance, without the necessities
+    framing being buried under it or a specific drink standing in for
+    the whole idea.
+  - **Legal care around the attribution itself.** Credit phk and the
+    Beerware name as the acknowledged inspiration/predecessor — Light-
+    ware is a distinct, self-standing derivative work with its own
+    terms, not a claim that phk wrote, endorses, or is affiliated with
+    Light-ware or this project. Do not reuse his name inside the actual
+    license *grant* text in a way that could read as his endorsement or
+    authorship of Light-ware's terms; keep attribution to prose framing
+    ("inspired by," "derived from") outside the operative legal
+    language itself. "Beerware" is informal folklore rather than a
+    registered mark as far as this document is aware, but the safer
+    practice regardless is crediting generously while being unambiguous
+    that Light-ware's actual terms are this project's own.
+- **OQ-53 (REQ-V8/VoiceCorpus) — OPEN.** Should "ditto" be accepted as a
+  spoken voice command, meaning "repeat the last action" (whatever that
+  was — last facility selection, last confirmed macro, last replayed
+  decision)? Surfaced by this session's own debug-log ditto-mark dedup
+  work as a naming coincidence worth considering as a real feature, not
+  because the two are mechanically related. Open questions if pursued:
+  what exactly counts as "the last action" (REQ-A4's decision-replay
+  history? the most recent REQ-V12 confirm? something narrower?), how it
+  interacts with REQ-A8's "never invent an unmade choice" discipline
+  (repeating a *previous* explicit action is not the same as guessing a
+  new one, but the line needs stating precisely), and whether it needs
+  its own confirm step or inherits the original action's.
+- **OQ-54 (REQ-A30) — OPEN.** Can hang detection target the actual
+  thread inside Umamusume that matters — its Unity render/game-logic
+  thread — rather than Android's main UI thread, which observably stays
+  responsive during the hangs seen so far (the OS keeps taking
+  screenshots, `dumpsys` keeps working, ANR does not fire) even though
+  the game itself is completely stuck? Standard ANR detection watches
+  the *main* thread's input-dispatch responsiveness specifically — that
+  is very likely the wrong thread to watch for this failure mode, per
+  REQ-A30's note that the main UI thread "clearly must not be locking up
+  itself" when this happens. Real open question, not just a detail:
+  Android provides no general public API for one app to introspect
+  another app's internal thread state (no permission model grants that
+  visibility into an arbitrary third-party process, for good reason) —
+  so it's unclear whether *any* legitimate on-device signal actually
+  exposes "the game's real work thread stopped," as opposed to inferring
+  it indirectly (REQ-A30's screen-not-changing proxy is exactly that
+  kind of indirect inference). Worth spiking whether any such signal
+  exists (e.g. `dumpsys gfxinfo`/frame-timing stats showing zero frames
+  rendered while the process is otherwise alive) before assuming the
+  indirect proxy is the only option.
+- **OQ-55 (REQ-V25) — OPEN.** Now that the mic re-arms on a flat,
+  non-growing delay regardless of how long it's been silent (REQ-V25),
+  it spends more time armed overall than the old growing-backoff
+  schedule did — which raises the question of how to improve noise
+  discernment so that extra armed time doesn't translate into more
+  stray triggers (ambient room noise, game audio/dialogue/music,
+  incidental conversation not directed at the app). REQ-V25 was a
+  correctness fix for missed genuine utterances; it was not evaluated
+  for its effect on false-positive rate, and the two goals are in some
+  tension — more listening time is what fixed the missed-utterance
+  problem, but also means more exposure to non-command audio. Not yet
+  spiked: what signal(s) could discriminate directed speech from
+  ambient noise/game audio well enough to justify staying armed
+  aggressively without a corresponding rise in false triggers (e.g.
+  `onRmsChanged` amplitude thresholds relative to a rolling ambient
+  floor, wake-word-style onset detection, direction/proximity cues from
+  whatever the hardware exposes). REQ-A31's audio-level trace (its
+  windowing now resolved — a configurable time span, not a fixed sample
+  count) may itself be a useful tool for eyeballing what stray-trigger
+  patterns actually look like before
+  committing to a specific discrimination approach.
+- **OQ-56 (1.0 final) — OPEN.** Add an easter egg for the 1.0 final
+  release. Genuinely open — no shape, trigger, or content decided yet,
+  intentionally deferred rather than invented here. Whatever form it
+  takes should stay consistent with the standing constraints the rest of
+  this document holds everything else to, not exempted from them:
+  REQ-A5 (no standing loop — a discoverable one-shot, not an always-on
+  mode), REQ-DEV1/2 (no autonomous input injection to trigger or build
+  it), REQ-VAL2 (does not blur the mobility-assistance/botting line —
+  playful is fine, an unattended action is not), and REQ-P3 (ships
+  inside the closed-source private build like everything else; nothing
+  about "easter egg" licenses a public-facing surface). Placed at 1.0
+  final specifically — after alpha and beta's functional bars are met,
+  not competing with them for attention.
+- **OQ-57 — OPEN. Redaction: blacking out regions of screen captures
+  during their handling lifecycle.** Flagged from memory, not yet
+  scoped — revisit and define properly. Open questions this needs to
+  answer once picked up: what triggers redaction (a fixed region, e.g.
+  chat/friend-name areas that could carry other players' identifying
+  info, vs. something content-dependent), at what point in the pipeline
+  it applies (before OCR sees the bitmap, only on captures persisted for
+  debugging, or both — redacting before OCR risks losing text the
+  matcher needs), and whether this is a privacy requirement (don't
+  retain/transmit other users' names) or a REQ-S-family debug-artifact
+  concern (dev-log screenshots, `tools/capture_screen.sh` output). Likely
+  belongs alongside REQ-S3's existing debug-capture discipline once
+  scoped.
+- **OQ-58 — DEFERRED (post-1.0-alpha).** Voice-corpus parsing needs a
+  redesign pass to properly delineate *modifiers* ("quickly," per REQ-A27)
+  from the base command they attach to — including where a modifier is
+  allowed to appear in the utterance (REQ-A27's "quickly" must work both
+  leading and trailing: "quickly complete career" and "complete career
+  quickly"). The current corpus matches whole fixed phrases
+  (`VoiceCorpus`/`FacilityVocabulary`'s phrase lists); modifiers don't
+  compose with that structure without hand-enumerating every
+  base-phrase × modifier-position combination, which doesn't scale
+  past one modifier. Explicitly out of scope for 1.0 alpha — noted here
+  so the "quickly" clause's current handling (if implemented before this
+  redesign lands) is understood as a stopgap, not the intended shape.
+- **OQ-59 — OPEN.** Why does OCR sometimes read "UMAssisted" (this app's
+  own name, wherever it appears on-screen — e.g. a future watermark, or
+  incidentally in a screenshot) as "UM Assisted," split into two words?
+  Not yet investigated — worth understanding whether this is an ML Kit
+  tokenization quirk specific to the CamelCase run-together spelling, or
+  something else, since the same splitting risk could apply to other
+  CamelCase in-game text this app needs to match on.
+- **REQ-A34 — Overlay icons (glyphs) should be trivially customizable
+  from the main configuration app (MainActivity), not hardcoded
+  constants.** Some users may want larger, higher-contrast, or simply
+  different icons than the current emoji defaults for the same
+  accessibility reasons the rest of this app exists — readability
+  preferences vary. Not yet implemented: the glyph constants
+  (`GLYPH_SWEEP`, `GLYPH_VOICE`, `GLYPH_READ`, `GLYPH_RUN`,
+  `GLYPH_PHRASES`, etc. in `UMAssistedAccessibilityService`) are still
+  hardcoded. Scope for the eventual implementation: a settings surface
+  in MainActivity backed by `UserSettings`-style persistence, with
+  sensible defaults (today's emoji) so the feature is additive, not a
+  required setup step.
 
 ## 10. License
 
