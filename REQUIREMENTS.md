@@ -1221,19 +1221,22 @@ decision point recurs. That's a selection (replay), not a choice
     user's career. Where the phrasing is genuinely ambiguous, the safe
     reading is the one that does not destroy career progress.
   - **Same bounded-sequence and abort rules as REQ-A19.**
-  - **Gap found on-device: only covers exiting a still-in-progress run,
-    not wrapping up a career that's already naturally completed.** The
-    shipped `finishCareer` macro's only entry step requires the
-    training-hub screen with a "turns left"/goal counter, then opens
-    Menu → Save & Exit/Give Up — that's the *abandon a run early* flow.
-    "Complete auto run" spoken while the career had already finished on
-    its own (results/ceremony screens, back to lobby) matched nothing
-    and the macro correctly gave up rather than guess-tapping an
-    uncaptured screen — but that leaves the actually-completed case
-    entirely unhandled, which a command named "complete" is arguably
-    more about than the abandon-early case is. Needs its own screen
-    captures (OQ-49/OQ-50 pattern) of what a natural career completion
-    actually shows before a matcher can be written — not yet done.
+  - **RESOLVED — the natural-completion case is now handled too, as a
+    second branch of the same macro.** This bullet originally described
+    a real gap: `finishCareer` only covered the *abandon a run early*
+    path (training hub → Menu → Save & Exit/Give Up), leaving "complete
+    auto run" spoken after a career finished on its own with nothing to
+    match. Since then, a full live capture of the natural-completion
+    sequence (Independent Training complete → Career → Complete Career
+    hub → Date Changed → Login Bonus → Notices → Home) was taken and
+    `finishCareer` now has a second branch covering it end to end,
+    including a checkpoint that stops the macro (rather than silently
+    tapping past) when unspent skill points are showing — see REQ-A27's
+    "Partially implemented" note for that checkpoint's exact behavior.
+    Left this bullet in place rather than deleting it, per this
+    document's own resolve-in-place convention (REQ-OQ2) — the two
+    branches, and which screens each one's steps cover, are worth
+    knowing when testing either path.
 - **REQ-A21 — "Start auto run recording defaults": one-shot capture of
   defaults without turning the setting on. Hard blocker for 1.0 alpha.**
   A third form of REQ-A19's command that behaves as though the
@@ -3517,6 +3520,35 @@ decision point recurs. That's a selection (replay), not a choice
     written after exactly that mistake: a scripted tap intended for the
     UMAssisted overlay was delivered into an unrelated foreground app
     because focus had changed and nothing re-checked it.
+- **REQ-SF8 — Must not interfere with other accessibility services/overlay
+  apps on the same device, specifically japanglify (a separate project on
+  this development machine, `~/japanglify`), which runs its own
+  `AccessibilityService` (`JapanglifyAccessibilityService`) and its own
+  `TYPE_ACCESSIBILITY_OVERLAY` window (`SelectionActionOverlay`). Hard
+  requirement for 1.0 alpha.** REQ-SF3's own design already means
+  UMAssisted's service has no `packageNames` filter and receives
+  window-state/content-changed/click events for *every* foreground app,
+  japanglify included, not just Umamusume — the observation surface is
+  already wide by design; this requirement is about never acting on it
+  outside Umamusume.
+  - **Action gating (isInUma/TARGET_PACKAGE) is necessary but not
+    sufficient on its own.** REQ-SF7 already hard-requires re-checking
+    foreground app immediately before every dispatch — this is that same
+    guarantee restated for the concrete case of a second, real,
+    developer-installed accessibility service/overlay coexisting on the
+    test device, not a hypothetical.
+  - **Overlay presentation must not assume it's the only accessibility
+    overlay on screen.** Two independent `TYPE_ACCESSIBILITY_OVERLAY`
+    windows from different apps can be visible at once; UMAssisted's own
+    overlay (REQ-A17) must not assume exclusive screen real estate or a
+    particular z-order relative to another app's overlay.
+  - **Scope note.** This is a coexistence/non-interference requirement,
+    not a request to detect or specifically special-case japanglify by
+    package name — the guards this depends on (REQ-SF6/SF7) are already
+    general, app-agnostic checks; japanglify is simply the concrete,
+    currently-real instance of "another accessibility service exists on
+    this device" that motivates keeping them genuinely general rather
+    than Umamusume-specific in spirit.
 
 ### 7.2 Security & Privacy
 
