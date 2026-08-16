@@ -1272,6 +1272,20 @@ decision point recurs. That's a selection (replay), not a choice
     Card list — several friends offering the same card). REQ-M8 is open on
     how to observe that on-device; until resolved, this command falls
     through to the user for those decisions rather than recording a guess.
+  - **Found non-functional, corrected — this was worse than the REQ-M8
+    gap above, not an instance of it.** `maybeRecordMacroDecisionFromTap`
+    (the code that's supposed to capture what the user tapped) read from
+    `AccessibilityNodeInfo`/`event.source`, which REQ-M11 already confirms
+    is unconditionally empty for this game — so the recording path was
+    silently unreachable for *every* decision, not just the
+    indistinguishable-options case REQ-M8 covers. It has never actually
+    recorded anything in-game. Left the mechanism in place (real
+    coordinate-to-OCR correlation per OQ-45/REQ-M8 is the actual fix,
+    not yet built) but made the failure loud — it now logs clearly that
+    nothing was recorded and why, instead of quietly doing nothing. This
+    requirement's "Hard blocker for 1.0 alpha" tag needs re-litigating
+    once REQ-M8 lands; as shipped, invoking this command records nothing,
+    which does not meet the requirement as written above.
 - **REQ-A27 — "Finish auto run" completes pending skill purchases before
   leaving the career. Hard requirement for 1.0 beta, not required for
   1.0 alpha.** A trainee can finish a career holding unspent skill
@@ -1307,6 +1321,16 @@ decision point recurs. That's a selection (replay), not a choice
       itself shows on exit" (beyond this checkpoint) is still unverified
       — not yet observed whether the game has its own separate warning
       dialog on top of this.
+    - **Bug found and fixed in the checkpoint itself.** Its regex required
+      a literal space between "skill" and "pts" (`"skill pts\D*(\d+)"`).
+      OCR joins separately-detected lines with `\n`, not a space — if that
+      two-word label ever split across a line boundary the same way
+      "TRAINING COMPLETE!" was confirmed to live, the regex would silently
+      fail to match, `skillPts` would default to 0, and the checkpoint
+      would never fire — finishing the career and forfeiting unspent
+      points with no warning, the exact opposite of this requirement's
+      purpose. Fixed to `\s*` between the two words, matching the sibling
+      turns-left regex's own pattern.
 - **REQ-A33 — "Start auto run" via the Trainer Aptitude Test event entry
   point, not only the normal title-screen/CAREER-button path. Hard
   requirement for 1.0 beta, not required for 1.0 alpha.** Observed live
@@ -4543,6 +4567,17 @@ unresolved, not currently blocking; **DEFERRED** = intentionally not needed yet.
   tokenization quirk specific to the CamelCase run-together spelling, or
   something else, since the same splitting risk could apply to other
   CamelCase in-game text this app needs to match on.
+- **OQ-60 — OPEN.** `normalizeUtterance`/`FacilityVocabulary.normalize`
+  strip every character outside `[a-z0-9\s]` before matching a voice
+  utterance. On a Japanese-locale device, if the on-device recognizer's
+  language pack actually transcribes spoken confirm/cancel words as native
+  kana/kanji rather than the romaji this app's vocabulary expects ("hai,"
+  "ryoukai," "iie" — added this session), that transcription would be
+  stripped to an empty string and could never match. Not yet verified
+  either way — depends on recognizer locale behavior not observed on the
+  (English-locale) device under test this session. If confirmed, the fix
+  is a Japanese-script branch in the normalizer, not a change to the
+  vocabulary itself.
 - **REQ-A34 — Overlay icons (glyphs) should be trivially customizable
   from the main configuration app (MainActivity), not hardcoded
   constants.** Some users may want larger, higher-contrast, or simply
