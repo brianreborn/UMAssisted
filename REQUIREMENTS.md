@@ -248,6 +248,22 @@ barrier, not the game's difficulty itself.
   the point (a REQ-ID, a technical constraint, a specific API name) —
   this is about avoiding *unnecessary* jargon, not simplifying away
   meaning that actually needs to survive.
+- **REQ-P6 — A donation link/button in the app's settings screen. Hard
+  requirement for 1.0 beta, not required for 1.0 alpha.** The concrete,
+  in-app counterpart to §10.1's Light-ware clause — the license text
+  invites monetary support in words; this is the actual reachable place
+  to act on that invitation, rather than leaving it as prose no one
+  encounters. Same framing rules as §10.1 apply directly to this button:
+  an invitation, never a demand — no nag screens, no repeated prompts, no
+  gating of functionality behind it, and REQ-P5's plain-language rule
+  applies to its label (something like "Support the developer," not
+  jargon). Placement: settings screen only (REQ-A7's "bulk configuration"
+  surface), never the always-visible overlay (REQ-A17 exists specifically
+  to keep that surface minimal and game-relevant). Depends on §10.1
+  actually being in effect (REQ-P3's "not published" resolution would
+  need to change first, or this points somewhere that makes sense
+  independent of the software's own distribution status, e.g. a personal
+  donation page) — open which of those this assumes; not yet decided.
 
 ## 4. Platform & Environment
 
@@ -4388,7 +4404,7 @@ unresolved, not currently blocking; **DEFERRED** = intentionally not needed yet.
   way stripping color would break. Answering this empirically (same
   method as REQ-M10's timing instrumentation) before committing to it is
   the point — this is a question to investigate, not a decision.
-- **OQ-52 (REQ-P3/§10) — OPEN.** Could "Light-ware" (nee Beer-ware —
+- **OQ-52 (REQ-P3/§10) — RESOLVED. See §10.1 for the drafted text.** Could "Light-ware" (nee Beer-ware —
   Poul-Henning Kamp's original, adapted) fit the closed-source private
   implementation — not as a change to REQ-P3's current "personal/
   private, never publicly released" resolution, but as a licensing
@@ -4636,3 +4652,53 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 ```
+
+### 10.1 Light-ware — prepared text, not currently in effect (resolves OQ-52)
+
+**Not applied to anything today.** REQ-P3's resolution stands unchanged:
+the private application implementation and built APK remain personal/
+private and are not published. This subsection exists only so the words
+are ready *if* that ever changes — drafting this is not a decision to
+publish, and nothing here modifies the BSD terms above, which continue to
+govern this document and the other top-level public docs exactly as
+written.
+
+**Shape:** the 4-clause BSD text above, unmodified, plus the Light-ware
+clause below, together — the BSD terms are the actual legal grant; the
+Light-ware clause is a purely informal, non-binding addition alongside
+them, not a substitute or a condition on anything the BSD terms grant.
+
+```
+LIGHT-WARE LICENSE
+(derived from "The Beer-ware License," originally written by
+Poul-Henning Kamp — <phk@FreeBSD.ORG> — reproduced at
+https://spdx.org/licenses/Beerware.html. Light-ware is a separate,
+self-standing derivative with its own terms below; this credit is
+not a claim that Poul-Henning Kamp wrote, endorses, or is affiliated
+with Light-ware or this project.)
+
+As long as you retain this notice, you can do whatever you want with
+this stuff, under the license terms above. If you find it valuable
+and would like to help the people who keep making things like it —
+rent, groceries, keeping the lights on — you are warmly invited to
+contribute whatever you'd like, whenever you'd like. This is an
+invitation, not an obligation: your rights under the license above
+do not depend on it in any way.
+```
+
+**Historical footnote.** The original Beerware license — "As long as you
+retain this notice you can do whatever you want with this stuff. If we
+meet some day, and you think this stuff is worth it, you can buy me a
+beer in return" — is long-standing software-licensing folklore, written
+by Poul-Henning Kamp (a FreeBSD developer, among other things the author
+of `md5crypt` and `varnish`) and traditionally embedded directly in
+source-file comment headers rather than distributed as a standalone
+document. Canonical text and SPDX identifier (`Beerware`) confirmed at
+[spdx.org/licenses/Beerware.html](https://spdx.org/licenses/Beerware.html).
+
+Light-ware keeps only what makes the lineage recognizable — the "as long
+as you retain this notice, you can do whatever you want with this stuff"
+cadence, and an informal, optional gesture back to the maintainer — while
+reframing the gesture itself around basic necessities rather than a
+beverage-swapped retelling, and dropping the original's in-person-meeting
+condition so it reads the same for anyone, met or unmet.
