@@ -4343,9 +4343,12 @@ unresolved, not currently blocking; **DEFERRED** = intentionally not needed yet.
   (which settings, recorded selections, voice phrases travel together)?
   Mentioned under REQ-A4/REQ-S1 but not specified. Needed before multi-
   device personal use or backup is real; not blocking single-device alpha.
-- **OQ-35 (REQ-SF6) — OPEN.** Behavior when Umamusume is not in the
-  foreground (home screen, other app, recents). Implied "don't act" by
-  REQ-SF3/package targeting, but not an explicit requirement yet.
+- **OQ-35 (REQ-SF6) — RESOLVED by REQ-SF6.** Behavior when Umamusume is
+  not in the foreground (home screen, other app, recents)? Answer: don't
+  act — REQ-SF6 was written as this question's own resolution (package-
+  scoped to `com.cygames.umamusume`; no gesture dispatch or voice-as-
+  game-command outside it) but this entry's status tag was never updated
+  to point at it.
 - **OQ-36 (onboarding) — OPEN.** First-run path for granting
   `AccessibilityService`, overlay, and mic permissions with low motor
   burden — required for REQ-V1 users who can't navigate Android Settings
@@ -4473,7 +4476,8 @@ unresolved, not currently blocking; **DEFERRED** = intentionally not needed yet.
   expanded, and correctly reverts on collapse. No implementation change
   needed. See REQ-SF3 for the full writeup, including why the earlier
   `dumpsys window`-based suspicion didn't transfer to this API.
-- **OQ-48 (dispatch-confirmation) — OPEN, deferred by choice.** Should
+- **OQ-48 (dispatch-confirmation) — RESOLVED: not pursuing, revisit-
+  gated.** Should
   UMAssisted ever monitor game *audio output* as an additional signal that
   a dispatched action had an effect? Considered alongside REQ-SF7's
   screen-diff confirmation (adopted) and REQ-A25's accelerometer use
