@@ -4516,6 +4516,32 @@ unresolved, not currently blocking; **DEFERRED** = intentionally not needed yet.
     unnecessary — every hand-written matcher added to work around
     `CorpusMatcher`'s limitations is more that has to be reconciled or
     discarded once REQ-M6 is actually built.
+  - **Staged, so this doesn't wait on REQ-M5/M7's full corpus pipeline
+    to unblock beta.** REQ-M6's design is decided in full (primary OCR-
+    fuzzy-match, secondary visual fallback, confidence gate, scrollbar
+    geometry) — what's missing is the build, and the primary signal
+    depends on a real, built-out event-text corpus that doesn't exist
+    yet. Splitting the work removes that dependency from the critical
+    path:
+    - **Stage 1 (unblocks the 1.0-beta bar, buildable now):** replace
+      `CorpusMatcher`'s raw substring-`.contains()` list with real fuzzy
+      string matching plus an explicit confidence gate (REQ-M6's
+      "never silently pick the closest of a bad set" rule), against the
+      *same* small, hand-seeded phrase set already in the stub today —
+      no new corpus data required to start. This alone satisfies "not a
+      brittle hand-seeded substring stub" without waiting on REQ-M5/M7.
+    - **Stage 2 (grows alongside REQ-M5/M7, not blocking beta on its
+      own):** the real event/generic-UI corpus, the visual-match
+      secondary signal for text-poor screens, and scrollbar geometry
+      (REQ-M6's tertiary signal) — each genuinely needs the data/work
+      REQ-M5/M7 describe and can land incrementally after Stage 1 ships.
+    - **Scope note, unaffected either way:** REQ-M13's navigation-graph
+      nodes use their own independent `MacroStep`-style OCR matchers
+      (`normalizedForMatch` + `containsAny`/`containsAll`/custom
+      predicates), not `CorpusMatcher` — `CorpusMatcher` is the separate
+      global no-choice/choice signal (REQ-F4, the 🔍 read cell). Staging
+      OQ-49 doesn't change or depend on REQ-M13's node-identification
+      layer, and vice versa.
 - **OQ-50 (REQ-M9) — OPEN, targeted for 1.0 beta.** Should tap-map calibration (REQ-M9's
   horseshoe-charm ground-truth technique) capture a rapid burst of
   screenshots immediately after a dispatched tap/swipe/drag, rather than
