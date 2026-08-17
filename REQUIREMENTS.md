@@ -4542,32 +4542,56 @@ unresolved, not currently blocking; **DEFERRED** = intentionally not needed yet.
       global no-choice/choice signal (REQ-F4, the 🔍 read cell). Staging
       OQ-49 doesn't change or depend on REQ-M13's node-identification
       layer, and vice versa.
-- **OQ-50 (REQ-M9) — OPEN, targeted for 1.0 beta.** Should tap-map calibration (REQ-M9's
-  horseshoe-charm ground-truth technique) capture a rapid burst of
-  screenshots immediately after a dispatched tap/swipe/drag, rather than
-  one screenshot after a fixed delay, specifically to catch the charm
-  particle effect at or near the actual point of contact? A single
-  delayed capture risks missing the effect's peak/most-legible frame
-  (the charms fly off and fade — timing not yet characterized) or
-  catching it mid-flight, off the true contact point. A burst would need
-  its own capture cadence answered (how many frames, what spacing) —
-  same shape of question as REQ-M10's OCR-downscale timing work, but for
-  capture *frequency* around a single dispatched action rather than
-  steady-state polling. Not yet spiked; no data on how long the effect
-  is visible or how much its apparent origin drifts from the true
-  contact point across a delay.
-  - **Paired sub-question: crop to a small region around the input
-    event's ending position (the up/release point of a tap, swipe, or
-    drag — real or synthetic), not a full-screen capture.** Same
-    "cheaper question, cheaper check" logic as REQ-A28's loading-screen
-    note — confirming *where the charm effect landed relative to the
-    intended target* only needs the pixels near that one point, not the
-    whole screen. Full-frame capture+OCR is the wrong cost for a
-    yes/this-landed-here-or-not check, same as it's the wrong cost for a
-    still-loading check. Whether this crops the same screenshot the
-    burst-timing question above would already be taking, or is a
-    genuinely separate lighter-weight capture path, is part of what's
-    open here.
+- **OQ-50 (REQ-M9) — PARTIALLY RESOLVED; burst-timing itself still needs
+  a live spike (targeted for 1.0 beta).** Should tap-map calibration
+  (REQ-M9's horseshoe-charm ground-truth technique) capture a rapid
+  burst of screenshots immediately after a dispatched tap/swipe/drag,
+  rather than one screenshot after a fixed delay, specifically to catch
+  the charm particle effect at or near the actual point of contact? A
+  single delayed capture risks missing the effect's peak/most-legible
+  frame (the charms fly off and fade — timing not yet characterized) or
+  catching it mid-flight, off the true contact point.
+  - **RESOLVED — paired sub-question: crop to a small region around the
+    input event's ending position, not a full-screen capture.** This
+    part doesn't need new device data to decide — it's the same
+    "cheaper question, cheaper check" principle REQ-A28/REQ-M12 already
+    settled elsewhere in this document, applied here: confirming *where
+    the charm effect landed relative to the intended target* only needs
+    the pixels near that one point, not the whole screen, the same way a
+    still-loading check doesn't need full OCR. **Decision: crop to a
+    small region around the up/release point (real or synthetic) of the
+    triggering event.** Same capture path as the burst-timing question
+    below (one screenshot, cropped, not two separate paths) — no reason
+    to pay for a second capture mechanism when the burst frames need
+    cropping too either way.
+  - **STILL OPEN, needs live data — burst cadence (how many frames, what
+    spacing).** Genuinely empirical, not a design call: no data exists
+    yet on how long the charm effect is visible or how much its apparent
+    origin drifts from the true contact point across a delay. Not
+    spiked this session — no DUT access at time of writing. Ready-to-run
+    spike plan for whenever device access resumes, so this is a quick,
+    well-defined task rather than starting from a blank question:
+    1. Dispatch one tap at a known coordinate (a safe, inert target,
+       same discipline as REQ-DEV3's staged-validation rule).
+    2. Immediately fire a burst of cropped captures (region per the
+       resolved sub-question above) using **exponential backoff over a
+       1-second window as the starting baseline** — very rapid captures
+       immediately after dispatch, spreading out as elapsed time grows,
+       rather than fixed-interval sampling. A particle effect's most
+       informative moment (spawn/peak) is most likely to fall in the
+       first tens of milliseconds, and a fixed cadence either wastes
+       captures late (once the effect has already faded) or is too
+       coarse early (misses the peak entirely) — exponential spacing
+       puts resolution where the uncertainty actually is. **Reasoned
+       starting schedule (6 frames, offsets from dispatch in ms,
+       roughly doubling): 15, 45, 105, 225, 465, 945** — not a
+       measurement, a prior to refine once actually spiked.
+    3. Record, per frame: elapsed time since dispatch, whether the charm
+       effect is visible at all, and (if visible) its apparent center
+       vs. the known true contact point.
+    4. From that data, pick the actual cadence/frame-count and the
+       actual crop-region size — this step is what turns the prior in
+       step 2 into a real, calibrated answer.
 - **OQ-51 (REQ-M6/REQ-M10) — OPEN.** Should the screen-recognition
   pipeline automatically request/convert to a lower-entropy (grayscale /
   black-and-white) version of the capture before OCR, and does color
