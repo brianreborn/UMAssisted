@@ -4485,7 +4485,8 @@ unresolved, not currently blocking; **DEFERRED** = intentionally not needed yet.
   *which* action or whether it was the right one, which is a much weaker
   signal than the screen-diff REQ-SF7 already requires. Revisit only if
   screen-diffing proves insufficient somewhere audio would clearly help.
-- **OQ-49 (REQ-M6) — OPEN, hard requirement for 1.0 beta.** The real
+- **OQ-49 (REQ-M6) — PARTIALLY RESOLVED (Stage 1 built); Stage 2 still
+  open, hard requirement for 1.0 beta.** The real
   screen detector/classifier design REQ-M6 already specifies — OCR'd
   text fuzzy-matched against REQ-M5's event/generic-UI corpus, a
   resolution-normalized visual signal as fallback, an explicit
@@ -4523,13 +4524,15 @@ unresolved, not currently blocking; **DEFERRED** = intentionally not needed yet.
     depends on a real, built-out event-text corpus that doesn't exist
     yet. Splitting the work removes that dependency from the critical
     path:
-    - **Stage 1 (unblocks the 1.0-beta bar, buildable now):** replace
-      `CorpusMatcher`'s raw substring-`.contains()` list with real fuzzy
-      string matching plus an explicit confidence gate (REQ-M6's
-      "never silently pick the closest of a bad set" rule), against the
-      *same* small, hand-seeded phrase set already in the stub today —
-      no new corpus data required to start. This alone satisfies "not a
-      brittle hand-seeded substring stub" without waiting on REQ-M5/M7.
+    - **Stage 1 — BUILT.** `CorpusMatcher.kt`'s raw substring-`.contains()`
+      list replaced with real edit-distance fuzzy matching (sliding window
+      of the OCR text against each rule phrase, `slack`-tolerant on
+      length) plus an explicit `CONFIDENCE_THRESHOLD` gate (0.80
+      normalized similarity) — REQ-M6's "never silently pick the closest
+      of a bad set" rule: below the gate, `match()` returns unmatched
+      rather than guessing. Same hand-seeded phrase set as before, no new
+      corpus data. `MatchResult` now carries a `confidence` field so
+      callers/logs can see the score, not just the boolean outcome.
     - **Stage 2 (grows alongside REQ-M5/M7, not blocking beta on its
       own):** the real event/generic-UI corpus, the visual-match
       secondary signal for text-poor screens, and scrollbar geometry
