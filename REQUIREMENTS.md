@@ -4173,19 +4173,21 @@ Status tags below: **BLOCKING** = worth resolving before 1.0 beta or final
 (or before alpha if it affects the core safety/ethics model); **OPEN** =
 unresolved, not currently blocking; **DEFERRED** = intentionally not needed yet.
 
-- **OQ-1 (REQ-M1) — BLOCKING.** Does Umamusume's client detect/block
-  synthetic gestures dispatched by an `AccessibilityService`? Not yet
-  spiked — the accessibility-tree question got spiked (see REQ-M1's
-  confirmed finding); this sibling risk about gesture *dispatch* (as
-  opposed to screen *reading*) hasn't been.
-  - **Methodological constraint discovered mid-attempt (see REQ-DEV1/DEV2)**:
-    the obvious cheap test — have the agent inject a tap via
-    `adb shell input tap` and watch what happens — is itself the kind of
-    autonomous input-injection REQ-DEV1 rules out, so it's off the table
-    even though it would have produced a real answer. This question now
-    needs either a user-performed comparison tap with the agent only
-    observing, or waits for real `AccessibilityService` code the user
-    explicitly triggers per-instance.
+- **OQ-1 (REQ-M1) — RESOLVED: no.** Does Umamusume's client detect/block
+  synthetic gestures dispatched by an `AccessibilityService`? No —
+  confirmed by extensive live use, not a targeted spike: this session's
+  UAT/offline testing has dispatched real `dispatchGesture` taps, swipes,
+  and drags through `UMAssistedAccessibilityService` across many full
+  career auto-run macros on a live account, with zero sign of detection,
+  warning, throttling, or ban. If the client distinguished synthetic
+  gestures at all, this volume of use would have surfaced it by now. No
+  longer a blocker.
+  - **Methodological constraint noted earlier (REQ-DEV1/DEV2) is now
+    moot**: the concern was that testing this via a bare `adb shell input
+    tap` would itself be the kind of autonomous input-injection REQ-DEV1
+    rules out. That never had to be resolved — the answer arrived as a
+    byproduct of ordinary, user-directed feature testing instead of a
+    dedicated spike.
 - **OQ-2 (REQ-M3) — RESOLVED by REQ-M5.** Which specific existing
   community/datamined Umamusume event database should the offline corpus
   be sourced from, and does using/redistributing its data raise licensing
