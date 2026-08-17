@@ -499,6 +499,10 @@ barrier, not the game's difficulty itself.
     Always normalize the live capture to a fixed reference coordinate
     space before comparing, so a 1080×2400 phone and a 1440×3200 phone
     aren't different match problems.
+  - **Third, cheaper signal: color sampling at known key positions —
+    see REQ-M14.** Not the same thing as the template match above (a
+    few pixel reads vs. a whole-region comparison); doesn't wait on
+    Stage 2's corpus work.
   - **Confidence gate, not best-guess.** A match only counts when it
     clears an explicit confidence threshold (fuzzy score for text;
     similarity score for visual). Below threshold, or when two candidates
@@ -895,6 +899,48 @@ barrier, not the game's difficulty itself.
     be as simple as logging DOT text to copy into any Graphviz renderer)
     — the requirement is that the graph structure itself is introspectable
     at runtime, not baked only into scattered Kotlin list literals.
+- **REQ-M14 — Color sampling at known key positions as a cheap,
+  independent screen/state signal, not folded into REQ-M6's Stage 2
+  visual match.** REQ-M6's design has OCR fuzzy-match as primary and a
+  full resolution-normalized *template* match as secondary — both real,
+  but the second one is comparatively heavy (a whole-region feature/
+  pixel comparison) and gated behind Stage 2's corpus work (OQ-49).
+  Sampling the color at a handful of fixed, known coordinates (an
+  energy-bar fill pixel, a badge/button background, a banner region) is
+  a much cheaper, third kind of signal — a handful of pixel reads, no
+  OCR, no template matching — and doesn't need to wait on Stage 2's
+  infrastructure to start paying off.
+  - **Not hypothetical — the existing screenshot corpus already shows
+    color carrying real, load-bearing meaning at consistent positions.**
+    `dev-logs/SESSION_NOTES.md`'s ~90-screenshot hand-labeled corpus
+    (the same one `CorpusMatcher`'s rule set was seeded from) routinely
+    describes exactly this: the energy bar reads "full green"; the
+    primary action button is a distinct **green** "Race!" on the race
+    hub vs. plain chrome elsewhere; confirm/warning dialogs use a **red**
+    warning glyph and banner; obtained skills highlight **purple**;
+    support-card friendship badges render in **blue**. REQ-V17 already
+    depends on exactly this kind of signal for a narrower purpose
+    (selecting a training facility by its spirit-burst color) — this
+    requirement is the same technique generalized to help identify or
+    disambiguate *which screen/state* is showing, not just facility
+    state within a screen already known to be the training hub.
+  - **Where it plugs in.** A candidate use: cheaply confirming/
+    disambiguating a screen classification OCR already made (a fast
+    corroborating check before acting), or distinguishing two OCR-
+    similar screens whose only reliable difference is a color at a
+    fixed position (e.g. an enabled vs. disabled button that reads the
+    same text either way). Exact integration point (part of REQ-M6's
+    confidence gate as a fourth signal, or a standalone pre-check like
+    REQ-M12's steady-state check) is an implementation decision, not
+    decided here.
+  - **Buildable now, same caveat as REQ-M9's tap-map work: key
+    positions need per-layout coordinates.** REQ-M9/OQ-46 already covers
+    the general problem of coordinates varying across device/aspect-
+    ratio buckets — this requirement doesn't need to re-solve that, only
+    to reuse whatever coordinate source REQ-M9 ends up using. On today's
+    single known-good dev device (Pixel 8) it can start immediately with
+    hardcoded coordinates, the same interim posture REQ-M9's own
+    fixed-fraction taps already use.
 
 ## 6. Functional Requirements
 
