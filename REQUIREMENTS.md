@@ -776,6 +776,109 @@ barrier, not the game's difficulty itself.
     call entirely (and re-poll cheaply instead) when the screen hasn't
     settled yet, only paying for OCR once the cheap check says it's
     worth it.
+- **REQ-M13 — Replace the flat-list macro model with a navigation graph:
+  screens (and dialog/interstitial states) as nodes, edges as navigation
+  strategies with their own path descriptions, grouped into named
+  networks that may share nodes with each other. Hard requirement before
+  further macro work — architectural debt, not a nice-to-have.** Found
+  via a full review of the shipped macro interpreter (`AutoRunMacro.kt`/
+  `macroTick`), not speculative: `MacroDefinition.steps` is one flat,
+  statically-ordered `List<MacroStep>`, and every tick just picks
+  `steps.firstOrNull { it.matches(text) }` — there is no unit smaller
+  than "the whole list," no branch construct beyond implicit list-order
+  priority, and no concept of two flows sharing a prefix and diverging.
+  The clearest evidence this is already the wrong shape: `MacroAction
+  .Decision.subroutine` is declared and documented ("delegates to a
+  separate named sequence") but is never read anywhere in `macroTick` —
+  the model already anticipated needing composition and the runtime
+  never got built to support it.
+  - **Networks, not one macro per command.** Career is a network of
+    nodes (title splash, loading, connecting, home, Continue Career
+    modal, training hub, Independent Training complete, Training Log,
+    Complete Career hub, day-boundary dialogs, ...) and the edges
+    (navigation strategies) between them. Team Trials (REQ-A36), special
+    events, and any future automation target are each their own network
+    — and these networks *overlap*: title splash, loading, Home, and the
+    day-boundary dialogs (Date Changed/Login Bonus/Notices) are common
+    nodes reachable from more than one network, not separately-owned
+    copies of the same screen. A shared node's edges/matcher must be
+    defined once and referenced by every network that passes through it,
+    the same way `dayBoundarySteps` already does today in miniature (the
+    one place the current model got this right, worth generalizing
+    rather than special-casing).
+  - **Edges carry navigation strategy, not just a destination.** An edge
+    from node A to node B names *how* to get there (tap this OCR text,
+    tap this window fraction, wait, replay/ask a Decision) — the current
+    `MacroAction` variants are a reasonable inventory of strategies to
+    carry forward, they just need to live on graph edges instead of
+    being the payload of a flat, ordered step.
+  - **A "start" invocation selects a network and a start/goal node pair
+    (or a start node and a goal condition), not a fixed step list.**
+    `startCareer`'s resume path and the still-unbuilt new-career path
+    (trainee select → support deck → race schedule) are two branches of
+    the *same* Career network sharing the same early nodes (title splash,
+    loading) and diverging only at whether the Continue Career modal
+    appears — exactly the shared-prefix-then-fork case the flat-list
+    model has no primitive for today (confirmed: building the new-career
+    path in the current model would require either duplicating the
+    shared prefix into a second full macro, or cramming a branch
+    condition into every step's matcher by hand).
+  - **Optional sub-paths are graph structure, gated at traversal time,
+    not per-step booleans.** REQ-A39's "clear off the last veteran"
+    option (below) is the motivating concrete case: it must be
+    expressible as an optional detour/sub-path spliced into the Career
+    network's start-run traversal when a setting is on, without
+    duplicating the whole network or threading a boolean into every
+    node's matcher along the way.
+  - **A stuck/undecidable node must be a first-class outcome, not a
+    silent forever-wait.** The review found a live instance of exactly
+    this failure: a `Decision` node with no stored default and no
+    on-device way to observe what the user tapped (REQ-M11/OQ-45) leaves
+    the traversal parked indefinitely — no timeout, no voice-driven
+    resolution path, recoverable only by an exact physical tap the user
+    has no confirmation is even being watched for. The graph model must
+    define what "stuck here" means and bound it the way `retryOrGiveUp`
+    already bounds a genuinely-unrecognized node, not leave it as a
+    silent, unbounded wait.
+  - **A traversal budget must scale with the actual path length, not be
+    one constant shared by every network.** The review found
+    `MacroDefinition.maxSteps=40` sized against the shortest branch
+    (finish-career's mid-run exit, ~4 real steps) and never revisited
+    once a much longer branch (~8+ distinct nodes, some visited more
+    than once via `Wait`) was added to the *same* macro — a legitimately
+    slow-but-correct traversal can exhaust the step budget before ever
+    reaching its goal node. Budget should be a property of the path
+    being walked, not a single constant retrofitted across every network.
+  - **Concurrency with other voice-triggered actions needs an explicit
+    policy, not incidental generation-counter sharing.** The review found
+    that any concurrent voice command (a facility arm/confirm, sweep,
+    super-skip) silently aborts an in-flight traversal today, with the
+    macro's own debug log giving no indication *what* superseded it, and
+    that a facility left armed-but-unconfirmed before a traversal starts
+    can later fire a stray tap against whatever node the traversal has
+    since moved to, or hijack/abort it via its own confirm-window timer.
+    The graph model should decide deliberately whether a traversal is
+    exclusive (concurrent voice commands queue, are rejected with
+    feedback, or explicitly interrupt-and-abort) rather than inheriting
+    this by accident from a shared counter designed for single-gesture
+    guarding.
+  - **Keeps the existing scene/screen-identification layer as-is —
+    this requirement is the composition layer above it, not a
+    replacement for it.** Every node still identifies itself exactly
+    the way `MacroStep.matches` does today: OCR text run through
+    `normalizedForMatch` and checked against the node's own patterns
+    (`containsAny`/`containsAll`/a custom predicate for cases like the
+    turns-left regex). That per-node UI-element analysis is not what
+    was found broken — a node correctly recognizing itself was never
+    the problem. What's missing is everything *between* nodes: how they
+    compose into flows, share prefixes, fork, and optionally detour.
+    Concretely: today's `MacroStep(name, matches, action)` becomes a
+    graph node's own identity + outgoing edges, largely unchanged in
+    substance — the refactor is the surrounding structure (flat list →
+    graph, `firstOrNull` priority → explicit edges/networks), not a
+    rewrite of how a node recognizes the screen it represents. Also
+    means this doesn't require solving OQ-49 (the real screen classifier)
+    first — nodes keep using today's OCR-text matching either way.
 
 ## 6. Functional Requirements
 
@@ -1443,6 +1546,39 @@ decision point recurs. That's a selection (replay), not a choice
     continue the exit sequence" — not a standing skills-shopping mode.
     Same bounded-sequence/no-loop discipline as the rest of REQ-A19–A21
     (REQ-A1/REQ-A5).
+- **REQ-A39 — "Start fully auto career/run": an optional flag on the
+  start-career command that, when enabled, automatically clears off
+  (retires/dismisses) the previous veteran trainee at the appropriate
+  point in the flow. Hard requirement for 1.0 beta, not required for
+  1.0 alpha.** A named variant of REQ-A19's start command, not a
+  separate command family — same underlying "begin a run" intent, with
+  one additional optional detour.
+  - **Depends on REQ-M13's graph model, not the current flat-step
+    list.** This is the concrete motivating case REQ-M13 names: the
+    veteran-clear detour is a sub-path spliced into the Career network's
+    start-run traversal only when the setting is on — it must not
+    require duplicating the entire start-career flow into a second copy,
+    nor threading a boolean into every existing node's matcher by hand.
+    Sequencing until REQ-M13 lands: this requirement is written now,
+    implemented after.
+  - **The word "quickly" (or an equivalent modifier, if this ends up
+    using one) is not required to sit at the front of the utterance.**
+    "Start fully auto career quickly" and "quickly start fully auto
+    career" must both work, the same way REQ-A27's "quickly" clause
+    already has to tolerate either position. Not a new parsing
+    mechanism to build now — OQ-58 already tracks the general
+    modifier-parsing redesign this depends on; this requirement just
+    states the same leading-or-trailing tolerance applies here too,
+    whenever that redesign lands.
+  - **Still a real decision, gated by explicit opt-in.** Clearing off a
+    veteran is consequential (REQ-A11/REQ-A4) — this flag is how the
+    user pre-authorizes that specific action for every run it's enabled
+    for, not UMAssisted deciding on its own that a veteran should go.
+    Off by default.
+  - **Not yet scoped:** what "the appropriate point in the flow" actually
+    is (needs a live capture of the veteran-clear screen(s), same OQ-49
+    discipline as everything else in this document), and whether this
+    setting lives in MainActivity's settings screen or is voice-only.
 - **REQ-A28 — Every macro (REQ-A19–A21, REQ-A27) must explicitly recognize
   loading screens and other content-varying interstitials as a distinct
   "wait, don't give up" case, never as either an unrecognised-screen
