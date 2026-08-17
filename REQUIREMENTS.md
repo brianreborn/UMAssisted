@@ -879,6 +879,22 @@ barrier, not the game's difficulty itself.
     rewrite of how a node recognizes the screen it represents. Also
     means this doesn't require solving OQ-49 (the real screen classifier)
     first — nodes keep using today's OCR-text matching either way.
+  - **Debug feature: export the live navigation graph as Graphviz DOT.**
+    A dev-build-only debug action (same discipline as the existing Voice
+    Pipeline Log — REQ-S3, no-op/absent in release builds) that dumps
+    every registered network's nodes and edges as DOT output, so gaps
+    are visible by inspection rather than only by tracing code: a node
+    with no outgoing edge to anywhere but itself, an edge pointing at a
+    node no other edge ever reaches, an unbuilt/dashed node with real
+    incoming edges but no outgoing ones. Directly motivated by this
+    session's own review — several of the coverage gaps found (the
+    missing "Connecting..." screen, the four unbuilt new-career nodes)
+    would have been visually obvious as dead ends or missing edges in a
+    rendered graph, rather than requiring a full manual code review to
+    surface. Render target is out of scope for this requirement (could
+    be as simple as logging DOT text to copy into any Graphviz renderer)
+    — the requirement is that the graph structure itself is introspectable
+    at runtime, not baked only into scattered Kotlin list literals.
 
 ## 6. Functional Requirements
 
