@@ -4530,15 +4530,23 @@ unresolved, not currently blocking; **DEFERRED** = intentionally not needed yet.
     depends on a real, built-out event-text corpus that doesn't exist
     yet. Splitting the work removes that dependency from the critical
     path:
-    - **Stage 1 — BUILT.** `CorpusMatcher.kt`'s raw substring-`.contains()`
-      list replaced with real edit-distance fuzzy matching (sliding window
-      of the OCR text against each rule phrase, `slack`-tolerant on
-      length) plus an explicit `CONFIDENCE_THRESHOLD` gate (0.80
-      normalized similarity) — REQ-M6's "never silently pick the closest
-      of a bad set" rule: below the gate, `match()` returns unmatched
-      rather than guessing. Same hand-seeded phrase set as before, no new
-      corpus data. `MatchResult` now carries a `confidence` field so
-      callers/logs can see the score, not just the boolean outcome.
+    - **Stage 1 — BUILT, then fixed up after a code review found the
+      first pass didn't actually deliver its own stated bar.** The
+      first implementation used a fixed-width sliding window and a flat
+      similarity-ratio gate; review (plus this file's own new unit
+      tests) found the window math meant the fuzzy tolerance almost
+      never fired outside an isolated end-of-string token, and the flat
+      ratio gave zero tolerance to every rule pattern under 5
+      characters while simultaneously being *too* permissive for some
+      of them (e.g. "next" is a 1-edit neighbor of the ordinary word
+      "text" — found by the new tests, not the review itself). Rebuilt
+      with a proper single-pass approximate-substring-match DP and a
+      length-tiered `allowedEdits()` (exact-only below 6 characters,
+      then 1-2 edits) — a deliberately blunt, a-priori safety floor,
+      not a calibrated one (OQ-31 already covers that debt). Covered by
+      `CorpusMatcherTest.kt`. Same hand-seeded phrase set as before, no
+      new corpus data. `MatchResult` now carries a `confidence` field
+      so callers/logs can see the score, not just the boolean outcome.
     - **Stage 2 (grows alongside REQ-M5/M7, not blocking beta on its
       own):** the real event/generic-UI corpus, the visual-match
       secondary signal for text-poor screens, and scrollbar geometry
