@@ -1307,11 +1307,49 @@ decision point recurs. That's a selection (replay), not a choice
     as the rest of this requirement. A command that only works once
     the user has already tapped through the title sequence by hand
     fails the motivating case: those opening taps *are* the barrier.
-  - **Does not license the new-career path.** Trainee select, support
-    deck, and race-schedule setup remain out of this clause (and out
-    of 1.0 alpha) until those screens are in the corpus. Resume of an
-    already-in-progress Aoharu Hai / Unity Cup run is the required
-    path.
+  - **PULLED INTO SCOPE for 1.0 beta — the new-career path (trainee
+    select, support deck, race-schedule setup, final confirm) is no
+    longer excluded from this requirement, only deferred.** Previously
+    read "does not license the new-career path... out of 1.0 alpha"
+    with no target beyond that. Alpha's narrow resume-only scope stands
+    as shipped (unchanged, still correct for what already exists) —
+    what changes here is that new-career is now a named beta target
+    instead of an open-ended exclusion.
+    - **Still blocked on the same two things that excluded it
+      originally, not on a new decision.** (1) The four screens aren't
+      in the corpus yet — no live capture exists for trainee selection,
+      support card deck selection, career race schedule, or the final
+      confirm/begin screen (`AutoRunMacros.startCareerMissingCoverage`
+      lists exactly these four, kept as a visible gap rather than
+      silently absent). (2) Unlike the resume path's flat sequence,
+      new-career is a genuinely branching flow (a trainee pick, then a
+      deck pick, then a schedule pick, each gating what's reachable
+      next) — precisely the shape REQ-M13's navigation-graph refactor
+      exists to model; building this against the current flat
+      `MacroDefinition.steps` list first would mean rebuilding it again
+      once REQ-M13 lands. **Sequencing: capture the four screens first
+      (unblocks scoping the actual nodes/edges), then build new-career
+      as one of REQ-M13's first real networks** rather than as more
+      flat-list steps.
+    - **Already anticipated, not starting from nothing.**
+      `AutoRunMacros.DECISION_TRAINEE`, `DECISION_SUPPORT_DECK`, and
+      `DECISION_RACE_SCHEDULE` decision-key constants already exist in
+      code (unused until this lands); this requirement's own "race
+      schedule may delegate to its own subroutine" clause below and
+      `MacroAction.Decision.subroutine` were written with exactly this
+      branching shape in mind, ahead of REQ-M13 confirming the flat
+      model couldn't actually deliver it (REQ-M13's own motivating
+      evidence: `subroutine` is declared but never read anywhere).
+    - **Same authority modes apply once built.** Plain "start auto
+      run" stops at the trainee/deck/schedule decisions (REQ-A8);
+      "start auto run, defaults" replays the user's last selection for
+      each, same as it already does for the resume path's decisions —
+      no new authority model needed, this is the existing REQ-A19
+      machinery applied to more nodes.
+    - **Not a 1.0 alpha blocker.** Resume of an already-in-progress
+      Aoharu Hai / Unity Cup run remains the complete, sufficient path
+      for alpha; this section only changes the beta target, not what
+      alpha already ships.
     - **Fixed a real violation of this clause.** The macro carried a
       trailing "generic no-choice advance" fallback step (`matches`
       any of "next"/"ok"/"confirm", tap "Next") meant to catch stray
