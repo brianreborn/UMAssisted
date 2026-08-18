@@ -310,7 +310,10 @@ def build_html(sections: list[dict], edges: list[dict], nodes: list[dict]) -> st
             f'<details open id="{html.escape(sec["slug"])}" style="{indent}">'
             f"<summary class=sect data-line={sec['line']}>"
             f"{html.escape(sec['title'])} "
-            f"<span class=count>{len(sec['nodes'])}</span></summary>"
+            f"<span class=count>{len(sec['nodes'])}</span> "
+            f'<button type="button" class="seclink" data-slug="{html.escape(sec["slug"])}" '
+            f'title="Copy link to this section">🔗</button>'
+            f"</summary>"
             f"<ul class=nlist>{''.join(kids)}</ul></details>"
         )
 
@@ -393,6 +396,12 @@ def build_html(sections: list[dict], edges: list[dict], nodes: list[dict]) -> st
   #tree .count {{
     font-weight: 400; opacity: 0.6; font-size: 11px;
   }}
+  #tree .seclink {{
+    all: unset; cursor: pointer; font-size: 11px; opacity: 0.35;
+    padding: 1px 4px; border-radius: 3px; vertical-align: middle;
+  }}
+  #tree summary.sect:hover .seclink {{ opacity: 0.8; }}
+  #tree .seclink:hover {{ opacity: 1 !important; background: #243044; }}
   ul.nlist {{ list-style: none; margin: 4px 0 8px; padding: 0 0 0 8px; }}
   ul.nlist li {{ margin: 1px 0; }}
   .nbtn {{
@@ -902,6 +911,28 @@ document.querySelectorAll('.controls input, #sectionFilter, #filter').forEach(el
 document.getElementById('showFullGraph').addEventListener('click', () => {{
   document.getElementById('focusToggle').checked = false;
   relayout();
+}});
+
+// Section header (<summary>) toggles expand/collapse on click natively —
+// there's no separate way to "select" a section otherwise, hence this
+// button. preventDefault stops that native toggle from also firing when
+// this specific button is what's clicked; stopPropagation is belt-and-
+// braces since the click would otherwise bubble to the summary too.
+document.querySelectorAll('#tree .seclink').forEach(btn => {{
+  btn.addEventListener('click', (e) => {{
+    e.preventDefault();
+    e.stopPropagation();
+    const slug = btn.dataset.slug;
+    history.replaceState(null, '', '#' + encodeURIComponent(slug));
+    scrollToSection(slug);
+    if (navigator.clipboard && navigator.clipboard.writeText) {{
+      navigator.clipboard.writeText(location.href).then(() => {{
+        const prev = btn.textContent;
+        btn.textContent = '✓';
+        setTimeout(() => {{ btn.textContent = prev; }}, 1200);
+      }}).catch(() => {{}}); // clipboard permission denied etc — URL is still updated either way
+    }}
+  }});
 }});
 
 // Deep links: #REQ-ID / #OQ-ID focuses that item (reuses the exact same path
