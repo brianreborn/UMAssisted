@@ -4336,6 +4336,15 @@ decision point recurs. That's a selection (replay), not a choice
     better** — REQ-A14's "gamble" vs. "safe" labeling states a fact
     about *shape* (random vs. fixed outcome), not a preference between
     them; calling something a gamble is not recommending against it.
+    (e) **A complete, unranked listing of every option, given in
+    response to the user explicitly asking what their options are.**
+    "What are my options?" answered with all of them, in the game's own
+    on-screen order, none omitted or emphasized over another, is
+    disclosure — the opposite of a recommendation's defining move
+    (surfacing a preference among alternatives). It only becomes a
+    recommendation if the listing stops being complete-and-neutral: any
+    option dropped, reordered by a computed criterion, or singled out
+    crosses back into (1)/(2) above.
   - **The test in one sentence, for anything not covered above:** does
     this output exist because UMAssisted compared alternatives and this
     is what came out on top — however it's phrased, sized, colored, or
