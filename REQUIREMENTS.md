@@ -3976,6 +3976,35 @@ decision point recurs. That's a selection (replay), not a choice
     candidates was added during REQ-V18's on-device debugging session and
     must be gated (or removed) under this requirement before it ships —
     tracked as a cleanup item, not left as a silent exception.
+  - **Amended — narrow, explicitly-warned runtime override for the
+    in-app-only audit buffer specifically, not for system logcat.**
+    Resolves the tension between this requirement and REQ-VAL2's
+    "auditable... a bot typically runs opaquely" claim, which a
+    build-time-only gate can't actually satisfy in a release build a
+    real user runs (found via a direct audit of REQ-VAL2 against this
+    requirement). The fix keeps this requirement's original reasoning
+    intact for the surface it was actually protecting: `Log.i`/`Log.d`
+    calls that reach system-wide `logcat` (readable by `adb`, bug
+    reports, or another app with log-read permission) stay build-time-
+    gated only, exactly as above — a coerced or unknowing user flipping
+    a runtime setting must not be able to reopen that surface. What
+    *can* be a runtime, user-initiated setting is `VoiceDebugLog`'s
+    in-app ring buffer specifically: private in-process memory, never
+    written to system `logcat`, only ever rendered through the app's
+    own viewer (MainActivity's "Voice Pipeline Log") — a categorically
+    smaller surface than what motivated the build-time-only rule.
+    - **Must show an explicit, specific warning every time it's turned
+      on, not just the first time.** Plain language naming exactly what
+      gets recorded (voice transcripts, OCR'd screen text, recorded
+      selections) and stating clearly that this is the user knowingly
+      trading away that specific privacy protection in exchange for
+      being able to review what UMAssisted did. A one-time "don't ask
+      again" checkbox would recreate the "flip it once, forget it's on"
+      risk this amendment is trying to avoid without reopening the
+      logcat surface.
+    - **Off by default, same as the build-time gate's spirit.** This is
+      an opt-in for a user who specifically wants retrospective review
+      capability, not a new default posture.
 - **REQ-S4 — Strict PII & personal information log protection.** No personal
   information or PII (personally identifiable information) — including user
   identifiers, trainer IDs, raw speech transcripts, device names, or OCR text
@@ -3996,6 +4025,24 @@ decision point recurs. That's a selection (replay), not a choice
   Intending REQ-A1/REQ-A4 to land on the assistance side doesn't
   automatically mean the shipped product does — this needs to be checked
   deliberately against concrete criteria, not asserted.
+  - **The final pass is a re-audit, not the first check — every new
+    action-capable requirement is checked against REQ-VAL2 when it's
+    written, not only here.** Found via a direct audit of this section:
+    as originally written, REQ-VAL1 was the *only* gate, sitting at
+    1.0 final while substantial functionality (macros, sweep, decision
+    replay) had already been built across alpha/beta with no formal
+    checkpoint before it — by the time a single terminal gate fires,
+    cutting something already relied on is maximally disruptive, which
+    undercuts REQ-VAL3's "gets rescoped or cut" in practice. The fix
+    isn't new process overhead: any requirement in §6 that adds a new
+    way for UMAssisted to act (a new REQ-A/REQ-V capability, not a bug
+    fix or a docs-only change) states in its own text how it holds up
+    against REQ-VAL2's criteria at the time it's added, the same way
+    REQ-VAL5/VAL6/VAL7 already do for the newest capabilities. REQ-VAL1's
+    pass at 1.0 final then re-confirms the whole accumulated set
+    together, catching drift or interaction effects a feature-by-feature
+    check could miss — not discovering for the first time whether any
+    single feature belongs.
 - **REQ-VAL2 — Proposed criteria for that validation** (draft, to be
   refined during the validation pass itself, not treated as final):
   - **No capability beyond what the user could already do manually.**
@@ -4011,17 +4058,35 @@ decision point recurs. That's a selection (replay), not a choice
     REQ-R/REQ-A4/REQ-V) and REQ-A6 (never faster/easier than best-case
     human manual play). "Bot" implies acting while the user is away or
     faster than any human could; this project rules out both, explicitly.
-  - **Auditable and overridable at every step.** The user can always see
-    what's about to happen or did happen, and stop or undo it (REQ-A3,
-    REQ-A4's reviewability requirement) — a bot typically runs opaquely;
-    this shouldn't.
-  - **Same category as already-accepted assistive tech.** TalkBack,
+  - **Auditable and overridable at every step — two distinct claims, not
+    one.** "Overridable" holds unconditionally: the user can always stop
+    or undo what's happening in real time (REQ-A3, REQ-A5's kill
+    switches) — a bot typically runs opaquely; this shouldn't.
+    "Auditable" is narrower than it sounds and needs disambiguating: by
+    default it means the user can *watch it happen live*, not that
+    there's a persistent record to review afterward — REQ-S3
+    deliberately keeps raw-content system logging build-time-gated-only
+    in any real release, so that guarantee isn't undermined by casual
+    on-device logging becoming a privacy leak. A user who specifically
+    wants retrospective review can opt into it (REQ-S3's amended
+    narrow runtime override, scoped to the in-app audit buffer only) —
+    but that's a deliberate, warned trade the user makes, not this
+    criterion's default guarantee.
+  - **Same category as already-accepted assistive tech — the concrete
+    test, not just the analogy.** TalkBack,
     Switch Access, and external switch/eye-tracking controllers are
     broadly accepted as legitimate accessibility tools despite technically
     "automating" input in some sense — e.g. switch-access scanning taps
     through UI elements on the user's behalf. The validation should be
     able to show UMAssisted's mechanism sits in that same category, not a
-    categorically different one.
+    categorically different one. Concretely, that means checking the
+    *other* three criteria on this list first: a feature that already
+    passes "no capability beyond manual," "no speed/uptime advantage,"
+    and "auditable/overridable" has, by that fact, already demonstrated
+    it acts the way a switch-scanner or an eye-tracker acts — this
+    criterion is the summary label for passing the first three, not a
+    separate, independently-argued analogy a feature could pass on its
+    own "vibes" while failing one of the others.
 - **REQ-VAL3 — This is a gate, not a formality.** If a specific feature
   can't be shown to hold up against these criteria, it gets rescoped or
   cut before shipping — the pass isn't there to rubber-stamp decisions
@@ -4041,6 +4106,14 @@ decision point recurs. That's a selection (replay), not a choice
   feature fails the internal criteria, it is cut or rescoped (REQ-VAL3)
   regardless of outside opinion; if it passes, it is not blocked waiting
   for a forum thread.
+  - **This exemption is conditioned on REQ-P3's scope, not permanent —
+    re-examine it if that scope ever changes.** The reasoning above only
+    holds because REQ-P3 currently means "never public, personal build
+    only." If REQ-P3's scope is ever revisited — including something
+    short of "public," like sharing the build with even one other
+    person — REQ-VAL4's internal-only posture must be re-examined at
+    that time, not silently assumed to still apply. Not a live concern
+    today; a trigger so it doesn't get missed if the situation changes.
 - **REQ-VAL5 — Information surfaced to the user must come from the
   current, unmodified game display — never from a source the player
   themselves couldn't see by looking at the same screen.** Makes
@@ -4125,6 +4198,17 @@ decision point recurs. That's a selection (replay), not a choice
     community site at runtime, bundling someone else's curated dataset)
     would need its own licensing/currency review before this
     requirement's reasoning could apply to it.
+  - **Named explicitly so it isn't reinvented later: a feature that
+    learns from the user's own play history and surfaces a suggestion
+    from it fails this requirement, the same as an unprompted
+    recommendation would.** The general "does the app choose, or did
+    the user's prior explicit instruction choose" test above already
+    forecloses this — a learned pattern over past runs is not a single,
+    specific instruction the user gave in advance, it's the app forming
+    a judgment. Worth naming directly (the reviewed counter-example,
+    REQ-VAL5, markets exactly this as an "AI Brain learning from your
+    own runs") since it's a genuinely tempting feature shape, not
+    naming it because the general test was insufficient.
 - **REQ-VAL7 — Uncertainty defaults to requiring confirmation, never to
   committing an action. This is a permanent ceiling, not a threshold to
   optimize away as recognition quality improves.** Whenever a signal
