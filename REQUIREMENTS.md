@@ -4089,6 +4089,42 @@ decision point recurs. That's a selection (replay), not a choice
     sibling does the opposite isn't rigorous. REQ-P3/REQ-S1 already
     describe this project as a single, non-suite, local-only tool — this
     is a note to stay that way, not a gap to close.
+- **REQ-VAL6 — Static, deterministic reference data may inform; it may
+  never recommend. This is REQ-VAL5's positive complement, not a
+  loophole in it.** REQ-VAL5 rules out reading a *live, decided-but-
+  unrevealed* outcome. This requirement makes the other side explicit,
+  because it was already being practiced without ever being stated as a
+  principle: data that is **fixed, non-random, and sourced from the
+  user's own local game client** (REQ-M5's `master.mdb` extract; an
+  option's guaranteed/non-random effect value) is not an information
+  advantage in the sense REQ-VAL5 rules out — it's the same category of
+  fact a player could already get by alt-tabbing to a wiki, just
+  surfaced in-place. What makes the difference between using it and
+  Overseer's "advisor" is *who's doing the deciding*.
+  - **Already built, three times over, just never named as one
+    principle.** REQ-A14 ("gamble"/"safe" — selects by outcome *shape*,
+    from static event data, only when the user says the word), REQ-A15
+    ("take the energy" — selects by a **guaranteed, non-random** value,
+    same condition), and REQ-A4/A8/A19/A21's defaults/last-chosen replay
+    (replays a selection the user themselves already made, using static
+    corpus data only to identify *which* on-screen option that was) are
+    all the same shape: static data feeding a rule the user explicitly
+    specified in advance, executed exactly, never a judgment call made
+    on the app's own initiative.
+  - **The test: does the app choose, or does the user's own prior,
+    explicit instruction choose?** "Take the energy" isn't the app
+    recommending the energy option is best — it's the user telling the
+    app *in this specific instance* "apply this specific rule for me,"
+    same as REQ-A11's reconciliation test already requires. An unprompted
+    "you should pick X" — even backed by completely static, honestly-
+    sourced data — fails this requirement exactly as it would fail
+    REQ-A11, regardless of how the data was obtained.
+  - **REQ-M5's sourcing discipline (own-client extract, no third-party
+    redistribution, no runtime download) is what keeps this static, not
+    a separate concern.** Data sourced any other way (scraping a
+    community site at runtime, bundling someone else's curated dataset)
+    would need its own licensing/currency review before this
+    requirement's reasoning could apply to it.
 ### 8.1a First-run / Onboarding (gap stub)
 
 - **REQ-ON1 — First-run must get AccessibilityService, overlay, and mic
