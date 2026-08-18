@@ -4079,6 +4079,22 @@ decision point recurs. That's a selection (replay), not a choice
   when debug mode (`BuildConfig.DEBUG`) is explicitly enabled. All release and
   production build log statements must sanitize, mask, or omit personal data
   payloads.
+  - **Camera/gaze imagery (REQ-A40) is explicitly this category, and a
+    stricter case of it, not an unnamed gap.** Found via audit: REQ-S3/
+    S4 enumerated "voice transcripts, OCR'd screen text, recorded
+    selections" and "what the user said, saw, or chose" — written before
+    REQ-A40 existed, so camera frames of the user's own face/eyes were
+    never named, even though they're the same *shape* of raw-content
+    risk REQ-S3 already governs (arguably worse: imagery of a person is
+    more sensitive than transcribed text of what they said). REQ-S3's
+    build-time-gated-by-default rule and REQ-S4's "sanitize, mask, or
+    omit" rule both apply to camera/gaze data exactly as they apply to
+    voice and OCR — no frame, landmark coordinate set, or gaze-estimate
+    log payload reaches system `logcat` outside a debug build, full
+    stop, no runtime override for this category (REQ-S3's amended
+    runtime override was scoped to `VoiceDebugLog`'s in-app buffer only
+    — it does not extend to camera data, which REQ-A40 already commits
+    to never storing at all, in any buffer, debug or not).
 
 
 ## 8. Process & Governance
@@ -4321,6 +4337,26 @@ decision point recurs. That's a selection (replay), not a choice
     (REQ-VAL2's "auditable" criterion, applied to the uncertain case
     specifically) — not quietly doing nothing while giving no
     indication anything was recognized at all.
+  - **"Certain" operationally defined, so this requirement doesn't rest
+    on an undefined qualitative judgment the way "recommendation" did
+    before REQ-VAL9.** Found via audit: read too literally, "fully
+    certain" is unsatisfiable (no recognizer is ever epistemically
+    100% correct), which would make this requirement demand double-
+    confirmation for *everything*, which isn't the intent — the "Wit"
+    example above is specifically about the ambiguous case, not every
+    case. **Certain means an exact, deterministic match against a known
+    set**, not a probability above some tuned cutoff: an exact
+    substring/phrase hit (REQ-M6/CorpusMatcher's `confidence=1.0` fast
+    path, an ASR result that exactly matches one registered phrase with
+    no other close alternate offered) counts as certain. **Uncertain
+    means anything reached by approximation** — REQ-M6's fuzzy/edit-
+    distance match below 1.0, multiple close ASR alternates, a
+    confidence score under a threshold — regardless of how high that
+    approximate score is. This mirrors REQ-M6's own existing "never
+    silently pick the closest of a bad set" gate rather than inventing
+    a new one: if a signal already had to clear a fuzzy/approximate
+    match to be accepted at all, it's "uncertain" for this requirement's
+    purposes even after clearing that gate.
 - **REQ-VAL8 — Exactly two legitimate sources of a "default" selection:
   the game's own pre-selected/highlighted option, and the user's own
   last-chosen selection. No third kind exists, ever.** Names, as a
@@ -4555,6 +4591,35 @@ decision point recurs. That's a selection (replay), not a choice
     processes and orphaned DUT-side shell processes left running are a
     real, observed failure mode (not hypothetical) — kill them
     explicitly once the session segment that needed them is done.
+- **REQ-DEV6 — REQ-DEV3's structural-constraint discipline generalizes
+  to any new sensor-access spike, not only `dispatchGesture()`.** Found
+  via audit: REQ-DEV3 is written specifically in terms of touch
+  dispatch (single trigger surface = one button's `onClick`, two-step
+  confirm, staged validation against an inert target) because that was
+  the capability being spiked when it was written. REQ-A40 introduces a
+  capability of a different shape — continuous camera/gaze processing,
+  not a single discrete dispatched action — and nothing before this
+  requirement said REQ-DEV3's reasoning still applies to it. It does:
+  the same "chain of custody of control, not just chain of ethics"
+  premise holds regardless of what the sensor is.
+  - **Visible-while-active is the camera-specific translation of
+    REQ-DEV3's structural constraints.** No background/silent camera
+    access: an on-screen indicator is shown for the entire duration
+    camera processing is active, satisfying REQ-VAL2's auditability
+    criterion for this capability the same way a live macro run's
+    on-screen state does for dispatched gestures. Single trigger
+    surface still applies (one explicit control arms/disarms it, no
+    timers or listeners that could activate it independently). Staged
+    validation still applies: prove gaze estimation works against a
+    harmless test target (e.g. a calibration screen) before ever using
+    it to disambiguate a real in-game selection. Small, readable,
+    installed-once-uninstalled still applies to any standalone spike
+    build, same as REQ-DEV3 already requires.
+  - **REQ-DEV4's Do Not Disturb discipline extends to camera testing for
+    the same reason it applies to voice testing** — an incidental
+    person walking into frame, or the tester's own attention being
+    pulled elsewhere mid-test, is the camera-input analogue of a
+    notification interfering with a live voice-input session.
 
 ### 8.3 Coverage Verification & Release Gates
 
