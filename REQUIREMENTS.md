@@ -1457,7 +1457,8 @@ decision point recurs. That's a selection (replay), not a choice
     branches, and which screens each one's steps cover, are worth
     knowing when testing either path.
 - **REQ-A21 — "Start auto run recording defaults": one-shot capture of
-  defaults without turning the setting on. Hard blocker for 1.0 alpha.**
+  defaults without turning the setting on. RE-LITIGATED: downgraded to
+  hard blocker for 1.0 beta, not 1.0 alpha — see resolution below.**
   A third form of REQ-A19's command that behaves as though the
   "auto record defaults" option(s) were enabled, but only for that single
   invocation. It is the counterpart to REQ-A19's "Defaults" clause:
@@ -1505,6 +1506,27 @@ decision point recurs. That's a selection (replay), not a choice
     requirement's "Hard blocker for 1.0 alpha" tag needs re-litigating
     once REQ-M8 lands; as shipped, invoking this command records nothing,
     which does not meet the requirement as written above.
+  - **RE-LITIGATED: downgraded to a 1.0 beta blocker.** The tag was
+    still "Hard blocker for 1.0 alpha" while the bullet directly above
+    it says the command records nothing — an unresolved contradiction,
+    not a gap awaiting an unrelated dependency. Considered and rejected
+    a workaround: a post-tap OCR re-capture (diff the screen before/
+    after the user's tap, infer the choice from what changed) instead
+    of waiting on REQ-M8's full touch-coordinate correlation. Rejected
+    because REQ-M8's own text already rules this out for its
+    canonical case (indistinguishable options, e.g. three friends
+    offering the same Borrow Card — "post-tap state... is necessary
+    confirmation but cannot disambiguate *why*"), and building a
+    narrower OCR-diff path for only the OCR-distinguishable decisions
+    would mean authoring new screen-matching logic for screens nobody
+    has actually captured yet — the exact mistake this document has
+    already caught and reverted once this session (REQ-A19's removed
+    generic-fallback bug). Genuinely blocked on REQ-M8/OQ-45, not on
+    more code. 1.0 alpha ships with "start auto run, defaults" able to
+    *replay* a default once one exists (REQ-A19's DEFAULTS mode is
+    unaffected — that path never depended on this command), but no
+    in-game action can *establish* one yet; every decision falls
+    through to the user every time until REQ-M8 lands.
 - **REQ-A27 — "Finish auto run" completes pending skill purchases before
   leaving the career. Hard requirement for 1.0 beta, not required for
   1.0 alpha.** A trainee can finish a career holding unspent skill
@@ -3775,6 +3797,18 @@ decision point recurs. That's a selection (replay), not a choice
     required by REQ-M3/M4/M6. A dispatch that produces no expected screen
     change is treated the same as an unmatched screen: stop and fall
     through (REQ-M3/REQ-A4/REQ-F4), not retried blindly.
+    - **BUILT for the auto-run macros (REQ-A19/A20).** Was a real gap
+      until now — the macro interpreter's retry loop provided a similar
+      effect only indirectly (a no-op tap would just get silently
+      re-matched and re-tapped against the same unchanged screen). Now
+      tracks the last successfully-dispatched action's `step::screen-text`
+      signature; if the next tick is about to dispatch the identical
+      action against the identical screen, it routes through the
+      existing retry/give-up budget instead of dispatching again — the
+      literal "stop and fall through, not retried blindly" this bullet
+      specifies. Applies to `MacroStep`-driven dispatch only; REQ-M6's
+      general screen-recognition confirmation for non-macro taps is
+      unaffected either way.
   - **Prefer window- or node-targeted APIs to display-global ones
     wherever the platform offers them.** Precedent: screen capture was
     originally `takeScreenshot(displayId)`, which composites every
