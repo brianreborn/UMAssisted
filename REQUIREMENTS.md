@@ -4125,6 +4125,51 @@ decision point recurs. That's a selection (replay), not a choice
     community site at runtime, bundling someone else's curated dataset)
     would need its own licensing/currency review before this
     requirement's reasoning could apply to it.
+- **REQ-VAL7 — Uncertainty defaults to requiring confirmation, never to
+  committing an action. This is a permanent ceiling, not a threshold to
+  optimize away as recognition quality improves.** Whenever a signal
+  UMAssisted is about to act on — a recognized voice utterance, an OCR/
+  visual screen match, a fuzzy corpus match — is anything less than
+  fully certain, the response must be to require an explicit second
+  confirming signal, never to act on the single uncertain one and never
+  to silently discard it without telling the user something was heard/
+  seen but not acted on.
+  - **The concrete case this was written from.** A user says "Wit" —
+    recognized well enough to identify Wit as the intended facility,
+    but not spoken as, or followed by, a clear confirmation. The
+    correct behavior is exactly what REQ-V12 already builds: arm Wit,
+    wait for a second utterance to commit. What this requirement adds
+    is the floor underneath that mechanism — **no future change may
+    let a high-confidence single utterance skip the second
+    confirmation**, no matter how reliable recognition gets. Confidence
+    can raise or lower *how readily something arms*; it must never be
+    allowed to shrink *how many confirming signals committing it
+    requires*. Collapsing arm-then-confirm to one-shot-on-high-
+    confidence is exactly the kind of quiet regression this
+    requirement exists to permanently foreclose, not just discourage.
+  - **Not a new mechanism — a permanent floor under mechanisms that
+    already exist, so they can't be locally weakened later.** REQ-V4/
+    REQ-V12 (voice double-utterance), REQ-M6's confidence gate ("never
+    silently pick the closest of a bad set"), REQ-A12 (accidental-tap-
+    burst detection), and REQ-M5/REQ-F4's "unmatched falls through to
+    the user" are each already an instance of this principle in their
+    own domain. None of them currently says *why* skipping the
+    fallback would be wrong even if it worked more often than not —
+    this requirement is that reason, stated once, at the level that
+    binds all of them and any future one.
+  - **Applies uniformly, not only to consequential/irreversible
+    actions.** REQ-V4 scopes double-confirmation to consequential
+    actions specifically; this requirement's trigger is different and
+    additive — *uncertainty* triggers it regardless of whether the
+    action itself is consequential. A low-stakes, fully-reversible
+    action taken on an uncertain signal is still wrong under this
+    requirement, because the harm being prevented is acting on a guess,
+    not just the cost of the specific action.
+  - **Silence is not compliance.** Requiring confirmation means telling
+    the user what was heard/seen and that it's waiting to be confirmed
+    (REQ-VAL2's "auditable" criterion, applied to the uncertain case
+    specifically) — not quietly doing nothing while giving no
+    indication anything was recognized at all.
 ### 8.1a First-run / Onboarding (gap stub)
 
 - **REQ-ON1 — First-run must get AccessibilityService, overlay, and mic
