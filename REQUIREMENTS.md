@@ -592,6 +592,73 @@ barrier, not the game's difficulty itself.
     must fall through to the user rather than guess (same discipline as
     REQ-M3/REQ-F4) — recording is only safe for decisions REQ-M6 can
     already resolve to a specific option by text/visual match alone.
+  - **See REQ-A40: optional eye tracking is a candidate second path to
+    the same disambiguation problem**, orthogonal to the raw-touch-
+    coordinate approach above and not blocked on the same `/dev/input`
+    access gap — it doesn't need the user's touch event at all, only
+    where they're looking at the moment they name a choice by voice.
+- **REQ-A40 — Optional eye tracking to disambiguate between visually-
+  similar on-screen options. Hard requirement for 1.0 beta, not
+  required for 1.0 alpha.** REQ-M8's raw-touch-coordinate approach to
+  "which of these identical-looking options did the user mean"
+  (REQ-A19's Borrow Card list — three friends offering the same card,
+  telling them apart needs *where*, not just *what*) is blocked on
+  on-device touch-event access this platform doesn't expose without
+  root. Eye tracking is a second, independent path to the same
+  question: where the user is looking, at the moment they name a
+  choice by voice, correlated against the known screen region for each
+  option — the same "map a point to a region" logic REQ-M8 already
+  uses, with gaze position as the point source instead of a touch
+  coordinate. Front-camera gaze estimation is a normal Android
+  capability (no root, no `/dev/input`), so this is plausibly more
+  achievable on-device than REQ-M8's own approach, not just an
+  alternative for its own sake.
+  - **Already the accepted category, not a new one — REQ-VAL2 names it
+    by name.** "External switch/eye-tracking controllers" is listed
+    there as already-accepted assistive tech precedent. This
+    requirement is that category, not a departure from it.
+  - **Disambiguates the user's own already-expressed intent; does not
+    choose for them.** The user names *what* they want by voice
+    ("select the SSR card"); gaze only supplies *which of several
+    identical-looking instances* they meant. This is the same shape as
+    REQ-M8's raw touch coordinate — a locational signal, not an
+    evaluative judgment — so it doesn't cross into REQ-VAL9's
+    definition of a recommendation. It also isn't a REQ-VAL8 "default":
+    it resolves a choice the user is actively making right now, not a
+    pre-fill for one they haven't.
+  - **REQ-VAL7 applies at full strength — gaze estimation is noisy, so
+    a gaze-narrowed candidate still requires the same double-
+    confirmation any voice selection would, never an auto-commit.**
+    A few degrees of estimation error is real pixel-level uncertainty
+    at normal phone viewing distance, especially against small or
+    closely-spaced on-screen regions (REQ-M9's per-layout-bucket
+    geometry work applies here too — gaze target regions need the same
+    per-device calibration tap targets already do). Gaze narrows the
+    candidate set; REQ-V4/V12's existing arm-then-confirm flow is still
+    what commits it.
+  - **Camera access is a new, more sensitive permission surface than
+    anything else in this app — held to REQ-S1/S3/S4's existing
+    discipline, not a carve-out from it.** Camera use is structurally
+    scoped to this one optional, off-by-default feature — not requested
+    at all unless the user explicitly enables it, and gated the same
+    build-time-safe way REQ-S3 already requires for other sensitive
+    surfaces. Frames are processed live, on-device, for gaze estimation
+    only; none are stored, logged, or reused for any other purpose —
+    same "no raw content survives past its immediate use" discipline
+    REQ-S3/S4 already hold voice transcripts and OCR text to.
+  - **Off by default, explicit opt-in — REQ-A11's reconciliation test
+    applies the same as any other optional capability.** Enabling it is
+    the user's own explicit choice to trade camera access for this
+    specific disambiguation help; nothing about this requirement
+    changes what UMAssisted does when it's off.
+  - **Not yet spiked.** Exact on-device gaze-estimation mechanism (a
+    front-camera ML model, e.g. via ML Kit or a comparable on-device
+    face/iris landmark detector — REQ-M4 precedent for "on-device,
+    bundled, no network" model selection applies here too), calibration
+    needs (seating position/device angle likely require a short
+    per-session calibration step), and accuracy at this game's actual
+    option spacing are all open — same "documented requirement, not yet
+    built" posture as REQ-M13/M14/M15.
 - **REQ-M9 — Fixed tap coordinates (window-fraction or otherwise) must be
   captured and maintained per layout bucket, not assumed to hold across
   all screen sizes/aspect ratios from a single dev-device capture.**
