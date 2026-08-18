@@ -933,6 +933,73 @@ barrier, not the game's difficulty itself.
     confidence gate as a fourth signal, or a standalone pre-check like
     REQ-M12's steady-state check) is an implementation decision, not
     decided here.
+- **REQ-M15 — Prefer position-anchored, structural signals over
+  whole-screen keyword-anywhere OCR matching as the primary way to
+  identify a screen. A screen's title-bar region (and any decorative
+  marker fixed to it) is the single most important such signal and
+  should be checked first.** Not a hypothetical improvement — direct
+  evidence from a live bug this session: `startCareer`'s "home: open
+  Career" step required the literal substring "career" to appear
+  *anywhere* in the full-screen OCR blob. A live capture (2026-08-17)
+  showed the game's actual home screen with the entire bottom nav
+  correctly read (Enhance/Story/Home/Race/Scout, 5/5) but the large,
+  stylized "CAREER" button text missing from that same capture's OCR
+  output entirely — one bad frame was enough to exhaust the macro's
+  whole retry budget and stop with nothing dispatched. Whole-blob
+  substring matching has no way to distinguish "this specific expected
+  label misread" from "this screen isn't what I think it is" — every
+  word is just one more coin flip on the same unstructured guess.
+  - **The concrete motivating case: a live screen currently titled
+    "Enhance," decorated with a horseshoe that flanks the title text.**
+    Reported live, same session, distinct from the corpus captures
+    this document otherwise cites — this game consistently uses a
+    fixed title-bar region plus a decorative glyph as part of how it
+    marks "this is the X screen" to the player. That's exactly the
+    kind of stable, position-anchored, high-signal-per-pixel region
+    REQ-M6's whole-screen approach doesn't specifically exploit today.
+  - **Two components, not one.** (1) OCR restricted to the title-bar
+    region alone — narrower crop, cleaner signal, cheaper than
+    full-screen OCR, and a title mismatch is unambiguous evidence
+    rather than one word lost in a sea of banner/button/stat text. (2)
+    A decorative marker at a fixed position relative to the title
+    (the horseshoe in the live example) as a corroborating signal —
+    this is REQ-M14's color/key-position technique applied
+    specifically to the title region rather than elsewhere on screen.
+    Neither component depends on the other; a screen with a reliable
+    title but no distinct decoration, or vice versa, still benefits.
+  - **Priority order this establishes: title-bar region first, then
+    REQ-M14's color/key-position signals, then whole-screen OCR/fuzzy
+    match last, not first.** This reorders REQ-M6's existing "OCR
+    fuzzy-match primary, visual match secondary" framing rather than
+    replacing it — whole-screen text matching remains necessary for
+    screens with no stable title region (mid-list content, generic
+    dialogs) and stays as the fallback REQ-M6 already specifies. What
+    changes is which signal gets tried, and trusted, first.
+  - **Ties into REQ-M13's graph edges: an edge already knows what
+    screen it's supposed to lead to, so use that as a prediction, not
+    just a hope.** Directly answers a live question this session: does
+    predicting the next screen from where the user (or macro) tapped
+    help? Yes — a REQ-M13 edge fired by a specific tap already encodes
+    "this action, from this node, goes to that node." The destination
+    node's title-bar signal (this requirement) becomes a targeted,
+    single-hypothesis check after dispatch — "did the title become
+    what this edge predicted," a narrow verify — rather than a blind
+    full reclassification against the whole corpus. Also strengthens
+    REQ-SF7's post-dispatch confirmation (built this session): that
+    check currently only asks "did the screen change at all"; a
+    predicted destination lets it ask the sharper "did it change to
+    the *right* thing," catching a dispatch that changed something but
+    landed somewhere unexpected, not just one that changed nothing.
+  - **Needs REQ-M9's per-layout-bucket coordinate work regardless.**
+    The title-bar region's crop coordinates are exactly the kind of
+    geometry REQ-M9 already requires be captured per device/aspect-
+    ratio bucket rather than hardcoded from one dev-device capture —
+    no new open question, just another consumer of that same work.
+  - **Not yet built.** Documented from the live evidence above; needs
+    a real capture of the title-bar region's exact bounds and a survey
+    of which screens do/don't carry a reliable title + decoration
+    before implementation (same "buildable now vs. needs a corpus"
+    split OQ-49 already applies elsewhere in this document).
   - **Buildable now, same caveat as REQ-M9's tap-map work: key
     positions need per-layout coordinates.** REQ-M9/OQ-46 already covers
     the general problem of coordinates varying across device/aspect-
