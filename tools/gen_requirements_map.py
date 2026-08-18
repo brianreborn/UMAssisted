@@ -406,6 +406,12 @@ def build_html(sections: list[dict], edges: list[dict], nodes: list[dict]) -> st
     position: relative; overflow: hidden; min-width: 0;
   }}
   #cy {{ width: 100%; height: 100%; }}
+  #emptyState {{
+    position: absolute; inset: 0; z-index: 1;
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    gap: 10px; text-align: center; padding: 24px; color: var(--muted); font-size: 13px;
+  }}
+  #emptyState p {{ margin: 0; max-width: 420px; line-height: 1.5; }}
   #hint {{
     position: absolute; left: 12px; bottom: 10px; z-index: 2;
     font-size: 11px; color: var(--muted); pointer-events: none;
@@ -443,8 +449,11 @@ def build_html(sections: list[dict], edges: list[dict], nodes: list[dict]) -> st
 <body>
 <header>
   <h1>UMAssisted requirements map</h1>
-  <span class="meta">tree = doc structure · arrows = relationships · click → GitHub line</span>
+  <span class="meta">tree = doc structure · click an item to focus on it + what it references · click → GitHub line</span>
   <div class="controls">
+    <label title="When on, the graph shows only the selected item and its direct references, laid out compactly. Uncheck to see everything at once (can be wide).">
+      <input type="checkbox" id="focusToggle" checked/> focus on selection
+    </label>
     <input type="search" id="filter" placeholder="Filter id/title…" />
     <label><input type="checkbox" data-edge="resolves" checked/> resolves</label>
     <label><input type="checkbox" data-edge="see" checked/> see/per</label>
@@ -467,7 +476,11 @@ def build_html(sections: list[dict], edges: list[dict], nodes: list[dict]) -> st
 <nav id="tree">{''.join(tree_parts)}</nav>
 <div id="cywrap">
   <div id="cy"></div>
-  <div id="hint">Drag · scroll zoom · click node for detail · arrows are semantic, not parent/child</div>
+  <div id="emptyState">
+    <p>Pick a requirement or open question from the list on the left (or search above) to see it and everything it directly references.</p>
+    <p><button type="button" id="showFullGraph" class="linkish">Show the entire graph instead</button> — can be wide with {len(nodes)} items.</p>
+  </div>
+  <div id="hint">Drag · scroll zoom · click node for detail · arrows are semantic, not parent/child · center node = current focus</div>
 </div>
 <aside id="detail"><p class="empty">Select a requirement or open question.</p></aside>
 
@@ -530,6 +543,23 @@ function nodeMatchesMilestones(n, active) {{
   return ms.some(m => active.has(m));
 }}
 
+// Focus mode: show one item + its direct references instead of the whole
+// (wide, shallow) graph — the default view, since most items only chain 1-2
+// hops deep and the full graph mostly spreads sideways rather than down.
+let focusId = null;
+function isFocusOn() {{
+  return document.getElementById('focusToggle').checked;
+}}
+function neighborIds(id, groups) {{
+  const ids = new Set([id]);
+  for (const e of DATA.edges) {{
+    if (!groups.has(edgeGroup(e.kind))) continue;
+    if (e.from === id) ids.add(e.to);
+    if (e.to === id) ids.add(e.from);
+  }}
+  return ids;
+}}
+
 function visibleNodeIds() {{
   const q = document.getElementById('filter').value.trim().toLowerCase();
   const sec = sectionSelect.value;
@@ -550,8 +580,15 @@ function visibleNodeIds() {{
 }}
 
 function buildElements() {{
-  const ids = visibleNodeIds();
   const groups = enabledGroups();
+  // Focus mode overrides the search/section/milestone filters for the GRAPH
+  // specifically (the tree on the left keeps using those as before) — the
+  // point of focusing on an item is to see its real neighborhood regardless
+  // of whatever filter happens to be active, so it's never a confusing
+  // empty/partial result. No selection yet -> empty graph (see emptyState).
+  const ids = (isFocusOn())
+    ? (focusId ? neighborIds(focusId, groups) : new Set())
+    : visibleNodeIds();
   const els = [];
   const activeMs = activeMilestones();
   for (const n of DATA.nodes) {{
@@ -575,6 +612,7 @@ function buildElements() {{
         snippet: n.snippet || '',
         milestones: ms,
         milestoneHit: isMilestoneHit ? 'true' : '',
+        isFocusRoot: (n.id === focusId) ? 'true' : '',
       }},
       style: {{ 'background-color': color }},
     }});
@@ -602,15 +640,11 @@ cytoscape.use(cytoscapeDagre);
 
 const cy = cytoscape({{
   container: document.getElementById('cy'),
-  elements: buildElements(),
-  layout: {{
-    name: 'dagre',
-    rankDir: 'TB',
-    nodeSep: 24,
-    rankSep: 48,
-    edgeSep: 12,
-    padding: 20,
-  }},
+  // Real elements/layout are populated by relayout() at the bottom of this
+  // script, once every function it needs (buildElements, currentLayout) is
+  // defined — avoids duplicating the same population logic here.
+  elements: [],
+  layout: {{ name: 'null' }},
   style: [
     {{
       selector: 'node',
@@ -677,16 +711,40 @@ const cy = cytoscape({{
         'border-style': 'double',
       }},
     }},
+    {{
+      selector: 'node[isFocusRoot = "true"]',
+      style: {{
+        'border-width': 3,
+        'border-color': '#7eb6ff',
+        'border-style': 'solid',
+        width: 88,
+        height: 34,
+        'font-size': 11,
+      }},
+    }},
   ],
   minZoom: 0.2,
   maxZoom: 3,
   wheelSensitivity: 0.25,
 }});
 
-function relayout() {{
-  cy.elements().remove();
-  cy.add(buildElements());
-  cy.layout({{
+// Focused view: the selected item at the center, its direct references in a
+// ring around it — small and inherently compact, never sprawls sideways the
+// way a wide/shallow dagre tree does. Full-graph view (focus off) keeps the
+// original top-to-bottom dagre layout, since that's still the more readable
+// choice once you actually want everything on screen at once.
+function currentLayout() {{
+  if (isFocusOn() && focusId) {{
+    return {{
+      name: 'concentric',
+      concentric: node => node.id() === focusId ? 10 : 1,
+      levelWidth: () => 1,
+      minNodeSpacing: 50,
+      padding: 30,
+      animate: false,
+    }};
+  }}
+  return {{
     name: 'dagre',
     rankDir: 'TB',
     nodeSep: 24,
@@ -694,8 +752,22 @@ function relayout() {{
     edgeSep: 12,
     padding: 20,
     animate: false,
-  }}).run();
+  }};
+}}
+
+function relayout() {{
+  cy.elements().remove();
+  const els = buildElements();
+  cy.add(els);
+  const isEmpty = els.length === 0;
+  // Guard rather than trust dagre/concentric to no-op cleanly on zero nodes.
+  if (!isEmpty) {{
+    cy.layout(currentLayout()).run();
+    cy.fit(cy.elements(), 40);
+  }}
   filterTree();
+  document.getElementById('emptyState').style.display = isEmpty ? 'flex' : 'none';
+  document.getElementById('cy').style.visibility = isEmpty ? 'hidden' : 'visible';
 }}
 
 function filterTree() {{
@@ -730,6 +802,12 @@ function showDetail(id) {{
     li.classList.add('active');
     li.scrollIntoView({{ block: 'nearest' }});
   }}
+
+  // Remembered even when focus mode is off, so re-enabling it picks up
+  // wherever the user last looked instead of snapping back to empty.
+  focusId = id;
+  if (isFocusOn()) relayout();
+
   const node = cy.getElementById(id);
   if (node.nonempty()) {{
     cy.nodes().unselect();
@@ -770,9 +848,16 @@ function escapeHtml(s) {{
 
 function selectId(id) {{
   showDetail(id);
-  const node = cy.getElementById(id);
-  if (node.nonempty()) {{
-    cy.animate({{ center: {{ eles: node }}, zoom: Math.max(cy.zoom(), 1.1) }}, {{ duration: 200 }});
+  // In focus mode, showDetail's relayout()->fit() already framed the new
+  // (small) neighborhood correctly — zooming in further here would fight
+  // that and can clip neighbor nodes out of view. Only needed in full-graph
+  // mode, where the graph doesn't rebuild on selection and this is what
+  // actually centers/zooms into the clicked node.
+  if (!isFocusOn()) {{
+    const node = cy.getElementById(id);
+    if (node.nonempty()) {{
+      cy.animate({{ center: {{ eles: node }}, zoom: Math.max(cy.zoom(), 1.1) }}, {{ duration: 200 }});
+    }}
   }}
 }}
 
@@ -784,8 +869,12 @@ document.querySelectorAll('.controls input, #sectionFilter, #filter').forEach(el
   el.addEventListener('change', relayout);
   el.addEventListener('input', () => {{ if (el.id === 'filter') relayout(); }});
 }});
+document.getElementById('showFullGraph').addEventListener('click', () => {{
+  document.getElementById('focusToggle').checked = false;
+  relayout();
+}});
 
-filterTree();
+relayout();
 </script>
 </body>
 </html>
