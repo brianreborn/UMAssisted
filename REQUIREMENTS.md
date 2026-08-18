@@ -4280,6 +4280,18 @@ decision point recurs. That's a selection (replay), not a choice
     regardless of how well-reasoned its logic is — good reasoning is
     exactly what a recommendation is, and REQ-A11/REQ-VAL2 already rule
     that out categorically, not on a case-by-case quality basis.
+  - **Scoped per decision key — the stored set, taken as a whole, may
+    not be aggregated across *different* decisions either.** REQ-VAL6
+    already forecloses learning a pattern from repeated instances of
+    *one* decision; this closes the adjacent case: REQ-A4's stored
+    defaults are a set of independent (decision key -> single value)
+    entries, not a dataset. Reading them collectively to infer anything
+    ("this user tends to pick safe") and applying that inference to a
+    *different* decision than the one each value was recorded for is
+    the same violation REQ-VAL6 names, just shaped differently — cross-
+    key aggregation instead of cross-time aggregation of the same key.
+    Each stored value may only ever answer "what did the user pick last
+    time for *this* decision" — never "what does the user tend to pick."
   - **Distinct from REQ-VAL6's static-data question.** REQ-VAL6 is about
     what *facts* are fair game to consult when executing a rule the user
     named (e.g. "take the energy" — a guaranteed, non-random value).
@@ -4288,6 +4300,49 @@ decision point recurs. That's a selection (replay), not a choice
     selection rule the user invokes fresh each time (REQ-A14/A15) isn't
     a "default" in this requirement's sense at all — it's a live
     instruction, already covered by REQ-VAL6/VAL7, not a pre-fill.
+- **REQ-VAL9 — Operational definition of "recommendation," since REQ-A11
+  and every REQ-VAL requirement above use the word without ever pinning
+  it down mechanically.** A UMAssisted output is a recommendation, and
+  therefore prohibited outside the narrow exceptions REQ-VAL6/VAL8
+  already name, if it does **both** of the following:
+  1. **It reflects an evaluative judgment UMAssisted computed** — any
+     comparison, ranking, scoring, or probability-weighting across two
+     or more alternatives — **that the user did not explicitly specify
+     as the rule to apply in this instance.** ("Explicitly specify, this
+     instance" is REQ-VAL6/VAL8's existing test — REQ-A14/A15's named
+     rules pass it; an inferred pattern does not.)
+  2. **That judgment reaches the user in any form** — not only an
+     explicit statement ("pick X," "X is best"), but any implicit
+     signal that correlates with it: highlighting, badging, relative
+     size/emphasis/color, naming only the option that passes some
+     computed test while silently omitting the others, or **display/
+     readout order, when that order is UMAssisted's own choice rather
+     than the game's own on-screen layout.** An implicit signal is still
+     a recommendation; obscuring it (e.g. randomizing an otherwise
+     value-correlated order) doesn't change that a judgment was computed
+     and surfaced, it just makes the surfacing harder to notice —
+     working against REQ-VAL2's auditability criterion rather than
+     satisfying REQ-VAL5/VAL8. The fix for an order that would
+     correlate with a computed judgment is to not compute the judgment
+     that would produce it, not to launder its visibility afterward.
+  - **What does *not* meet this definition — the boundary matters as
+    much as the rule.** (a) Reading back a value the game already
+    displays, verbatim or clarified for audibility, with no comparison
+    language (REQ-VAL5's "clearer readout" carve-out). (b) Executing a
+    rule the user explicitly named for this instance (REQ-A14/A15).
+    (c) Mirroring the game's own highlighted/default state, or replaying
+    the user's own specific past choice (REQ-VAL8's two sources). (d)
+    **Classifying an option's structure without asserting which is
+    better** — REQ-A14's "gamble" vs. "safe" labeling states a fact
+    about *shape* (random vs. fixed outcome), not a preference between
+    them; calling something a gamble is not recommending against it.
+  - **The test in one sentence, for anything not covered above:** does
+    this output exist because UMAssisted compared alternatives and this
+    is what came out on top — however it's phrased, sized, colored, or
+    ordered? If yes, it's a recommendation and REQ-A11 already forbids
+    it regardless of source data quality; if the output would be
+    identical whether or not UMAssisted had ever compared the
+    alternatives, it isn't one.
 ### 8.1a First-run / Onboarding (gap stub)
 
 - **REQ-ON1 — First-run must get AccessibilityService, overlay, and mic
