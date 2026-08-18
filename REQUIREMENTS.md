@@ -4254,6 +4254,40 @@ decision point recurs. That's a selection (replay), not a choice
     (REQ-VAL2's "auditable" criterion, applied to the uncertain case
     specifically) — not quietly doing nothing while giving no
     indication anything was recognized at all.
+- **REQ-VAL8 — Exactly two legitimate sources of a "default" selection:
+  the game's own pre-selected/highlighted option, and the user's own
+  last-chosen selection. No third kind exists, ever.** Names, as a
+  closed set, a distinction that REQ-V16 and REQ-A4/A8/A21 already each
+  independently practice without it being stated as one philosophy:
+  - **Game default: the game itself already decided, UMAssisted just
+    executes it.** REQ-V16's "race the scheduled race" selects "the
+    **highlighted default / scheduled** race row" — a cursor position
+    or focus state the game's own UI renders, not anything UMAssisted
+    computed. Using it is fine for the same reason REQ-VAL5 draws its
+    line at the unmodified display: it's reading what's already shown,
+    not deriving a judgment.
+  - **User default: the user's own prior, explicit choice, replayed
+    exactly.** REQ-A4/A8/A21's whole mechanism — record what the user
+    picked, replay it later at their request. Not a new category, just
+    named here as the second (and last) legitimate source.
+  - **The closure is the point.** No default may ever be a third kind:
+    not "the option most other players pick," not "the option with the
+    best expected value," not an average or a learned pattern across
+    the user's own history (REQ-VAL6 already forecloses this one by
+    name). If a future feature wants to pre-fill a choice and it isn't
+    quoting the game's own highlighted state or replaying a specific
+    past instance of the user's own choice, it fails this requirement
+    regardless of how well-reasoned its logic is — good reasoning is
+    exactly what a recommendation is, and REQ-A11/REQ-VAL2 already rule
+    that out categorically, not on a case-by-case quality basis.
+  - **Distinct from REQ-VAL6's static-data question.** REQ-VAL6 is about
+    what *facts* are fair game to consult when executing a rule the user
+    named (e.g. "take the energy" — a guaranteed, non-random value).
+    This requirement is about what may pre-fill a choice when the user
+    hasn't specified anything new for *this* instance. A named
+    selection rule the user invokes fresh each time (REQ-A14/A15) isn't
+    a "default" in this requirement's sense at all — it's a live
+    instruction, already covered by REQ-VAL6/VAL7, not a pre-fill.
 ### 8.1a First-run / Onboarding (gap stub)
 
 - **REQ-ON1 — First-run must get AccessibilityService, overlay, and mic
