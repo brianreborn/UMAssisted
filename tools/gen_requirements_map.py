@@ -81,16 +81,30 @@ def family(req_id: str) -> str:
     return m.group(1) if m else "?"
 
 
+def slugify(title: str, seen: set[str]) -> str:
+    """Readable, URL-safe, unique-within-this-doc anchor for a section title."""
+    s = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-") or "section"
+    slug = s
+    n = 2
+    while slug in seen:
+        slug = f"{s}-{n}"
+        n += 1
+    seen.add(slug)
+    return slug
+
+
 def parse(text: str) -> tuple[list[dict], list[dict], list[dict]]:
     """Return (sections_with_nodes, edges, flat_nodes)."""
     # Build section ranges
     sections: list[dict] = []
+    seen_slugs: set[str] = set()
     for m in SECTION_RE.finditer(text):
         level = len(m.group(1))
         title = m.group(2).strip()
         sections.append(
             {
                 "id": f"sec-{len(sections)}",
+                "slug": slugify(title, seen_slugs),
                 "level": level,
                 "title": title,
                 "line": line_no(text, m.start()),
@@ -293,7 +307,7 @@ def build_html(sections: list[dict], edges: list[dict], nodes: list[dict]) -> st
                 f"</button></li>"
             )
         tree_parts.append(
-            f'<details open style="{indent}">'
+            f'<details open id="{html.escape(sec["slug"])}" style="{indent}">'
             f"<summary class=sect data-line={sec['line']}>"
             f"{html.escape(sec['title'])} "
             f"<span class=count>{len(sec['nodes'])}</span></summary>"
@@ -303,6 +317,9 @@ def build_html(sections: list[dict], edges: list[dict], nodes: list[dict]) -> st
     data = {
         "nodes": nodes,
         "edges": edges,
+        "sections": [
+            {"slug": s["slug"], "title": s["title"]} for s in sections if s["nodes"]
+        ],
         "github": GITHUB,
     }
 
@@ -359,6 +376,13 @@ def build_html(sections: list[dict], edges: list[dict], nodes: list[dict]) -> st
     padding: 8px 10px 24px; background: #121a24;
   }}
   #tree details {{ margin: 4px 0; }}
+  #tree details.anchor-flash > summary.sect {{
+    animation: anchorFlash 1.2s ease-out;
+  }}
+  @keyframes anchorFlash {{
+    from {{ background: rgba(126,182,255,0.35); }}
+    to {{ background: transparent; }}
+  }}
   #tree summary.sect {{
     cursor: pointer; color: var(--muted); font-size: 12px; font-weight: 600;
     list-style: none;
@@ -808,6 +832,12 @@ function showDetail(id) {{
   focusId = id;
   if (isFocusOn()) relayout();
 
+  // Keep the URL bar shareable/bookmarkable at whatever's currently shown.
+  // replaceState (not pushState/location.hash) so browsing several items in
+  // a row doesn't spam browser history, and so this can't itself trigger the
+  // hashchange listener below.
+  history.replaceState(null, '', '#' + encodeURIComponent(id));
+
   const node = cy.getElementById(id);
   if (node.nonempty()) {{
     cy.nodes().unselect();
@@ -874,7 +904,35 @@ document.getElementById('showFullGraph').addEventListener('click', () => {{
   relayout();
 }});
 
-relayout();
+// Deep links: #REQ-ID / #OQ-ID focuses that item (reuses the exact same path
+// a click would); #section-slug scrolls to and briefly highlights that part
+// of the tree without changing the graph. showDetail() keeps the hash in
+// sync as you navigate, so whatever's on screen is always the current URL.
+function hashTarget() {{
+  return decodeURIComponent((location.hash || '').replace(/^#/, ''));
+}}
+function scrollToSection(slug) {{
+  const el = document.getElementById(slug);
+  if (!el || el.tagName !== 'DETAILS') return false;
+  el.open = true;
+  el.scrollIntoView({{ block: 'start' }});
+  el.classList.remove('anchor-flash');
+  void el.offsetWidth; // restart the animation if the same section is hit twice
+  el.classList.add('anchor-flash');
+  return true;
+}}
+function applyHash() {{
+  const h = hashTarget();
+  if (!h) return false;
+  if (DATA.nodes.some(n => n.id === h)) {{
+    if (h !== focusId) selectId(h);
+    return true;
+  }}
+  return scrollToSection(h);
+}}
+window.addEventListener('hashchange', applyHash);
+
+if (!applyHash()) relayout();
 </script>
 </body>
 </html>
