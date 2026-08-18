@@ -4041,7 +4041,54 @@ decision point recurs. That's a selection (replay), not a choice
   feature fails the internal criteria, it is cut or rescoped (REQ-VAL3)
   regardless of outside opinion; if it passes, it is not blocked waiting
   for a forum thread.
-
+- **REQ-VAL5 — Information surfaced to the user must come from the
+  current, unmodified game display — never from a source the player
+  themselves couldn't see by looking at the same screen.** Makes
+  REQ-VAL2's "no capability beyond manual play" concrete for the
+  specific failure mode of *information* advantage, not just action
+  advantage: no reading the game's internal memory/strings, no
+  intercepting or decoding its network protocol, no source that reveals
+  a decided-but-not-yet-shown outcome (a race result, an event branch,
+  a training roll) before the game itself shows it. OCR of what's
+  already rendered on screen is the ceiling, not a floor to build past.
+  - **Grounded in a real, named counter-example, not a hypothetical.**
+    Reviewed the public README of a third-party Windows/Steam
+    companion tool for this game (`Remezzo/Umamusume-Overseer`,
+    proprietary/closed-source — its own license forbids reverse
+    engineering it, which was respected: only the public README was
+    read, no binary, no decompilation) specifically to check whether
+    its approach had anything to teach this project about *accessing*
+    the running game. It didn't, for two reasons: (1) its core
+    mechanism is process-memory injection on a PC binary — categorically
+    unavailable to us by design (REQ-M1/M2: no root, AccessibilityService
+    only, Android not Windows) — and (2) its headline feature is
+    explicitly reading the game's already-decided outcomes from memory
+    before they're revealed to the player ("the game already decided
+    what happens... Overseer reads that decision before you commit to
+    it") — precisely the information-advantage failure mode this
+    requirement rules out, independent of whether the mechanism were
+    ever technically available to us.
+  - **Its "advisor" recommends; ours must not.** The same tool
+    highlights a recommended choice and states things like "Rest and
+    recover first — this fails 73% of the time." That crosses REQ-A11's
+    line regardless of whether the underlying number is itself
+    fair game — recommending *is* deciding for the user. Any future
+    "advisor"-shaped feature here (see REQ-T1/REQ-A17's overlay) may
+    surface numbers the game *already displays* more clearly/audibly —
+    e.g. reading back a training tile's own on-screen failure percentage
+    — but must never rank, highlight-as-best, or state what the user
+    should do. Advice is a recommendation; a clearer readout of what's
+    already on screen is not.
+  - **Privacy claims are evaluated at the whole-product level, not
+    per-component.** The same tool's README makes a "private by
+    architecture / never touches your account server-side" claim in one
+    section while stating two sections later that it ships as part of a
+    suite whose other tools ("Icarus," a career-automation bot; "Fortuna,"
+    an account reroller) do talk to the game's servers directly. A
+    privacy claim scoped to one binary while an explicitly-bundled
+    sibling does the opposite isn't rigorous. REQ-P3/REQ-S1 already
+    describe this project as a single, non-suite, local-only tool — this
+    is a note to stay that way, not a gap to close.
 ### 8.1a First-run / Onboarding (gap stub)
 
 - **REQ-ON1 — First-run must get AccessibilityService, overlay, and mic
