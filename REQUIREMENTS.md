@@ -4126,6 +4126,16 @@ decision point recurs. That's a selection (replay), not a choice
     together, catching drift or interaction effects a feature-by-feature
     check could miss — not discovering for the first time whether any
     single feature belongs.
+  - **Run together with REQ-QA1/QA2/QA3 as one 1.0-final checklist, not
+    independently satisfiable.** Found via audit: §8.3's coverage and
+    security gates cross-reference each other and REQ-V7, but nothing
+    tied them to this requirement — someone could in principle run the
+    coverage and security passes, see green, and ship, without this
+    pass ever having happened. All four gate the same milestone for a
+    reason: functional completeness and a locked-down permission
+    surface say nothing about whether what was built stayed on the
+    assistance side of REQ-VAL2's line. 1.0 final requires all four,
+    not whichever subset happened to get run.
 - **REQ-VAL2 — Proposed criteria for that validation** (draft, to be
   refined during the validation pass itself, not treated as final):
   - **No capability beyond what the user could already do manually.**
@@ -4197,16 +4207,34 @@ decision point recurs. That's a selection (replay), not a choice
     person — REQ-VAL4's internal-only posture must be re-examined at
     that time, not silently assumed to still apply. Not a live concern
     today; a trigger so it doesn't get missed if the situation changes.
-- **REQ-VAL5 — Information surfaced to the user must come from the
-  current, unmodified game display — never from a source the player
-  themselves couldn't see by looking at the same screen.** Makes
-  REQ-VAL2's "no capability beyond manual play" concrete for the
-  specific failure mode of *information* advantage, not just action
-  advantage: no reading the game's internal memory/strings, no
-  intercepting or decoding its network protocol, no source that reveals
-  a decided-but-not-yet-shown outcome (a race result, an event branch,
-  a training roll) before the game itself shows it. OCR of what's
-  already rendered on screen is the ceiling, not a floor to build past.
+- **REQ-VAL5 — Information surfaced to the user must come from what the
+  game itself has already presented to the player, on whatever channel
+  — never from a source the player themselves couldn't perceive through
+  the same, unmodified presentation.** Makes REQ-VAL2's "no capability
+  beyond manual play" concrete for the specific failure mode of
+  *information* advantage, not just action advantage: no reading the
+  game's internal memory/strings, no intercepting or decoding its
+  network protocol, no source that reveals a decided-but-not-yet-shown
+  outcome (a race result, an event branch, a training roll) before the
+  game itself shows it. OCR of what's already rendered on screen is the
+  ceiling, not a floor to build past.
+  - **"Display" means every channel the game presents through, not
+    only visual — written broadly on purpose, not just to cover the
+    OCR pipeline that happens to exist today.** Found via audit: this
+    requirement's own examples (race result, event branch, training
+    roll) are all visual/OCR-shaped because that's the only channel
+    UMAssisted currently reads, but the underlying principle — no
+    information advantage beyond what the player themselves already
+    perceives from the game's own output — doesn't depend on the
+    channel. OQ-48 already flags game *audio* capture as a live,
+    revisit-gated candidate (set aside so far for API-friction reasons,
+    not ruled out permanently) for a different, ethically-neutral
+    purpose (dispatch confirmation); if that's ever revisited, or if
+    audio is ever considered as an *information* source the way OCR is
+    now, this requirement already governs it the same way — audio the
+    game has already played is the ceiling, audio decoded from a
+    protocol or predicted ahead of playback is not, exactly parallel to
+    the visual case.
   - **Grounded in a real, named counter-example, not a hypothetical.**
     Reviewed the public README of a third-party Windows/Steam
     companion tool for this game (`Remezzo/Umamusume-Overseer`,
