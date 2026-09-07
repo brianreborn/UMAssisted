@@ -1,0 +1,35 @@
+# Public requirements repo CI.
+# Regenerates the requirements map and fails if docs/ (GitHub Pages) is stale.
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  requirements-map:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Regenerate requirements map
+        run: python tools/gen_requirements_map.py
+
+      - name: Fail if generated Pages site is stale
+        run: |
+          git add -A -- docs/index.html docs/requirements-map.html requirements-map.html
+          if ! git diff --cached --quiet -- docs/index.html docs/requirements-map.html requirements-map.html; then
+            echo "::error::Generated map is stale. Run: python3.12 tools/gen_requirements_map.py"
+            git --no-pager diff --cached --stat
+            exit 1
+          fi

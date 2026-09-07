@@ -1,5 +1,7 @@
 # UMAssisted
 
+[![CI](https://github.com/brianreborn/UMAssisted/actions/workflows/ci.yml/badge.svg)](https://github.com/brianreborn/UMAssisted/actions/workflows/ci.yml)
+
 Accessibility software to reduce physical-strain barriers in Umamusume Pretty
 Derby for players with limited mobility.
 
@@ -18,6 +20,7 @@ not execute the HTML/JS below, it can only show the raw source).
   ```
   python3.12 tools/gen_requirements_map.py
   ```
+  GitHub Actions CI re-runs this generator and fails if `docs/` is stale.
 - [`tools/`](tools/) — the map generator and dev-capture scripts.
 - [`screenshots/`](screenshots/) — labeled screen captures the requirements
   and corpus work are grounded in.
